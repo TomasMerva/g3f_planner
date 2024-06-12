@@ -11,6 +11,7 @@ python = ">=3.8, <3.10"
 fabrics = {git = "https://github.com/tud-amr/fabrics.git"}
 robotmodels = { git = "https://github.com/maxspahn/robotmodels.git"}
 urdfenvs = "^0.9.13"
+pytorch_kinematics = "^0.6.1"
 
 [build-system]
 requires = ["poetry-core"]
