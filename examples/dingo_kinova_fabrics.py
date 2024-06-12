@@ -111,8 +111,8 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
         urdf = file.read()
     forward_kinematics = GenericURDFFk(
         urdf,
-        rootLink="base_link",
-        end_link="end_effector_link",
+        root_link="base_link",
+        end_links=["end_effector_link"],
     )
     planner = ParameterizedFabricPlanner(
         degrees_of_freedom,
@@ -182,5 +182,5 @@ def run_kinova_example(n_steps=5000, render=True, dof=6):
 
 
 if __name__ == "__main__":
-    dof = 6
+    dof = 6+3
     res = run_kinova_example(n_steps=5000, dof=dof)
