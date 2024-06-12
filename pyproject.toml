@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "grasp-fabrics"
+version = "0.1.0"
+description = ""
+authors = ["Tomas Merva"]
+readme = "README.md"
+packages = [{include = "grasp_fabrics"}]
+
+[tool.poetry.dependencies]
+python = ">=3.8, <3.10"
+fabrics = {git = "https://github.com/tud-amr/fabrics.git"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
