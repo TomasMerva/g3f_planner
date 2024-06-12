@@ -10,7 +10,7 @@ from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
-
+import copy
 ROBOTTYPE = 'dingo_kinova'
 ROBOTMODEL = 'dingo_kinova'
 
@@ -70,9 +70,11 @@ def initalize_environment(render=True, nr_obst: int = 0):
     for sub_goal in goal.sub_goals():
         env.add_goal(sub_goal)
     env.set_spaces()
-    # collision_radii = {1:0.1, 2:0.1, 3: 0.1, 4: 0.1, 5: 0.1, 6: 0.1}
-    # for collision_link_nr in collision_radii.keys():
-    #      env.add_collision_link(0, collision_link_nr, shape_type='sphere', size=[0.10])
+    collision_keys_robot0 = copy.deepcopy(robots[0]._urdf_joints) #[-2:]
+    collision_keys_robot0.remove(2) #theta
+    collision_keys_robot0.remove(1) #world
+    for collision_link_nr in collision_keys_robot0:
+         env.add_collision_link(0, collision_link_nr, shape_type='sphere', size=[0.10])
     return (env, goal)
 
 
@@ -108,27 +110,32 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
         forward_kinematics,
     )
     collision_links = [
-        "forearm_link",
-        "spherical_wrist_1_link",
-        "spherical_wrist_2_link",
-        "bracelet_link",
-        "end_effector_link"
+        "arm_forearm_link",
+        "arm_lower_wrist_link",
+        "arm_upper_wrist_link",
+        "arm_end_effector_link"
     ]
-    gen3lite_limits = list(np.array([
+    dingo_limits = np.array([
+        [-10, 10],
+        [-10, 10],
+        [-10, 10]]
+    )
+    gen3lite_limits = np.array([
         [-154.1, 154.1],
         [150.1, 150.1],
         [150.1, 150.1],
         [-148.98, 148.98],
         [-144.97, 145.0],
         [-148.98, 148.98]
-    ]) * np.pi/180)
+    ]) * np.pi/180
+    dingo_kinova_limits = list(np.concatenate((dingo_limits, gen3lite_limits)))
     # The planner hides all the logic behind the function set_components.
     planner.set_components(
-        #collision_links=collision_links,
+        collision_links=collision_links,
         goal=goal,
-        number_obstacles=0, #nr_obst,
+        number_obstacles=nr_obst,
         number_plane_constraints=0,
-        #limits=gen3lite_limits,
+        limits=dingo_kinova_limits,
     )
     planner.concretize()
     return planner
@@ -141,10 +148,6 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     action = np.zeros(dof)
     ob, *_ = env.step(action)
 
-    rot_matrix = np.array([[-0.339, -0.784306, -0.51956],
-                           [-0.0851341, 0.57557, -0.813309],
-                           [0.936926, -0.23148, -0.261889]])
-
     for w in range(n_steps):
         ob_robot = ob['robot_0']
 
@@ -153,15 +156,14 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             qdot=ob_robot["joint_state"]["velocity"],
             x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
             weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
-            # x_obst_0=ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
-            # radius_obst_0=ob_robot['FullSensor']['obstacles'][nr_obst]['size'],
-            # x_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst+1]['position'],
-            # radius_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst+1]['size'],
-            # radius_body_end_effector_link = 0.1,
-            # radius_body_bracelet_link = 0.1,
-            # radius_body_spherical_wrist_1_link = 0.1,
-            # radius_body_spherical_wrist_2_link = 0.1,
-            # radius_body_forearm_link=0.1,
+            x_obst_0=ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
+            radius_obst_0=ob_robot['FullSensor']['obstacles'][nr_obst]['size'],
+            x_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst+1]['position'],
+            radius_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst+1]['size'],
+            radius_body_arm_end_effector_link = 0.1,
+            radius_body_arm_upper_wrist_link = 0.1,
+            radius_body_arm_lower_wrist_link = 0.1,
+            radius_body_arm_forearm_link=0.1,
             # constraint_0=np.array([0, 0, 1, 0.0])
         )
 
