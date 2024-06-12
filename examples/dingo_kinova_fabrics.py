@@ -11,17 +11,6 @@ from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 
-"""
-Experiments with Kuka iiwa
-If 
-    static_obst_dict = {
-        "type": "sphere",
-        "geometry": {"position": [0.3, -0.3, 0.5], "radius": 0.1},
-    }
-for the first obstacle, fabrics ends up in a local minima and is unable to
-recover from it. This would be a good case to improve with imitation learning.
-"""
-
 ROBOTTYPE = 'dingo_kinova'
 ROBOTMODEL = 'dingo_kinova'
 
@@ -65,7 +54,7 @@ def initalize_environment(render=True, nr_obst: int = 0):
             "is_primary_goal": True,
             "indices": [0, 1, 2],
             "parent_link": "base_link",
-            "child_link": "end_effector_link",
+            "child_link": "arm_end_effector_link",
             "desired_position": [-0.24355761, -0.75252747, 0.5],
             "epsilon": 0.05,
             "type": "staticSubGoal",
@@ -73,7 +62,7 @@ def initalize_environment(render=True, nr_obst: int = 0):
     }
     goal = GoalComposition(name="goal", content_dict=goal_dict)
     obstacles = [obst1, obst2][0:nr_obst]
-    pos0 = np.array([0.0, 0.8, -1.5, 2.0, 0.0, 0.0])
+    pos0 = np.zeros((9,))
     env.reset(pos=pos0)
     env.add_sensor(full_sensor, [0])
     for obst in obstacles:
@@ -81,9 +70,9 @@ def initalize_environment(render=True, nr_obst: int = 0):
     for sub_goal in goal.sub_goals():
         env.add_goal(sub_goal)
     env.set_spaces()
-    collision_radii = {1:0.1, 2:0.1, 3: 0.1, 4: 0.1, 5: 0.1, 6: 0.1}
-    for collision_link_nr in collision_radii.keys():
-         env.add_collision_link(0, collision_link_nr, shape_type='sphere', size=[0.10])
+    # collision_radii = {1:0.1, 2:0.1, 3: 0.1, 4: 0.1, 5: 0.1, 6: 0.1}
+    # for collision_link_nr in collision_radii.keys():
+    #      env.add_collision_link(0, collision_link_nr, shape_type='sphere', size=[0.10])
     return (env, goal)
 
 
@@ -105,14 +94,14 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
         Degrees of freedom of the robot (default = 7)
     """
     absolute_path = os.path.dirname(os.path.abspath(__file__))
-    robot_model = RobotModel('kinova', model_name='gen3_6dof')
+    robot_model = RobotModel('dingo_kinova', model_name='dingo_kinova')
     urdf_file = robot_model.get_urdf_path()
     with open(urdf_file, "r", encoding="utf-8") as file:
         urdf = file.read()
     forward_kinematics = GenericURDFFk(
         urdf,
         root_link="base_link",
-        end_links=["end_effector_link"],
+        end_links=["arm_end_effector_link"],
     )
     planner = ParameterizedFabricPlanner(
         degrees_of_freedom,
@@ -135,17 +124,17 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
     ]) * np.pi/180)
     # The planner hides all the logic behind the function set_components.
     planner.set_components(
-        collision_links=collision_links,
+        #collision_links=collision_links,
         goal=goal,
-        number_obstacles=nr_obst,
-        number_plane_constraints=1,
-        limits=gen3lite_limits,
+        number_obstacles=0, #nr_obst,
+        number_plane_constraints=0,
+        #limits=gen3lite_limits,
     )
     planner.concretize()
     return planner
 
 
-def run_kinova_example(n_steps=5000, render=True, dof=6):
+def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_obst = 2
     (env, goal) = initalize_environment(render, nr_obst=nr_obst)
     planner = set_planner(goal, nr_obst, degrees_of_freedom=dof)
@@ -164,16 +153,17 @@ def run_kinova_example(n_steps=5000, render=True, dof=6):
             qdot=ob_robot["joint_state"]["velocity"],
             x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
             weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
-            x_obst_0=ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
-            radius_obst_0=ob_robot['FullSensor']['obstacles'][nr_obst]['size'],
-            x_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst+1]['position'],
-            radius_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst+1]['size'],
-            radius_body_end_effector_link = 0.1,
-            radius_body_bracelet_link = 0.1,
-            radius_body_spherical_wrist_1_link = 0.1,
-            radius_body_spherical_wrist_2_link = 0.1,
-            radius_body_forearm_link=0.1,
-            constraint_0=np.array([0, 0, 1, 0.0]))
+            # x_obst_0=ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
+            # radius_obst_0=ob_robot['FullSensor']['obstacles'][nr_obst]['size'],
+            # x_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst+1]['position'],
+            # radius_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst+1]['size'],
+            # radius_body_end_effector_link = 0.1,
+            # radius_body_bracelet_link = 0.1,
+            # radius_body_spherical_wrist_1_link = 0.1,
+            # radius_body_spherical_wrist_2_link = 0.1,
+            # radius_body_forearm_link=0.1,
+            # constraint_0=np.array([0, 0, 1, 0.0])
+        )
 
         action = planner.compute_action(**arguments_dict)
         ob, *_ = env.step(action)
@@ -182,5 +172,5 @@ def run_kinova_example(n_steps=5000, render=True, dof=6):
 
 
 if __name__ == "__main__":
-    dof = 6+3
+    dof = 9
     res = run_kinova_example(n_steps=5000, dof=dof)
