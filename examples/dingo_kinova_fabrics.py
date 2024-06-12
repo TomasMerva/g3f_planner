@@ -19,7 +19,7 @@ import torch
 import time
 
 ROBOTTYPE = 'dingo_kinova'
-ROBOTMODEL = 'dingo_kinova'
+ROBOTMODEL = 'dingo_kinova_gripper'
 
 def initalize_environment(render=True, nr_obst: int = 0):
     """
@@ -28,11 +28,15 @@ def initalize_environment(render=True, nr_obst: int = 0):
     Adds obstacles and goal visualizaion to the environment based and
     steps the simulation once.
     """
-    robot_model = RobotModel('dingo_kinova', model_name=ROBOTMODEL)
-    urdf_file = robot_model.get_urdf_path()
+    robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
+
+    # Robot urdf
+    absolute_path = os.path.dirname(os.path.abspath(__file__))
+    URDF_FILE = absolute_path + "/urdfs/dinova/dinova.urdf"
+    # urdf_file = robot_model.get_urdf_path()
     robots = [
-        GenericUrdfReacher(urdf=urdf_file, mode="acc"),
-        GenericUrdfReacher(urdf=urdf_file, mode="acc"),
+        GenericUrdfReacher(urdf=URDF_FILE, mode="acc"),
+        GenericUrdfReacher(urdf=URDF_FILE, mode="acc"),
     ]
     env: UrdfEnv = UrdfEnv(
         robots=robots,
@@ -65,13 +69,33 @@ def initalize_environment(render=True, nr_obst: int = 0):
     # obst2 = SphereObstacle(name="staticObst", content_dict=static_obst_dict)
     goal_dict = {
         "subgoal0": {
-            "weight": 1.0,
+            "weight": 3.0,
             "is_primary_goal": True,
             "indices": [0, 1, 2],
             "parent_link": "world",
-            "child_link": "arm_end_effector_link",
+            "child_link": "arm_tool_frame",
             "desired_position": [0, -1, 0.5],
             "epsilon": 0.05,
+            "type": "staticSubGoal",
+        },
+        "subgoal1": {
+            "weight": 5.0,
+            "is_primary_goal": False,
+            "indices": [0, 1, 2],
+            "parent_link": "arm_dummy_link",
+            "child_link": "arm_tool_frame",
+            "desired_position": [0, -1, 0.5],
+            "epsilon": 0.03,
+            "type": "staticSubGoal",
+        },
+        "subgoal2": {
+            "weight": 5.0,
+            "is_primary_goal": False,
+            "indices": [0, 1, 2],
+            "parent_link": "arm_dummy_link",
+            "child_link": "arm_orientation_helper_link",
+            "desired_position": [0, -1, 0.5],
+            "epsilon": 0.03,
             "type": "staticSubGoal",
         },
     }
@@ -79,8 +103,8 @@ def initalize_environment(render=True, nr_obst: int = 0):
     # obstacles = [obst1, obst2][0:nr_obst]
 
     pos0 =  np.array([
-                        np.array([-0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0]),
-                        np.array([0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0]),
+                        np.array([-0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]),
+                        np.array([0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]),
                 ])
     
     env.reset(pos=pos0)
@@ -119,14 +143,15 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
         Degrees of freedom of the robot (default = 7)
     """
     absolute_path = os.path.dirname(os.path.abspath(__file__))
-    robot_model = RobotModel('dingo_kinova', model_name=ROBOTMODEL)
-    urdf_file = robot_model.get_urdf_path()
-    with open(urdf_file, "r", encoding="utf-8") as file:
+    URDF_FILE = absolute_path + "/urdfs/dinova/dinova.urdf"
+    # robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
+    # urdf_file = robot_model.get_urdf_path()
+    with open(URDF_FILE, "r", encoding="utf-8") as file:
         urdf = file.read()
     forward_kinematics = GenericURDFFk(
         urdf,
         root_link="world",
-        end_links=["arm_end_effector_link"],
+        end_links=["arm_tool_frame", "arm_orientation_helper_link"],
     )
     collision_geometry =  "-0.01 / (x ** 1) * xdot ** 2"
     collision_finsler = "0.01/(x**2) * xdot**2"
@@ -196,7 +221,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 
 
     # Forward kinematics for spheres
-    robot_model = RobotModel('dingo_kinova', model_name=ROBOTMODEL)
+    robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
     urdf_file = robot_model.get_urdf_path()
     chain = pk.build_serial_chain_from_urdf(open(urdf_file).read(), "arm_tool_frame")
     chain = chain.to(dtype=torch.float64, device="cpu")
@@ -212,15 +237,20 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     rot_matrix = np.array([[-0.339, -0.784306, -0.51956],
                            [-0.0851341, 0.57557, -0.813309],
                            [0.936926, -0.23148, -0.261889]])
+    x_goal_1_x = np.array([0.0, 0.0, 0.13])
+    x_goal_2_z = np.array([0.0, 0.10, 0.00])
+    p_orient_rot_x = rot_matrix @ x_goal_1_x
+    p_orient_rot_z = rot_matrix @ x_goal_2_z
+    weight_pose_goal = 1.0
+    weight_orient_goal = 3.0
     
     for w in range(n_steps):
         ob_robot = ob['robot_0']
         ob_robot_2 = ob['robot_1']
-       
         q_kinovas[0,:] = torch.as_tensor(ob_robot["joint_state"]["position"])
         q_kinovas[1,:] = torch.as_tensor(ob_robot_2["joint_state"]["position"])
 
-        FK_W = chain.forward_kinematics(q_kinovas, end_only=False)
+        FK_W = chain.forward_kinematics(q_kinovas[:,:(dof-2)], end_only=False)
         obst_kinova_1, obst_kinova_2 = [], []
         for col_link in collision_links:
             obst_kinova_1.append( FK_W[col_link].get_matrix().numpy()[0,:3,3] )
@@ -230,7 +260,11 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             q=ob_robot["joint_state"]["position"],
             qdot=ob_robot["joint_state"]["velocity"],
             x_goal_0=cup_red_position,
-            weight_goal_0= 1.0,
+            weight_goal_0= weight_pose_goal,
+            x_goal_1 = p_orient_rot_x,
+            weight_goal_1 =weight_orient_goal,
+            x_goal_2 = p_orient_rot_z,
+            weight_goal_2 = weight_orient_goal,
             x_obsts = obst_kinova_2,
             radius_obsts = [0.5, 0.1, 0.1, 0.1, 0.1],
             radius_body_chassis_link = 0.5,
@@ -245,7 +279,11 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             q=ob_robot_2["joint_state"]["position"],
             qdot=ob_robot_2["joint_state"]["velocity"],
             x_goal_0=cup_green_position,
-            weight_goal_0= 1.0,
+            weight_goal_0= weight_pose_goal,
+            x_goal_1 = p_orient_rot_x,
+            weight_goal_1 = weight_orient_goal,
+            x_goal_2 = p_orient_rot_z,
+            weight_goal_2 = weight_orient_goal,
             x_obsts = obst_kinova_1,
             radius_obsts = [0.5, 0.1, 0.1, 0.1, 0.1],
             radius_body_chassis_link = 0.5,
@@ -271,14 +309,16 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 
 
 if __name__ == "__main__":
-    dof = 9
+    dof = 11
     res = run_kinova_example(n_steps=5000, dof=dof)
 
 
 #TODO: [x] add clipping
 #TODO: [x] add kinematic spheres for each robot
 #TODO: [x] table fixed
-#TODO: add object
-#TODO: create deadlocks
-#TODO gripper
+#TODO: [x] add object
+#TODO: [x] gripper
+#TODO: [ ] dummy_axis for constraints
+#TODO: [ ] create deadlocks
 #TODO: does it make sense to use gpu for FK?
+#TODO: increase damping
