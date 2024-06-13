@@ -481,18 +481,18 @@ files = [
 
 [[package]]
 name = "filelock"
-version = "3.14.0"
+version = "3.15.1"
 description = "A platform independent file lock."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "filelock-3.14.0-py3-none-any.whl", hash = "sha256:43339835842f110ca7ae60f1e1c160714c5a6afd15a2873419ab185334975c0f"},
-    {file = "filelock-3.14.0.tar.gz", hash = "sha256:6ea72da3be9b8c82afd3edcf99f2fffbb5076335a5ae4d03248bb5b6c3eae78a"},
+    {file = "filelock-3.15.1-py3-none-any.whl", hash = "sha256:71b3102950e91dfc1bb4209b64be4dc8854f40e5f534428d8684f953ac847fac"},
+    {file = "filelock-3.15.1.tar.gz", hash = "sha256:58a2549afdf9e02e10720eaa4d4470f56386d7a6f72edd7d0596337af8ed7ad8"},
 ]
 
 [package.extras]
 docs = ["furo (>=2023.9.10)", "sphinx (>=7.2.6)", "sphinx-autodoc-typehints (>=1.25.2)"]
-testing = ["covdefaults (>=2.3)", "coverage (>=7.3.2)", "diff-cover (>=8.0.1)", "pytest (>=7.4.3)", "pytest-cov (>=4.1)", "pytest-mock (>=3.12)", "pytest-timeout (>=2.2)"]
+testing = ["covdefaults (>=2.3)", "coverage (>=7.3.2)", "diff-cover (>=8.0.1)", "pytest (>=7.4.3)", "pytest-asyncio (>=0.21)", "pytest-cov (>=4.1)", "pytest-mock (>=3.12)", "pytest-timeout (>=2.2)"]
 typing = ["typing-extensions (>=4.8)"]
 
 [[package]]
@@ -646,6 +646,24 @@ files = [
 
 [package.extras]
 preview = ["glfw-preview"]
+
+[[package]]
+name = "grasp-planning"
+version = "0.6"
+description = "\"Grasp and Motion Planning Python Package.\""
+optional = false
+python-versions = "<3.10,>=3.8"
+files = [
+    {file = "grasp_planning-0.6-py3-none-any.whl", hash = "sha256:2b761c3342f2646abe096ca2a4a6f094530d68f75cc35dc822479ae30f56658f"},
+    {file = "grasp_planning-0.6.tar.gz", hash = "sha256:40f59cf61f3c2108683948179cdbab83d58322150d60737f368aa300e18ffc69"},
+]
+
+[package.dependencies]
+casadi = ">=3.6,<4.0"
+forwardkinematics = ">=1.2.0"
+numpy = ">=1.15.3,<2.0.0"
+scipy = "<=1.10.1"
+spatial-casadi = ">=1.1.0,<2.0.0"
 
 [[package]]
 name = "gymnasium"
@@ -2586,6 +2604,23 @@ files = [
 ]
 
 [[package]]
+name = "spatial-casadi"
+version = "1.1.0"
+description = "Spatial transformation library for CasADi Python."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "spatial_casadi-1.1.0-py3-none-any.whl", hash = "sha256:bf3ae98de874f19b5d2fc82fe3a9072123b47b5d6cd8edd64cad1710056c104b"},
+    {file = "spatial_casadi-1.1.0.tar.gz", hash = "sha256:d2696cd318ef2c6078937cb4a0890077f025934a225afe2a6cb3feca9669de66"},
+]
+
+[package.dependencies]
+casadi = "*"
+
+[package.extras]
+test = ["numpy", "pytest", "scipy"]
+
+[[package]]
 name = "svg-path"
 version = "6.3"
 description = "SVG path objects and parser"
@@ -3015,4 +3050,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8, <3.10"
-content-hash = "17ebf10bb1e6346dcbaf4b5141ebf2ccb88cc76db4c53978c9903951a43edad9"
+content-hash = "4104f2e2f73ac451d9e20cd0206ab404f72635a0c6b499ecdd70f743b35efc5d"
