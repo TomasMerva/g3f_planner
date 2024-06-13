@@ -17,9 +17,13 @@ import pybullet
 import pytorch_kinematics as pk
 import torch
 import time
+from scipy.spatial.transform import Rotation as R
+
 
 ROBOTTYPE = 'dingo_kinova'
 ROBOTMODEL = 'dingo_kinova_gripper'
+
+
 
 def initalize_environment(render=True, nr_obst: int = 0):
     """
@@ -28,7 +32,7 @@ def initalize_environment(render=True, nr_obst: int = 0):
     Adds obstacles and goal visualizaion to the environment based and
     steps the simulation once.
     """
-    robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
+    # robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
 
     # Robot urdf
     absolute_path = os.path.dirname(os.path.abspath(__file__))
@@ -56,17 +60,7 @@ def initalize_environment(render=True, nr_obst: int = 0):
             obstacle_mask=['position', 'size'],
             variance=0.0
     )
-    # Definition of the obstacle.
-    # static_obst_dict = {
-    #     "type": "sphere",
-    #     "geometry": {"position": [0.3, -0.3, 0.3], "radius": 0.1},
-    # }
-    # obst1 = SphereObstacle(name="staticObst", content_dict=static_obst_dict)
-    # static_obst_dict = {
-    #     "type": "sphere",
-    #     "geometry": {"position": [-0.7, 0.0, 0.5], "radius": 0.1},
-    # }
-    # obst2 = SphereObstacle(name="staticObst", content_dict=static_obst_dict)
+
     goal_dict = {
         "subgoal0": {
             "weight": 3.0,
@@ -103,8 +97,8 @@ def initalize_environment(render=True, nr_obst: int = 0):
     # obstacles = [obst1, obst2][0:nr_obst]
 
     pos0 =  np.array([
-                        np.array([-0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]),
-                        np.array([0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]),
+                        np.array([-0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]), #, 0.9, -0.9
+                        np.array([0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]),  #, 0.9, -0.9
                 ])
     
     env.reset(pos=pos0)
@@ -117,13 +111,84 @@ def initalize_environment(render=True, nr_obst: int = 0):
     #     env.add_goal(sub_goal)
     env.set_spaces()
     # collision_keys_robot0 = [8, 12, 13, 14, 16, 17, 18]
-    # # for collision_link_nr in collision_keys_robot0:
-    # for i in collision_keys_robot0:
-    #     env.add_collision_link(0, i, shape_type='sphere', size=[0.10])
+    # collision_keys_robot0 = [3, ]
+
+    pybullet_links_idx = {
+        'world': -1, 
+        'base_link': 0, 
+        'base_link_x': 1, 
+        'base_link_y': 2, 
+        'chassis_link': 3, 
+        'front_left_wheel_link': 4,
+        'front_right_wheel_link': 5, 
+        'rear_left_wheel_link': 6, 
+        'rear_right_wheel_link': 7, 
+        'mid_mount': 8, 
+        'front_c_mount': 9, 
+        'front_b_mount': 10, 
+        'front_mount': 11, 
+        'arm_base_link': 12, 
+        'arm_shoulder_link': 13, 
+        'arm_arm_link': 14, 
+        'arm_forearm_link': 15, 
+        'arm_lower_wrist_link': 16, 
+        'arm_upper_wrist_link': 17, 
+        'arm_end_effector_link': 18, 
+        'arm_dummy_link': 19, 
+        'arm_tool_frame': 20, 
+        'arm_orientation_helper_link': 21, 
+        'arm_gripper_base_link': 22, 
+        'arm_right_finger_prox_link': 23, 
+        'arm_left_finger_prox_link': 24, 
+        'rear_c_mount': 25, 
+        'rear_b_mount': 26, 
+        'rear_mount': 27, 
+        'front_bumper_mount': 28
+        }
+    
+    collision_links = {
+        pybullet_links_idx["chassis_link"] : 0.4,
+        pybullet_links_idx["arm_forearm_link"] : 0.1,
+        pybullet_links_idx["arm_lower_wrist_link"] : 0.1,
+        pybullet_links_idx["arm_upper_wrist_link"] : 0.1,
+        pybullet_links_idx["arm_end_effector_link"] : 0.1,
+        pybullet_links_idx["arm_gripper_base_link"] : 0.11,
+    }
+
+    for key, value in collision_links.items():
+        env.add_collision_link(0, key, shape_type='sphere', size=[value])
+        env.add_collision_link(1, key, shape_type='sphere', size=[value])
 
     return (env, goal)
 
+def create_scene():
+    # Table
+    URDF_table = os.path.dirname(os.path.abspath(__file__)) + "/urdfs/table/table.urdf"
+    URDF_cup_red = os.path.dirname(os.path.abspath(__file__)) + "/urdfs/cup/cup_red.urdf"
+    URDF_cup_green = os.path.dirname(os.path.abspath(__file__)) + "/urdfs/cup/cup_green.urdf"
 
+    urdf_links = {"URDF_table": URDF_table,
+                  "URDF_cup_red" : URDF_cup_red,
+                  "URDF_cup_green" : URDF_cup_green}
+    z_table = 0.65*0.3
+    scene_positions = {
+        "z_table" : z_table,
+        "table" : [0, -1, 0.0],
+        "cup_red" : [-0.05, -0.9, z_table-0.01],
+        "cup_green" : [0.05, -0.9, z_table-0.01],
+    }
+
+    tableUid = pybullet.loadURDF(urdf_links["URDF_table"], basePosition=scene_positions["table"],  globalScaling=0.3)
+    cup_redUid = pybullet.loadURDF(urdf_links["URDF_cup_red"], basePosition=scene_positions["cup_red"])
+    cup_greenUid = pybullet.loadURDF(urdf_links["URDF_cup_green"], basePosition=scene_positions["cup_green"])
+
+    scene_id = {
+        "table" : tableUid,
+        "cup_red" : cup_redUid,
+        "cup_green" : cup_greenUid
+    }
+
+    return (scene_id, scene_positions)
 
 def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int = 6, i_robot: int = 0):
     """
@@ -166,7 +231,8 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
         "arm_forearm_link",
         "arm_lower_wrist_link",
         "arm_upper_wrist_link",
-        "arm_end_effector_link"
+        "arm_end_effector_link",
+        "arm_gripper_base_link"
     ]
     dingo_limits = np.array([
         [-10, 10],
@@ -187,7 +253,7 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
         collision_links=collision_links,
         goal=goal,
         number_obstacles=nr_obst,
-        number_plane_constraints=0,
+        number_plane_constraints=1,
         limits=dingo_kinova_limits,
     )
     planner.concretize()
@@ -195,35 +261,14 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
 
 
 def run_kinova_example(n_steps=5000, render=True, dof=9):
-    nr_obst = 5
+    nr_obst = 6
+    nr_fingers = 2
     (env, goal) = initalize_environment(render, nr_obst=nr_obst)
-
-    planner_dinova_1 = set_planner(goal, nr_obst, degrees_of_freedom=dof, i_robot=0)
-    planner_dinova_2 = set_planner(goal, nr_obst, degrees_of_freedom=dof,  i_robot=1)
-    action = np.zeros(2*dof)
-    ob, *_ = env.step(action)
-
-    # Table
-    URDF_table = os.path.dirname(os.path.abspath(__file__)) + "/urdfs/table/table.urdf"
-    URDF_cup_red = os.path.dirname(os.path.abspath(__file__)) + "/urdfs/cup/cup_red.urdf"
-    URDF_cup_green = os.path.dirname(os.path.abspath(__file__)) + "/urdfs/cup/cup_green.urdf"
-
-    urdf_links = {"URDF_table": URDF_table,
-                  "URDF_cup_red" : URDF_cup_red,
-                  "URDF_cup_green" : URDF_cup_green}
-    z_table = 0.65*0.3
-    table_position = [0, -1, 0.0]
-    cup_red_position = [0, -1, z_table+0.05]
-    cup_green_position = [0.1, -1, z_table+0.05]
-    tableUid = pybullet.loadURDF(urdf_links["URDF_table"], basePosition=table_position,  globalScaling=0.3)
-    cupUid = pybullet.loadURDF(urdf_links["URDF_cup_red"], basePosition=cup_red_position)
-    cupUid = pybullet.loadURDF(urdf_links["URDF_cup_green"], basePosition=cup_green_position)
-
-
+    pybullet.setGravity(0,0,0)
     # Forward kinematics for spheres
-    robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
-    urdf_file = robot_model.get_urdf_path()
-    chain = pk.build_serial_chain_from_urdf(open(urdf_file).read(), "arm_tool_frame")
+    absolute_path = os.path.dirname(os.path.abspath(__file__))
+    URDF_FILE = absolute_path + "/urdfs/dinova/dinova.urdf"
+    chain = pk.build_serial_chain_from_urdf(open(URDF_FILE).read(), "arm_tool_frame")
     chain = chain.to(dtype=torch.float64, device="cpu")
     q_kinovas = torch.zeros((2, dof), dtype=torch.float64)
     collision_links = [
@@ -231,79 +276,126 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
         "arm_forearm_link",
         "arm_lower_wrist_link",
         "arm_upper_wrist_link",
-        "arm_end_effector_link"
+        "arm_end_effector_link",
+        "arm_gripper_base_link"
     ]
+    collision_radius = [0.4, 0.1, 0.1, 0.1, 0.1, 0.11]
+
+    planner_dinova_1 = set_planner(goal, nr_obst, degrees_of_freedom=dof, i_robot=0)
+    planner_dinova_2 = set_planner(goal, nr_obst, degrees_of_freedom=dof, i_robot=1)
+    action = np.zeros(2*dof)
+    ob, *_ = env.step(action)
+
+    (objects_id, objects_position) = create_scene()
+
+    """
+    grasping
+    """
+    T_W_RedCup = np.eye(4)
+    T_W_GreenCup = np.eye(4)
 
     rot_matrix = np.array([[-0.339, -0.784306, -0.51956],
                            [-0.0851341, 0.57557, -0.813309],
                            [0.936926, -0.23148, -0.261889]])
     x_goal_1_x = np.array([0.0, 0.0, 0.13])
     x_goal_2_z = np.array([0.0, 0.10, 0.00])
-    p_orient_rot_x = rot_matrix @ x_goal_1_x
-    p_orient_rot_z = rot_matrix @ x_goal_2_z
-    weight_pose_goal = 1.0
+    p_orient_rot_x_red = rot_matrix @ x_goal_1_x
+    p_orient_rot_z_red = rot_matrix @ x_goal_2_z
+    p_orient_rot_x_green = rot_matrix @ x_goal_1_x
+    p_orient_rot_z_green = rot_matrix @ x_goal_2_z
+    weight_pose_goal = 0.5
     weight_orient_goal = 3.0
-    
+    objects_position["cup_red"][2] += 0.05
+    objects_position["cup_green"][2] += 0.05
+    objects_position["cup_green"][1] += 0.1
+    objects_position["cup_red"][1] += 0.1
+
     for w in range(n_steps):
         ob_robot = ob['robot_0']
         ob_robot_2 = ob['robot_1']
         q_kinovas[0,:] = torch.as_tensor(ob_robot["joint_state"]["position"])
         q_kinovas[1,:] = torch.as_tensor(ob_robot_2["joint_state"]["position"])
 
-        FK_W = chain.forward_kinematics(q_kinovas[:,:(dof-2)], end_only=False)
+        FK_W = chain.forward_kinematics(q_kinovas[:,:(dof-nr_fingers)], end_only=False)
         obst_kinova_1, obst_kinova_2 = [], []
         for col_link in collision_links:
             obst_kinova_1.append( FK_W[col_link].get_matrix().numpy()[0,:3,3] )
             obst_kinova_2.append( FK_W[col_link].get_matrix().numpy()[1,:3,3] )
+        # obst_kinova_1.append(objects_position["z_table"])
+        # obst_kinova_2.append(objects_position["z_table"])
 
+  
         arguments_dict_1 = dict(
             q=ob_robot["joint_state"]["position"],
             qdot=ob_robot["joint_state"]["velocity"],
-            x_goal_0=cup_red_position,
+            x_goal_0=objects_position["cup_red"],
             weight_goal_0= weight_pose_goal,
-            x_goal_1 = p_orient_rot_x,
+            x_goal_1 = p_orient_rot_x_red,
             weight_goal_1 =weight_orient_goal,
-            x_goal_2 = p_orient_rot_z,
+            x_goal_2 = p_orient_rot_z_red,
             weight_goal_2 = weight_orient_goal,
             x_obsts = obst_kinova_2,
-            radius_obsts = [0.5, 0.1, 0.1, 0.1, 0.1],
-            radius_body_chassis_link = 0.5,
-            radius_body_arm_end_effector_link = 0.1,
-            radius_body_arm_upper_wrist_link = 0.1,
-            radius_body_arm_lower_wrist_link = 0.1,
-            radius_body_arm_forearm_link=0.1,
-            constraint_0=np.array([0, 0, 1, z_table])
+            radius_obsts = collision_radius,
+            radius_body_chassis_link = collision_radius[0],
+            radius_body_arm_end_effector_link = collision_radius[1],
+            radius_body_arm_upper_wrist_link = collision_radius[2],
+            radius_body_arm_lower_wrist_link = collision_radius[3],
+            radius_body_arm_forearm_link = collision_radius[4],
+            radius_body_arm_gripper_base_link = collision_radius[5],
+            constraint_0=np.array([0, 0, 1, objects_position["z_table"]])
         )
 
         arguments_dict_2 = dict(
             q=ob_robot_2["joint_state"]["position"],
             qdot=ob_robot_2["joint_state"]["velocity"],
-            x_goal_0=cup_green_position,
+            x_goal_0=objects_position["cup_green"],
             weight_goal_0= weight_pose_goal,
-            x_goal_1 = p_orient_rot_x,
+            x_goal_1 = p_orient_rot_x_green,
             weight_goal_1 = weight_orient_goal,
-            x_goal_2 = p_orient_rot_z,
+            x_goal_2 = p_orient_rot_z_green,
             weight_goal_2 = weight_orient_goal,
             x_obsts = obst_kinova_1,
-            radius_obsts = [0.5, 0.1, 0.1, 0.1, 0.1],
-            radius_body_chassis_link = 0.5,
-            radius_body_arm_end_effector_link = 0.1,
-            radius_body_arm_upper_wrist_link = 0.1,
-            radius_body_arm_lower_wrist_link = 0.1,
-            radius_body_arm_forearm_link=0.1,
-            constraint_0=np.array([0, 0, 1, z_table])
+            radius_obsts = collision_radius,
+            radius_body_chassis_link = collision_radius[0],
+            radius_body_arm_end_effector_link = collision_radius[1],
+            radius_body_arm_upper_wrist_link = collision_radius[2],
+            radius_body_arm_lower_wrist_link = collision_radius[3],
+            radius_body_arm_forearm_link = collision_radius[4],
+            radius_body_arm_gripper_base_link = collision_radius[5],
+            constraint_0=np.array([0, 0, 1, objects_position["z_table"]])
         )
      
         action1 = planner_dinova_1.compute_action(**arguments_dict_1)
         action2 = planner_dinova_2.compute_action(**arguments_dict_2)
 
         action = np.concatenate((action1, action2), axis=None)
-        action = np.clip(action, -2, 2)
+        action = np.clip(action, -3, 3)
 
         ob, *_ = env.step(action)
 
+
+        """
+        Grasping
+        """
+        T_Obj_GraspRed, T_Obj_GraspGreen = np.eye(4), np.eye(4)
+        T_Obj_GraspRed[:3,:3] = R.from_euler("xyz", [0, 90, -90], degrees=True).as_matrix()
+        T_Obj_GraspGreen[:3,:3] = R.from_euler("xyz", [0, 90, -90], degrees=True).as_matrix()
+
+        # Red cup
+        redcup_pos, redcup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_red"])
+        T_W_RedCup[:3,3] = np.asarray(redcup_pos)
+        # T_W_RedCup[:3,:3] = R.from_quat(np.asarray(redcup_quat)).as_matrix()
+        T_W_GraspRed = T_W_RedCup @ T_Obj_GraspRed
+        p_orient_rot_x_red = T_W_GraspRed[:3,:3] @ x_goal_1_x
+        p_orient_rot_z_red = T_W_GraspRed[:3,:3] @ x_goal_2_z
         
-        
+        greencup_pos, greencup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_green"])
+        T_W_GreenCup[:3,3] = np.asarray(greencup_pos)
+        # T_W_GreenCup[:3,:3] = R.from_quat(np.asarray(greencup_quat)).as_matrix()
+        T_W_GraspGreen = T_W_GreenCup @ T_Obj_GraspGreen
+        p_orient_rot_x_green = T_W_GraspGreen[:3,:3] @ x_goal_1_x
+        p_orient_rot_z_green = T_W_GraspGreen[:3,:3] @ x_goal_2_z
+
     env.close()
     return {}
 
@@ -318,7 +410,11 @@ if __name__ == "__main__":
 #TODO: [x] table fixed
 #TODO: [x] add object
 #TODO: [x] gripper
-#TODO: [ ] dummy_axis for constraints
-#TODO: [ ] create deadlocks
+#TODO: [x] dummy_axis for constraints
+#TODO: [x] get link pose
+#TODO: [x] create deadlocks
+#TODO: 
+
+
 #TODO: does it make sense to use gpu for FK?
 #TODO: increase damping

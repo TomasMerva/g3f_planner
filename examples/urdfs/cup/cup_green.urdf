@@ -19,11 +19,11 @@
         <color rgba="0 1 0 1"/>
       </material>
     </visual>
-    <collision>
+    <!-- <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
 	 	<mesh filename="cup_vhacd.obj" scale="0.5 0.5 0.5"/>
       </geometry>
-    </collision>
+    </collision> -->
   </link>
 </robot>
