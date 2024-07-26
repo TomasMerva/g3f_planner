@@ -15,5 +15,23 @@ else()
   endif()
 endif()
 
-add_executable(${PROJECT_NAME} rollout_fabrics.cpp)
-target_link_libraries(${PROJECT_NAME}  ${YAML_CPP_LIBRARIES})
+
+include_directories(${PROJECT_SOURCE_DIR}/include/)
+include_directories(${PROJECT_SOURCE_DIR}/src/)
+
+
+SET(SOURCES 
+      ${PROJECT_SOURCE_DIR}/include/tcp_server.h
+)
+
+SET(HEADERS
+      ${PROJECT_SOURCE_DIR}/src/test.cpp
+      ${PROJECT_SOURCE_DIR}/src/tcp_server.cpp
+)
+
+
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+target_link_libraries(${PROJECT_NAME} )
+
+# add_executable(${PROJECT_NAME} rollout_fabrics.cpp)
+# target_link_libraries(${PROJECT_NAME}  ${YAML_CPP_LIBRARIES})
