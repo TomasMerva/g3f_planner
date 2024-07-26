@@ -125,19 +125,20 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 
             # Call fabrics
             start_time = time.perf_counter()
-            data = np.concatenate((arguments_dict["q"],
-                                   arguments_dict["qdot"],
-                                   arguments_dict["weight_goal_0"], 
-                                   arguments_dict["x_goal_0"]))
-            msg = map(str, data)    
-            msg = ' '.join(msg)
-            sock.sendall(msg.encode())
+            for i in range(5000):
+                data = np.concatenate((arguments_dict["q"],
+                                    arguments_dict["qdot"],
+                                    arguments_dict["weight_goal_0"], 
+                                    arguments_dict["x_goal_0"]))
+                msg = map(str, data)    
+                msg = ' '.join(msg)
+                sock.sendall(msg.encode())
 
-            data = sock.recv(1024)
-            action = np.fromstring(data.decode(), dtype=float, sep=' ')
+                data = sock.recv(1024)
+                action = np.fromstring(data.decode(), dtype=float, sep=' ')
 
-            # start_time = time.perf_counter()
-            # action = planner.compute_action(**arguments_dict)
+                # start_time = time.perf_counter()
+                # action = planner.compute_action(**arguments_dict)
             end_time = time.perf_counter()
             print("elapsed time: ", end_time-start_time)
             ob, *_ = env.step(action)
