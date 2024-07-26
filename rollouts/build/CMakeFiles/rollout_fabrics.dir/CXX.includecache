@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/tomas/repos/grasp_fabrics/rollouts/pure_controller.c
+math.h
+-
+
+/home/tomas/repos/grasp_fabrics/rollouts/rollout_fabrics.cpp
+iostream
+-
+chrono
+-
+pure_controller.c
+/home/tomas/repos/grasp_fabrics/rollouts/pure_controller.c
+iostream
+-
+cstring
+-
+unistd.h
+-
+arpa/inet.h
+-
+stdlib.h
+-
+string
+-
+vector
+-
+sstream
+-
+

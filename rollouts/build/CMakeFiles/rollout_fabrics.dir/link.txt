@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/rollout_fabrics.dir/rollout_fabrics.cpp.o  -o rollout_fabrics 
