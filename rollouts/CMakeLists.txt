@@ -16,15 +16,15 @@ else()
 endif()
 
 
-include_directories(${PROJECT_SOURCE_DIR}/include/)
+include_directories(${PROJECT_SOURCE_DIR}/headers/)
 include_directories(${PROJECT_SOURCE_DIR}/src/)
 
 
-SET(SOURCES 
-      ${PROJECT_SOURCE_DIR}/include/tcp_server.h
+SET(HEADERS
+      ${PROJECT_SOURCE_DIR}/headers/tcp_server.h
 )
 
-SET(HEADERS
+SET(SOURCES
       ${PROJECT_SOURCE_DIR}/src/test.cpp
       ${PROJECT_SOURCE_DIR}/src/tcp_server.cpp
 )

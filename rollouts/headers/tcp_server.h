@@ -9,12 +9,23 @@
 #include <sstream> 
 #include <iostream>
 
+enum class TCPClientStatus
+{
+    CONNECTED = 0,
+    DISCONNECTED = -1,
+    NEW_MESSAGE = 1,
+    NO_MESSAGE = 2,
+};
+
+
 class TCPServer
 {
     public:
         TCPServer(const uint port);
-        std::vector<double> WaitingForRequest();
-        int SendingResponse(const std::string &msg);
+        TCPClientStatus WaitForClient();
+        TCPClientStatus ReadRequest(std::vector<double>& tcp_recv_data);
+        TCPClientStatus SendingResponse(const std::string &msg);
+        void CloseServer();
 
     private:
         int _server_fd{0};
@@ -25,7 +36,10 @@ class TCPServer
         static const uint _buffer_size{1024};
         char _buffer[_buffer_size];
         
-        std::vector<double> _raw_request_data;
+
+        bool _ListeningForConnections();
+        bool _AcceptingClientConnection();
+
 
 
 };
