@@ -7,7 +7,7 @@ FabricsServer::FabricsServer(const uint port, const std::string config_file_path
 {
     FabricsServer::PrintFabricsArguments();
     FabricsServer::_ComputeParameterIndices();
-    // FabricsServer::PrintArgumentsIndices();
+    FabricsServer::PrintArgumentsIndices();
 
     _fabrics_input = new const double*[fabrics_config.fabrics_input_size];
     _fabrics_output  = new double*[fabrics_config.fabrics_output_size];
