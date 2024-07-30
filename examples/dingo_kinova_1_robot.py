@@ -146,6 +146,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_obst = 2
     (env, goal) = initalize_environment(render, nr_obst=nr_obst)
     planner = set_planner(goal, nr_obst, degrees_of_freedom=dof)
+    planner.export_as_c("pure_dinova.c")
     action = np.zeros(dof)
     ob, *_ = env.step(action)
 

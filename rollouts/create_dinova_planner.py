@@ -10,12 +10,19 @@ from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
-from fabrics.planner.serialized_planner import SerializedFabricPlanner
 import copy
-import time
+import yaml
+import socket
+
 
 ROBOTTYPE = 'dingo_kinova'
 ROBOTMODEL = 'dingo_kinova'
+
+CONFIG_FILE = "config/"+ROBOTTYPE+"_config.yaml"
+with open(CONFIG_FILE, 'r') as config_file:
+    config = yaml.safe_load(config_file)
+    CONFIG_PROBLEM = config['problem']
+    CONFIG_FABRICS = config['fabrics']
 
 def initalize_environment(render=True, nr_obst: int = 0):
     """
@@ -24,7 +31,7 @@ def initalize_environment(render=True, nr_obst: int = 0):
     Adds obstacles and goal visualizaion to the environment based and
     steps the simulation once.
     """
-    robot_model = RobotModel('dingo_kinova', model_name='dingo_kinova')
+    robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
     urdf_file = robot_model.get_urdf_path()
     robots = [
         GenericUrdfReacher(urdf=urdf_file, mode="acc"),
@@ -48,7 +55,7 @@ def initalize_environment(render=True, nr_obst: int = 0):
     obst1 = SphereObstacle(name="staticObst", content_dict=static_obst_dict)
     static_obst_dict = {
         "type": "sphere",
-        "geometry": {"position": [-0.7, 0.0, 0.5], "radius": 0.1},
+        "geometry": {"position": [-0.5, 0.0, 0.5], "radius": 0.1},
     }
     obst2 = SphereObstacle(name="staticObst", content_dict=static_obst_dict)
     goal_dict = {
@@ -80,26 +87,58 @@ def initalize_environment(render=True, nr_obst: int = 0):
     return (env, goal)
 
 
+def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int = 6):
+    """
+    Initializes the fabric planner for the kuka robot.
+
+    This function defines the forward kinematics for collision avoidance,
+    and goal reaching. These components are fed into the fabrics planner.
+
+    In the top section of this function, an example for optional reconfiguration
+    can be found. Commented by default.
+
+    Params
+    ----------
+    goal: StaticSubGoal
+        The goal to the motion planning problem.
+    degrees_of_freedom: int
+        Degrees of freedom of the robot (default = 7)
+    """
+    absolute_path = os.path.dirname(os.path.abspath(__file__))
+    robot_model = RobotModel('dingo_kinova', model_name='dingo_kinova')
+    urdf_file = robot_model.get_urdf_path()
+    with open(urdf_file, "r", encoding="utf-8") as file:
+        urdf = file.read()
+    forward_kinematics = GenericURDFFk(
+        urdf,
+        root_link="base_link",
+        end_links=["arm_end_effector_link"],
+    )
+
+    planner = ParameterizedFabricPlanner(
+        degrees_of_freedom,
+        forward_kinematics,
+    )
+    planner.load_fabrics_configuration(CONFIG_FABRICS)
+    planner.load_problem_configuration(CONFIG_PROBLEM)
+    planner.concretize()
+    # planner.export_as_c("pure_controller.c")
+    return planner
+
+
 def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_obst = 2
     (env, goal) = initalize_environment(render, nr_obst=nr_obst)
-    # planner = SerializedFabricPlanner(
-    #         "controller.pbz2"
-    #     )
+    planner = set_planner(goal, nr_obst, degrees_of_freedom=dof)
+    action = np.zeros(dof)
+    ob, *_ = env.step(action)
 
-    import socket
     # Define the server address and port
     server_address = ('127.0.0.1', 8080)
 
-    # Create a TCP/IP socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         # Connect to the server
         sock.connect(server_address)
-
-
-    
-        action = np.zeros(dof)
-        ob, *_ = env.step(action)
 
         for w in range(n_steps):
             ob_robot = ob['robot_0']
@@ -113,33 +152,40 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                         ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
                 radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
                             ob_robot['FullSensor']['obstacles'][nr_obst + 1]['size']],
-                radius_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst]['size'],
-                radius_body_chassis_link=0.2,
+                radius_body_chassis_link=0.4,
                 radius_body_arm_shoulder_link=0.1,
                 radius_body_arm_end_effector_link = 0.1,
                 radius_body_arm_upper_wrist_link = 0.1,
                 radius_body_arm_lower_wrist_link = 0.1,
                 radius_body_arm_forearm_link=0.1,
-                constraint_0=np.array([0, 0, 1, 0.0])
             )
 
+
             # Call fabrics
-            start_time = time.perf_counter()
             data = np.concatenate((arguments_dict["q"],
                                    arguments_dict["qdot"],
+                                   np.array([arguments_dict["radius_body_chassis_link"]]),
+                                   np.array([arguments_dict["radius_body_arm_shoulder_link"]]),
+                                   np.array([arguments_dict["radius_body_arm_end_effector_link"]]),
+                                   np.array([arguments_dict["radius_body_arm_upper_wrist_link"]]),
+                                   np.array([arguments_dict["radius_body_arm_lower_wrist_link"]]),
+                                   np.array([arguments_dict["radius_body_arm_forearm_link"]]),
+                                   arguments_dict["radius_obsts"][0],
+                                   arguments_dict["radius_obsts"][1],
                                    arguments_dict["weight_goal_0"], 
-                                   arguments_dict["x_goal_0"]))
+                                   arguments_dict["x_goal_0"],
+                                   arguments_dict["x_obsts"][0],
+                                   arguments_dict["x_obsts"][1],
+            ))
+  
+            
             msg = map(str, data)    
             msg = ' '.join(msg)
             sock.sendall(msg.encode())
 
             data = sock.recv(1024)
             action = np.fromstring(data.decode(), dtype=float, sep=' ')
-
-            # start_time = time.perf_counter()
             # action = planner.compute_action(**arguments_dict)
-            end_time = time.perf_counter()
-            print("elapsed time: ", end_time-start_time)
             ob, *_ = env.step(action)
         env.close()
     return {}
@@ -148,4 +194,3 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 if __name__ == "__main__":
     dof = 9
     res = run_kinova_example(n_steps=5000, dof=dof)
-
