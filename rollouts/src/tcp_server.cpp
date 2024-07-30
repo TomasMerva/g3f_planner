@@ -45,7 +45,6 @@ TCPServer::ReadRequest(std::vector<double>& tcp_recv_data)
     } 
     if (bytes_read>0)
     {
-        std::cout << bytes_read << "\n";
         std::stringstream ss(_buffer);
         std::string word;
         while (ss >> word)

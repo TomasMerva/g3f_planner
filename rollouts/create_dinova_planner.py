@@ -11,8 +11,15 @@ from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import copy
+import yaml
 ROBOTTYPE = 'dingo_kinova'
 ROBOTMODEL = 'dingo_kinova'
+
+CONFIG_FILE = "config/"+ROBOTTYPE+"_config.yaml"
+with open(CONFIG_FILE, 'r') as config_file:
+    config = yaml.safe_load(config_file)
+    CONFIG_PROBLEM = config['problem']
+    CONFIG_FABRICS = config['fabrics']
 
 def initalize_environment(render=True, nr_obst: int = 0):
     """
@@ -21,7 +28,7 @@ def initalize_environment(render=True, nr_obst: int = 0):
     Adds obstacles and goal visualizaion to the environment based and
     steps the simulation once.
     """
-    robot_model = RobotModel('dingo_kinova', model_name='dingo_kinova')
+    robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
     urdf_file = robot_model.get_urdf_path()
     robots = [
         GenericUrdfReacher(urdf=urdf_file, mode="acc"),
@@ -104,77 +111,87 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
         root_link="base_link",
         end_links=["arm_end_effector_link"],
     )
+
     planner = ParameterizedFabricPlanner(
         degrees_of_freedom,
         forward_kinematics,
     )
-    collision_links = [
-        "chassis_link",
-        "arm_shoulder_link",
-        "arm_forearm_link",
-        "arm_lower_wrist_link",
-        "arm_upper_wrist_link",
-        "arm_end_effector_link"
-    ]
-    dingo_limits = np.array([
-        [-10, 10],
-        [-10, 10],
-        [-10, 10]]
-    )
-    gen3lite_limits = np.array([
-        [-154.1, 154.1],
-        [150.1, 150.1],
-        [150.1, 150.1],
-        [-148.98, 148.98],
-        [-144.97, 145.0],
-        [-148.98, 148.98]
-    ]) * np.pi/180
-    dingo_kinova_limits = list(np.concatenate((dingo_limits, gen3lite_limits)))
-    # The planner hides all the logic behind the function set_components.
-    planner.set_components(
-        collision_links=collision_links,
-        goal=goal,
-        number_obstacles=nr_obst,
-        number_plane_constraints=0,
-        limits=dingo_kinova_limits,
-    )
+    planner.load_fabrics_configuration(CONFIG_FABRICS)
+    planner.load_problem_configuration(CONFIG_PROBLEM)
     planner.concretize()
+    planner.export_as_c("pure_controller.c")
     return planner
 
 
 def run_kinova_example(n_steps=5000, render=True, dof=9):
-    nr_obst = 2
+    nr_obst = 0
     (env, goal) = initalize_environment(render, nr_obst=nr_obst)
     planner = set_planner(goal, nr_obst, degrees_of_freedom=dof)
-    planner.export_as_c("pure_dinova.c")
     action = np.zeros(dof)
     ob, *_ = env.step(action)
 
-    for w in range(n_steps):
-        ob_robot = ob['robot_0']
+    import socket
+    # Define the server address and port
+    server_address = ('127.0.0.1', 8080)
 
-        arguments_dict = dict(
-            q=ob_robot["joint_state"]["position"],
-            qdot=ob_robot["joint_state"]["velocity"],
-            x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
-            weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
-            x_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
-                     ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
-            radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
-                          ob_robot['FullSensor']['obstacles'][nr_obst + 1]['size']],
-            radius_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst]['size'],
-            radius_body_chassis_link=0.2,
-            radius_body_arm_shoulder_link=0.1,
-            radius_body_arm_end_effector_link = 0.1,
-            radius_body_arm_upper_wrist_link = 0.1,
-            radius_body_arm_lower_wrist_link = 0.1,
-            radius_body_arm_forearm_link=0.1,
-            constraint_0=np.array([0, 0, 1, 0.0])
-        )
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        # Connect to the server
+        sock.connect(server_address)
 
-        action = planner.compute_action(**arguments_dict)
-        ob, *_ = env.step(action)
-    env.close()
+        for w in range(n_steps):
+            ob_robot = ob['robot_0']
+
+            # arguments_dict = dict(
+            #     q=ob_robot["joint_state"]["position"],
+            #     qdot=ob_robot["joint_state"]["velocity"],
+            #     x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
+            #     weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
+            #     x_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
+            #             ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
+            #     radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
+            #                 ob_robot['FullSensor']['obstacles'][nr_obst + 1]['size']],
+            #     radius_obst_1=ob_robot['FullSensor']['obstacles'][nr_obst]['size'],
+            #     radius_body_chassis_link=0.4,
+            #     radius_body_arm_shoulder_link=0.1,
+            #     radius_body_arm_end_effector_link = 0.1,
+            #     radius_body_arm_upper_wrist_link = 0.1,
+            #     radius_body_arm_lower_wrist_link = 0.1,
+            #     radius_body_arm_forearm_link=0.1,
+            #     constraint_0=np.array([0, 0, 1, 0.0])
+            # )
+            arguments_dict = dict(
+                q=ob_robot["joint_state"]["position"],
+                qdot=ob_robot["joint_state"]["velocity"],
+                x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
+                weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
+            )
+
+            # Call fabrics
+            data = np.concatenate((arguments_dict["q"],
+                                   arguments_dict["qdot"],
+                                #    np.array([arguments_dict["radius_body_chassis_link"]]),
+                                #    np.array([arguments_dict["radius_body_arm_shoulder_link"]]),
+                                #    np.array([arguments_dict["radius_body_arm_end_effector_link"]]),
+                                #    np.array([arguments_dict["radius_body_arm_upper_wrist_link"]]),
+                                #    np.array([arguments_dict["radius_body_arm_lower_wrist_link"]]),
+                                #    np.array([arguments_dict["radius_body_arm_forearm_link"]]),
+                                   arguments_dict["weight_goal_0"], 
+                                   arguments_dict["x_goal_0"],
+                                #    arguments_dict["x_obsts"][0],
+                                #    arguments_dict["x_obsts"][1],
+            ))
+            
+            msg = map(str, data)    
+            msg = ' '.join(msg)
+            sock.sendall(msg.encode())
+
+            data = sock.recv(1024)
+            action = np.fromstring(data.decode(), dtype=float, sep=' ')
+    
+
+            # action = planner.compute_action(**arguments_dict)
+            ob, *_ = env.step(action)
+        env.close()
     return {}
 
 

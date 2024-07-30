@@ -17,21 +17,21 @@ endif()
 
 
 include_directories(${PROJECT_SOURCE_DIR}/headers/)
-include_directories(${PROJECT_SOURCE_DIR}/src/)
+# include_directories(${PROJECT_SOURCE_DIR}/src/)
 
 
 SET(HEADERS
       ${PROJECT_SOURCE_DIR}/headers/tcp_server.h
+      ${PROJECT_SOURCE_DIR}/headers/fabrics_server.h
+      ${PROJECT_SOURCE_DIR}/headers/fabrics_config.h
 )
 
 SET(SOURCES
-      ${PROJECT_SOURCE_DIR}/src/test.cpp
+      ${PROJECT_SOURCE_DIR}/src/main.cpp
       ${PROJECT_SOURCE_DIR}/src/tcp_server.cpp
+      ${PROJECT_SOURCE_DIR}/src/fabrics_server.cpp
 )
 
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-target_link_libraries(${PROJECT_NAME} )
-
-# add_executable(${PROJECT_NAME} rollout_fabrics.cpp)
-# target_link_libraries(${PROJECT_NAME}  ${YAML_CPP_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${YAML_CPP_LIBRARIES})
