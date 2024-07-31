@@ -38,10 +38,6 @@ tcp_server.h
 fabrics_config.h
 ../headers/fabrics_config.h
 
-../headers/pure_controller.c
-math.h
--
-
 ../headers/tcp_server.h
 cstring
 -
@@ -60,17 +56,7 @@ sstream
 iostream
 -
 
-/home/tomas/repos/grasp_fabrics/fabrics_rollouts/src/fabrics_server.cpp
-fabrics_server.h
-/home/tomas/repos/grasp_fabrics/fabrics_rollouts/src/fabrics_server.h
-pure_controller.c
-/home/tomas/repos/grasp_fabrics/fabrics_rollouts/src/pure_controller.c
-
 /home/tomas/repos/grasp_fabrics/fabrics_rollouts/src/main.cpp
 fabrics_server.h
 /home/tomas/repos/grasp_fabrics/fabrics_rollouts/src/fabrics_server.h
-
-/home/tomas/repos/grasp_fabrics/fabrics_rollouts/src/tcp_server.cpp
-tcp_server.h
-/home/tomas/repos/grasp_fabrics/fabrics_rollouts/src/tcp_server.h
 

@@ -1,3 +1,6 @@
+server:
+  ip_address: "127.0.0.1"
+  port : 8080
 problem:
   environment:
     number_cuboids:
@@ -65,6 +68,7 @@ fabrics:
   limit_finsler: 1.0/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot**2
   collision_geometry: -0.2 / (x ** 1) * xdot ** 2
   collision_finsler:  0.2/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
+
 
 
 # problem:

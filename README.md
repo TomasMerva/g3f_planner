@@ -28,17 +28,16 @@ poetry install
 ```
 
 ## Use
+- generated fabrics c-code needs to be in the `/fabrics_rollouts/headers/` folder
 1. Fabrics Server (Terminal 1): 
 ```bash
-./rollouts/build/rollout_fabrics
+./fabrics_rollouts/build/rollout_fabrics
 ```
 
 2. Fabrics Client (Terminal 2)
 ```bash
-python rollouts/create_dinova_planner.py
+python examples/rollouts/dinova_planner_client.py
 ```
 
 ## TODO
-1. Python script for creating communication protocol
-- right now, it is manually predefined and the msg order or a fabrics controller cannot be changed
-2. closing server socket on the server side
+1. closing server socket on the server side

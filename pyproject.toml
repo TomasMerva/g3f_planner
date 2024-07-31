@@ -1,10 +1,11 @@
 [tool.poetry]
-name = "grasp-fabrics"
+name = "fabrics_rollouts"
 version = "0.1.0"
 description = ""
 authors = ["Tomas Merva"]
 readme = "README.md"
-packages = [{include = "grasp_fabrics"}]
+homepage = "https://github.com/TomasMerva/grasp_fabrics"
+repository = "https://github.com/TomasMerva/grasp_fabrics"
 
 [tool.poetry.dependencies]
 python = ">=3.8, <3.10"

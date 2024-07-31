@@ -23,7 +23,7 @@ from grasp_planning import GOMP
 
 # Robot urdf
 absolute_path = os.path.dirname(os.path.abspath(__file__))
-URDF_FILE = absolute_path + "/urdfs/dinova/dinova.urdf"
+URDF_FILE = absolute_path + "../urdfs/dinova/dinova.urdf"
 HOME_JOINT_CONFIG_1 = np.array([-0.75, 1, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 HOME_JOINT_CONFIG_2 = np.array([0.75, 1, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
