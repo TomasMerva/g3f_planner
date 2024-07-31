@@ -36,7 +36,7 @@ def initalize_environment(render=True, nr_obst: int = 0):
 
     # Robot urdf
     absolute_path = os.path.dirname(os.path.abspath(__file__))
-    URDF_FILE = absolute_path + "/urdfs/dinova/dinova.urdf"
+    URDF_FILE = absolute_path + "../urdfs/dinova/dinova.urdf"
     # urdf_file = robot_model.get_urdf_path()
     robots = [
         GenericUrdfReacher(urdf=URDF_FILE, mode="acc"),

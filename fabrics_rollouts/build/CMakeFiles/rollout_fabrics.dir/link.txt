@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/rollout_fabrics.dir/src/main.cpp.o CMakeFiles/rollout_fabrics.dir/src/tcp_server.cpp.o CMakeFiles/rollout_fabrics.dir/src/fabrics_server.cpp.o  -o rollout_fabrics  /usr/local/lib/libyaml-cpp.a 

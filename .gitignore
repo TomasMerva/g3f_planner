@@ -1,2 +1,4 @@
-rollouts/build
+build/
 .vscode
+__pycache__/
+dist/

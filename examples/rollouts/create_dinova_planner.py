@@ -18,7 +18,7 @@ import socket
 ROBOTTYPE = 'dingo_kinova'
 ROBOTMODEL = 'dingo_kinova'
 
-CONFIG_FILE = "config/"+ROBOTTYPE+"_config.yaml"
+CONFIG_FILE = "../../config/"+ROBOTTYPE+"_config.yaml"
 with open(CONFIG_FILE, 'r') as config_file:
     config = yaml.safe_load(config_file)
     CONFIG_PROBLEM = config['problem']
@@ -133,61 +133,30 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     action = np.zeros(dof)
     ob, *_ = env.step(action)
 
-    # Define the server address and port
-    server_address = ('127.0.0.1', 8080)
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        # Connect to the server
-        sock.connect(server_address)
+    for w in range(n_steps):
+        ob_robot = ob['robot_0']
 
-        for w in range(n_steps):
-            ob_robot = ob['robot_0']
+        arguments_dict = dict(
+            q=ob_robot["joint_state"]["position"],
+            qdot=ob_robot["joint_state"]["velocity"],
+            x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
+            weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
+            x_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
+                    ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
+            radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
+                        ob_robot['FullSensor']['obstacles'][nr_obst + 1]['size']],
+            radius_body_chassis_link=0.4,
+            radius_body_arm_shoulder_link=0.1,
+            radius_body_arm_end_effector_link = 0.1,
+            radius_body_arm_upper_wrist_link = 0.1,
+            radius_body_arm_lower_wrist_link = 0.1,
+            radius_body_arm_forearm_link=0.1,
+        )
 
-            arguments_dict = dict(
-                q=ob_robot["joint_state"]["position"],
-                qdot=ob_robot["joint_state"]["velocity"],
-                x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
-                weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
-                x_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
-                        ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
-                radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
-                            ob_robot['FullSensor']['obstacles'][nr_obst + 1]['size']],
-                radius_body_chassis_link=0.4,
-                radius_body_arm_shoulder_link=0.1,
-                radius_body_arm_end_effector_link = 0.1,
-                radius_body_arm_upper_wrist_link = 0.1,
-                radius_body_arm_lower_wrist_link = 0.1,
-                radius_body_arm_forearm_link=0.1,
-            )
-
-
-            # Call fabrics
-            data = np.concatenate((arguments_dict["q"],
-                                   arguments_dict["qdot"],
-                                   np.array([arguments_dict["radius_body_chassis_link"]]),
-                                   np.array([arguments_dict["radius_body_arm_shoulder_link"]]),
-                                   np.array([arguments_dict["radius_body_arm_end_effector_link"]]),
-                                   np.array([arguments_dict["radius_body_arm_upper_wrist_link"]]),
-                                   np.array([arguments_dict["radius_body_arm_lower_wrist_link"]]),
-                                   np.array([arguments_dict["radius_body_arm_forearm_link"]]),
-                                   arguments_dict["radius_obsts"][0],
-                                   arguments_dict["radius_obsts"][1],
-                                   arguments_dict["weight_goal_0"], 
-                                   arguments_dict["x_goal_0"],
-                                   arguments_dict["x_obsts"][0],
-                                   arguments_dict["x_obsts"][1],
-            ))
-  
-            
-            msg = map(str, data)    
-            msg = ' '.join(msg)
-            sock.sendall(msg.encode())
-
-            data = sock.recv(1024)
-            action = np.fromstring(data.decode(), dtype=float, sep=' ')
-            # action = planner.compute_action(**arguments_dict)
-            ob, *_ = env.step(action)
-        env.close()
+        action = planner.compute_action(**arguments_dict)
+        ob, *_ = env.step(action)
+    env.close()
     return {}
 
 
