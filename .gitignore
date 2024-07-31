@@ -1,4 +1,4 @@
-build/
+fabrics_rollouts/build/
 .vscode
 __pycache__/
 dist/

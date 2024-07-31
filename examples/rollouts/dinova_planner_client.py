@@ -20,7 +20,11 @@ from fabrics_rollouts import FabricsClient
 ROBOTTYPE = 'dingo_kinova'
 ROBOTMODEL = 'dingo_kinova'
 
-CONFIG_FILE = "../../config/"+ROBOTTYPE+"_config.yaml"
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
+config_path = os.path.join(current_script_dir, '..', '..', 'config', ROBOTTYPE+'_config.yaml')
+CONFIG_FILE = os.path.normpath(config_path)
+
+
 with open(CONFIG_FILE, 'r') as config_file:
     config = yaml.safe_load(config_file)
     CONFIG_PROBLEM = config['problem']
