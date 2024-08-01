@@ -14,7 +14,6 @@ import copy
 import yaml
 import socket
 
-
 ROBOTTYPE = 'dingo_kinova'
 ROBOTMODEL = 'dingo_kinova'
 

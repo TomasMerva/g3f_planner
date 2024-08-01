@@ -13,6 +13,7 @@ from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import copy
 import yaml
 import socket
+import time
 
 from fabrics_rollouts import FabricsClient
 
@@ -126,8 +127,8 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             radius_body_arm_forearm_link=0.1,
         )
 
-
-        action = planner_client.update(arguments_dict)
+        action = planner_client.compute_action(arguments_dict)
+    
         ob, *_ = env.step(action)
     env.close()
     return {}

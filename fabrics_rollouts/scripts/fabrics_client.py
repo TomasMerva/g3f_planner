@@ -3,6 +3,7 @@ import socket
 import numpy as np
 from enum import Enum
 from dataclasses import dataclass
+import time
 
 @dataclass
 class FabricsArgumentSize():
@@ -24,7 +25,7 @@ class FabricsClient():
         self.client_socket.connect((self.config["server_address"],
                                     self.config["server_port"]))
     
-    def update(self, arguments_dict):
+    def compute_action(self, arguments_dict):
         msg = self._handle_argument_dict(arguments_dict)
         self._send_data(msg)
         
