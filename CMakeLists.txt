@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(rollout_fabrics)
+project(fabrics_rollouts)
 add_compile_options(-std=c++17)
 
 find_package(yaml-cpp CONFIG REQUIRED)
@@ -16,20 +16,26 @@ else()
 endif()
 
 
-include_directories(${PROJECT_SOURCE_DIR}/headers/)
+SET(SRC_PATH ${PROJECT_SOURCE_DIR}/${PROJECT_NAME})
+
+
+
+include_directories(${SRC_PATH}/headers/)
 # include_directories(${PROJECT_SOURCE_DIR}/src/)
 
 
+
+
 SET(HEADERS
-      ${PROJECT_SOURCE_DIR}/headers/tcp_server.h
-      ${PROJECT_SOURCE_DIR}/headers/fabrics_server.h
-      ${PROJECT_SOURCE_DIR}/headers/fabrics_config.h
+      ${SRC_PATH}/headers/tcp_server.h
+      ${SRC_PATH}/headers/fabrics_server.h
+      ${SRC_PATH}/headers/fabrics_config.h
 )
 
 SET(SOURCES
-      ${PROJECT_SOURCE_DIR}/src/main.cpp
-      ${PROJECT_SOURCE_DIR}/src/tcp_server.cpp
-      ${PROJECT_SOURCE_DIR}/src/fabrics_server.cpp
+      ${SRC_PATH}/src/main.cpp
+      ${SRC_PATH}/src/tcp_server.cpp
+      ${SRC_PATH}/src/fabrics_server.cpp
 )
 
 

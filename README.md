@@ -16,7 +16,7 @@ sudo make install
 1. Fabrics Server (c++)
 ```bash
 git clone git@github.com:TomasMerva/grasp_fabrics.git
-cd grasp_fabrics/rollouts && mkdir build
+cd grasp_fabrics && mkdir build
 cd build
 cmake ..
 make
@@ -28,10 +28,9 @@ poetry install
 ```
 
 ## Use
-- generated fabrics c-code needs to be in the `/fabrics_rollouts/headers/` folder
 1. Fabrics Server (Terminal 1): 
 ```bash
-./fabrics_rollouts/build/rollout_fabrics
+./build/rollout_fabrics
 ```
 
 2. Fabrics Client (Terminal 2)
@@ -39,5 +38,6 @@ poetry install
 python examples/rollouts/dinova_planner_client.py
 ```
 
-## TODO
-1. closing server socket on the server side
+## Warnings
+1. generated fabrics C-code has to be in the `/fabrics_rollouts/headers/` folder
+2. if you change fabrics C-Code, you need to rebuild fabrics server
