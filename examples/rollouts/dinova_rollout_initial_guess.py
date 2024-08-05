@@ -163,11 +163,41 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     planner.load_fabrics_configuration(config_dict['fabrics'])
     planner.load_problem_configuration(config_dict['problem'])
     planner.concretize()
-    planner.export_as_c("pure_controller.c")
+    # planner.export_as_c("pure_controller.c")
     return planner
 
+def set_fk(robot_urdf_path):
+    with open(robot_urdf_path, "r", encoding="utf-8") as file:
+        urdf = file.read()
+    forward_kinematics = GenericURDFFk(
+        urdf,
+        root_link="world",
+        end_links=["arm_tool_frame"], #TODO: read this from config file?
+    )
+    return forward_kinematics
 
 
+
+def compute_rollout(planner, arg_dict, timesteps, dt):
+    rollout_arg_dict = copy.deepcopy(arg_dict)
+    q = rollout_arg_dict["q"]
+    for i in range(timesteps):
+        
+        action = planner.compute_action(**rollout_arg_dict)
+        
+        dingo_vel_limit = 0.5
+        if np.linalg.norm(action[0:2]) > dingo_vel_limit:
+            action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dingo_vel_limit
+        action[2:] = np.clip(action[2:], -3, 3)
+
+        qdot = action
+        # print(action)
+        q = q + qdot*dt
+
+        rollout_arg_dict["q"] = q
+        rollout_arg_dict["qdot"] = qdot
+
+    return rollout_arg_dict["q"]
 
 def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_obst = 1
@@ -208,7 +238,9 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     T_W_RedCup[:3,:3] = R.from_euler("xyz", [0, 90, 0], degrees=True).as_matrix()
     # (grasp_planner_dinova_1, g_collision_names_d1) = set_grasp_planner(HOME_JOINT_CONFIG[:(dof-nr_fingers)])
     # id_grasp_obj = None
-  
+    chain = pk.build_serial_chain_from_urdf(open(env.ROBOT_URDF_FILE).read(), "arm_tool_frame")
+    chain = chain.to(dtype=torch.float64, device="cpu")
+    q_kinovas = torch.zeros((2, dof-2), dtype=torch.float64)
 
 
     """
@@ -237,7 +269,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             weight_goal_1 =weight_orient_goal,
             x_goal_2 = p_orient_rot_z_red,
             weight_goal_2 = weight_orient_goal,
-            radius_obst_0 = objects_position["z_table"],
+            radius_obst_0 = 0.01,
             x_obst_0 = objects_position["table"],
             radius_body_chassis_link = env.collision_links["chassis_link"],
             radius_body_arm_shoulder_link = env.collision_links["arm_shoulder_link"],
@@ -249,13 +281,30 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 
         )
 
-      
-        action[0:(dof-nr_fingers)] = planner_dinova_1.compute_action(**arguments_dict_1)
 
+       
+        q_rollout = compute_rollout(planner_dinova_1, 
+                                    arguments_dict_1, 
+                                    timesteps=10,
+                                    dt=0.01)
+        q_kinovas[0,:] = torch.as_tensor(q_rollout)
+        q_kinovas[1,:] = torch.as_tensor(arguments_dict_1["q"])
+
+        T_W_EEF = chain.forward_kinematics(q_kinovas , end_only=True)
+        print("Actual: ", T_W_EEF.get_matrix().numpy()[1,:3,3])
+        print("Predicted: ", T_W_EEF.get_matrix().numpy()[0,:3,3])
+        print("desired: ", T_W_RedCup[:3,3])
+        print()
+
+
+        action[0:(dof-nr_fingers)] = planner_dinova_1.compute_action(**arguments_dict_1)
         dingo_vel_limit = 0.5
         if np.linalg.norm(action[0:2]) > dingo_vel_limit:
             action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dingo_vel_limit
         action[2:] = np.clip(action[2:], -3, 3)
+
+        print("act",action)
+        print()
         ob, *_ = sim.step(action)
 
     sim.close()
