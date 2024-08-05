@@ -21,9 +21,19 @@ from scipy.spatial.transform import Rotation as R
 from grasp_planning import GOMP
 
 
+
+
+
+# Scene urdf
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
+urdf_folder_path = os.path.join(current_script_dir, '..', 'urdfs')
+URDF_FOLDER = os.path.normpath(urdf_folder_path)
 # Robot urdf
-absolute_path = os.path.dirname(os.path.abspath(__file__))
-URDF_FILE = absolute_path + "/urdfs/dinova/dinova.urdf"
+# ROBOTTYPE = 'dingo_kinova'
+# ROBOTMODEL = 'dingo_kinova'
+# robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
+ROBOT_URDF_FILE = URDF_FOLDER + "/dinova/dinova.urdf"
+
 HOME_JOINT_CONFIG = np.array([-0.75, 1, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
 
@@ -34,11 +44,10 @@ def initalize_environment(render=True, nr_obst: int = 0):
     Adds obstacles and goal visualizaion to the environment based and
     steps the simulation once.
     """
-    # robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
    
-    # urdf_file = robot_model.get_urdf_path()
+   
     robots = [
-        GenericUrdfReacher(urdf=URDF_FILE, mode="acc"),
+        GenericUrdfReacher(urdf=ROBOT_URDF_FILE, mode="acc"),
     ]
     env: UrdfEnv = UrdfEnv(
         robots=robots,
@@ -145,9 +154,10 @@ def initalize_environment(render=True, nr_obst: int = 0):
 
 def create_scene():
     # Table
-    URDF_table = os.path.dirname(os.path.abspath(__file__)) + "/urdfs/table/table.urdf"
-    URDF_cup_red = os.path.dirname(os.path.abspath(__file__)) + "/urdfs/cup/cup_red.urdf"
-    URDF_cup_green = os.path.dirname(os.path.abspath(__file__)) + "/urdfs/cup/cup_green.urdf"
+    URDF_table = URDF_FOLDER + "/table/table.urdf"
+    URDF_cup_red = URDF_FOLDER + "/cup/cup_red.urdf"
+    URDF_cup_green = URDF_FOLDER + "/cup/cup_green.urdf"
+    print(URDF_table)
 
     urdf_links = {"URDF_table": URDF_table,
                   "URDF_cup_red" : URDF_cup_red,
@@ -189,7 +199,7 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
     degrees_of_freedom: int
         Degrees of freedom of the robot (default = 7)
     """
-    with open(URDF_FILE, "r", encoding="utf-8") as file:
+    with open(ROBOT_URDF_FILE, "r", encoding="utf-8") as file:
         urdf = file.read()
     forward_kinematics = GenericURDFFk(
         urdf,
@@ -248,7 +258,7 @@ def set_grasp_planner(q_current):
     n_waypoints = 3
     grasp_waypoint_ID = 2
     planner = GOMP(n_waypoints=n_waypoints, 
-                    urdf=URDF_FILE, 
+                    urdf=ROBOT_URDF_FILE, 
                     roll_obj_grasp=np.pi/2,
                     root_link='world', 
                     end_link='arm_tool_frame')
@@ -292,14 +302,14 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     pybullet.setGravity(0,0,0)
     action = np.zeros(2*dof)
     ob, *_ = env.step(action)
-    grasp_shape = create_grasp_model()
+    # grasp_shape = create_grasp_model()
     (objects_id, objects_position) = create_scene()
 
     """
     2. Specify collisions
     """
     # Forward kinematics for spheres
-    chain = pk.build_serial_chain_from_urdf(open(URDF_FILE).read(), "arm_tool_frame")
+    chain = pk.build_serial_chain_from_urdf(open(ROBOT_URDF_FILE).read(), "arm_tool_frame")
     chain = chain.to(dtype=torch.float64, device="cpu")
     q_kinovas = torch.zeros((nr_robots, dof), dtype=torch.float64)
     collision_links = [
@@ -367,7 +377,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             p_orient_rot_z_red = T_W_GraspRed[:3,:3] @ x_goal_2_z
             if id_grasp_obj is not None:
                 pybullet.removeBody(id_grasp_obj)
-            id_grasp_obj = display_grasp_pybullet(T_W_GraspRed, grasp_shape)
+            # id_grasp_obj = display_grasp_pybullet(T_W_GraspRed, grasp_shape)
 
 
 

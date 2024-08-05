@@ -12,7 +12,6 @@ from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import copy
 import yaml
-import socket
 
 ROBOTTYPE = 'dingo_kinova'
 ROBOTMODEL = 'dingo_kinova'
@@ -131,8 +130,9 @@ def set_planner(goal: GoalComposition, nr_obst: int = 0, degrees_of_freedom: int
 
 def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_obst = 2
+    nr_fingers = 2
     (env, goal) = initalize_environment(render, nr_obst=nr_obst)
-    planner = set_planner(goal, nr_obst, degrees_of_freedom=dof)
+    planner = set_planner(goal, nr_obst, degrees_of_freedom=dof-nr_fingers)
     action = np.zeros(dof)
     ob, *_ = env.step(action)
 
@@ -164,5 +164,5 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 
 
 if __name__ == "__main__":
-    dof = 9
+    dof = 11
     res = run_kinova_example(n_steps=5000, dof=dof)
