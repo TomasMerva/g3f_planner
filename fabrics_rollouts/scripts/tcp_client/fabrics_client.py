@@ -29,7 +29,6 @@ class FabricsClient():
     def compute_action(self, **arguments_dict):
         msg = self._handle_argument_dict(arguments_dict)
         self._send_data(msg)
-        
         action = self._recv_data()
         return action
 
@@ -62,8 +61,9 @@ class FabricsClient():
         fabrics_config["num_collision_link"] = len(config["problem"]["robot_representation"]["collision_links"])
         fabrics_config["num_planes"]  = config["problem"]["environment"]["number_planes"]
         fabrics_config["num_dofs"]  = len(config["problem"]["joint_limits"]["lower_limits"])
+        print(fabrics_config)
         return fabrics_config
-
+    
     def _compute_args_indices(self):
         start_idx = 0
         self._fabrics_args_idx = {}
@@ -132,10 +132,9 @@ class FabricsClient():
         # Robot state
         data[self._fabrics_args_idx["q_state_0"][0]:
              self._fabrics_args_idx["q_state_0"][1]] = arg_dict["q"].tolist()
-        msg_type_counter += 1
         data[self._fabrics_args_idx["q_state_1"][0]:
              self._fabrics_args_idx["q_state_1"][1]] = arg_dict["qdot"].tolist()
-        msg_type_counter += 1
+        msg_type_counter += 2
 
         # radius body
         if self.config["num_collision_link"] > 0:
@@ -148,9 +147,9 @@ class FabricsClient():
         # radius obst
         if self.config["num_obstacles"] > 0:
             radius_obsts = [v for k, v in arg_dict.items() if k.startswith('radius_obst')]
-            for i, r in enumerate(radius_obsts):
+            for i, r in enumerate(radius_obsts[0]): #TODO: potential error because sometimes its single float, sometimes np.array
                 data[self._fabrics_args_idx["radius_obst_"+str(i)][0]:
-                     self._fabrics_args_idx["radius_obst_"+str(i)][1]] = [r]
+                     self._fabrics_args_idx["radius_obst_"+str(i)][1]] = r
                 msg_type_counter += 1
 
         # weight goal
@@ -158,7 +157,7 @@ class FabricsClient():
             weight_goal = [v for k, v in arg_dict.items() if k.startswith('weight_goal_')]
             for i, w in enumerate(weight_goal):
                 data[self._fabrics_args_idx["weight_goal_"+str(i)][0]:
-                     self._fabrics_args_idx["weight_goal_"+str(i)][1]] = [w]
+                     self._fabrics_args_idx["weight_goal_"+str(i)][1]] = w #TODO: potential bug if there are more goals
                 msg_type_counter += 1
 
         # x_goal
@@ -172,12 +171,12 @@ class FabricsClient():
         # x_obst
         if self.config["num_obstacles"] > 0:
              x_obsts = [v for k, v in arg_dict.items() if k.startswith('x_obst')]
-             for i, obst in enumerate(x_obsts):
+             for i, obst in enumerate(x_obsts[0]):  #TODO: potential error because sometimes its single float, sometimes np.array
                 data[self._fabrics_args_idx["x_obst"+str(i)][0]:
                      self._fabrics_args_idx["x_obst"+str(i)][1]] = obst
                 msg_type_counter += 1
 
-        assert self.desired_msg_types == msg_type_counter, f"Desired arg length {self.desired_msg_length} is not the same as msg length {msg_type_counter}"
+        assert self.desired_msg_types == msg_type_counter, f"Desired arg length {self.desired_msg_types} is not the same as msg length {msg_type_counter}"
 
         data = np.asarray(data)
         msg = map(str, data)  
