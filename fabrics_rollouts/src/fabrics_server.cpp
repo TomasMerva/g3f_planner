@@ -1,7 +1,6 @@
 #include "fabrics_server.h"
 #include "pure_controller.c"
 
-
 FabricsServer::FabricsServer(const uint port, const std::string config_file_path)
     : fabrics_config(FabricsServer::ReadConfigFile(config_file_path))
 {

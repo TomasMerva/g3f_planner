@@ -165,49 +165,114 @@ class Environment():
         return (scene_id, scene_positions)
 
 
+class ForwardKinematics():
+    def __init__(self, urdf_file, root_link, end_link) -> None:
+        with open(urdf_file, "r") as file:
+            urdf = file.read()
+        self.fk = GenericURDFFk(
+            urdf,
+            root_link = root_link,
+            end_links = end_link,
+        )
+        self._end_link = end_link
+    
+    def compute(self, q, end_link=None):
+        if end_link is not None:
+            return self.fk.numpy(q, end_link, position_only=False)
+        else:
+            return self.fk.numpy(q, self._end_link, position_only=False)
 
-def set_fk(robot_urdf_path):
-    with open(robot_urdf_path, "r", encoding="utf-8") as file:
-        urdf = file.read()
-    forward_kinematics = GenericURDFFk(
-        urdf,
-        root_link="world",
-        end_links=["arm_end_effector_link"], #TODO: read this from config file?
-    )
-    return forward_kinematics
+class Rollout():
+    def __init__(self, planner, fk_dict, timesteps, dt) -> None:
+        self._planner = planner
+        self._timesteps = timesteps
+        self._dt = dt
 
-
-
-def compute_rollout(planner, arg_dict, timesteps, dt):
-    rollout_arg_dict = copy.deepcopy(arg_dict)
-    q = rollout_arg_dict["q"]
-    qdot = rollout_arg_dict["qdot"]
-    alpha = 0.9
-    q_list = []
-    for i in range(timesteps):
+        self._alpha_filter = 0.9
+        self.fk = ForwardKinematics(fk_dict["urdf_file"], fk_dict["root_link"], fk_dict["end_link"])
         
-        action = planner.compute_action(**rollout_arg_dict)
-        
+
+    def compute_rollout(self, arg_dict, tolerance) -> list:
+        rollout_arg_dict = copy.deepcopy(arg_dict)
+        q = rollout_arg_dict["q"]
+        qdot = rollout_arg_dict["qdot"]
+        q_rollout_record = []
+        for _ in range(self._timesteps):
+            action = self._planner.compute_action(**rollout_arg_dict)
+
+            action = self.clip_actions(action)
+
+            qdot = self.apply_low_pass_filter(action, qdot)
+            q = q + qdot*self._dt
+
+            rollout_arg_dict["q"] = q
+            rollout_arg_dict["qdot"] = qdot
+            q_rollout_record.append(q)
+
+            error = self.compute_error(rollout_arg_dict["x_goal_0"], q)
+            if error <= tolerance:
+                return q_rollout_record
+        return q_rollout_record
+
+    
+    def clip_actions(self, action):
+        #TODO: change it since it is tailored for dinova
         dingo_vel_limit = 0.5
         if np.linalg.norm(action[0:2]) > dingo_vel_limit:
             action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dingo_vel_limit
         action[2:] = np.clip(action[2:], -3, 3)
+        return action
 
+    def apply_low_pass_filter(self, x, x_prev):
+        return self._alpha_filter*x_prev + (1-self._alpha_filter)*x
+    
 
-        qdot = alpha*qdot + (1-alpha)*action
+    def compute_error(self, x_goal, q_current):
+        T_W_EEF = self.fk.compute(q_current)
+        position_error = np.linalg.norm(x_goal - T_W_EEF[:3,3])
+        return position_error
 
-        # print(action)
-        q = q + qdot*dt
+    def get_initial_guess(self, num_waypoints, rollout):
+        if len(rollout) < 2:
+            raise ValueError("Vector must have at least 2 elements.")
         
-        rollout_arg_dict["q"] = q
-        rollout_arg_dict["qdot"] = qdot
-        q_list.append(q)
+        indices = np.linspace(0, len(rollout) - 1, num_waypoints, dtype=int)
 
-    return rollout_arg_dict["q"], q_list
+        waypoints = [rollout[i].tolist() for i in indices]
+        return waypoints
+
+
+# def compute_rollout(planner, arg_dict, timesteps, dt, tolerance=0.05):
+#     rollout_arg_dict = copy.deepcopy(arg_dict)
+#     q = rollout_arg_dict["q"]
+#     qdot = rollout_arg_dict["qdot"]
+#     alpha = 0.9
+#     q_list = []
+#     for i in range(timesteps):
+#         action = planner.compute_action(**rollout_arg_dict)
+        
+#         dingo_vel_limit = 0.5
+#         if np.linalg.norm(action[0:2]) > dingo_vel_limit:
+#             action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dingo_vel_limit
+#         action[2:] = np.clip(action[2:], -3, 3)
+
+
+#         qdot = alpha*qdot + (1-alpha)*action
+
+#         # print(action)
+#         q = q + qdot*dt
+        
+#         rollout_arg_dict["q"] = q
+#         rollout_arg_dict["qdot"] = qdot
+#         q_list.append(q)
+
+#     return q_list
 
 def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_robots = 1
     nr_fingers = 2
+    nr_rollout_timesteps = 100
+    nr_rollout_dt = 0.25
     """
     1. Create environment
     """
@@ -224,26 +289,19 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     2. Create fabrics
     """
     planner_dinova_1 = FabricsClient(env.CONFIG_FILE)
-    weight_pose_goal = 0.5
-    weight_orient_goal = 1.0
-    rot_matrix = np.array([[-0.339, -0.784306, -0.51956],
-                           [-0.0851341, 0.57557, -0.813309],
-                           [0.936926, -0.23148, -0.261889]])
-    x_goal_1_x = np.array([0.0, 0.0, 0.13])
-    x_goal_2_z = np.array([0.0, 0.10, 0.00])
-    # objects_position["cup_red"][2] += 0.05
-  
 
-    # """
-    # 3. Create grasp planner
-    # """
-    T_W_RedCup = np.eye(4)
-    T_W_RedCup[:3,:3] = R.from_euler("xyz", [0, 90, 0], degrees=True).as_matrix()
-    # (grasp_planner_dinova_1, g_collision_names_d1) = set_grasp_planner(HOME_JOINT_CONFIG[:(dof-nr_fingers)])
-    # id_grasp_obj = None
-    chain = pk.build_serial_chain_from_urdf(open(env.ROBOT_URDF_FILE).read(), "arm_end_effector_link")
-    chain = chain.to(dtype=torch.float64, device="cpu")
-    # q_kinovas = torch.zeros((2, dof-2), dtype=torch.float64)
+    """
+    3. Rollouts
+    """
+    fk_args = dict(
+        urdf_file = env.ROBOT_URDF_FILE,
+        root_link = "world",
+        end_link = "arm_end_effector_link"
+    )
+    rollouts = Rollout(planner_dinova_1,
+                       fk_args,
+                       nr_rollout_timesteps,
+                       nr_rollout_dt)
 
 
     """
@@ -252,7 +310,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     for w in range(n_steps):
         # Read current state
         ob_robot = ob['robot_0']
-        
+
         # Fabrics
         arguments_dict_1 = dict(
             q=ob_robot["joint_state"]["position"][0:(dof-nr_fingers)],
@@ -263,62 +321,30 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                     ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
             radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
                         ob_robot['FullSensor']['obstacles'][nr_obst + 1]['size']],
-            # x_goal_0=T_W_RedCup[:3,3],
-            # weight_goal_0 = weight_pose_goal,
-            # x_goal_1 = p_orient_rot_x_red,
-            # weight_goal_1 =weight_orient_goal,
-            # x_goal_2 = p_orient_rot_z_red,
-            # weight_goal_2 = weight_orient_goal,
-            # radius_obst_0 = 0.01,
-            # x_obst_0 = objects_position["table"],
             radius_body_chassis_link = env.collision_links["chassis_link"],
             radius_body_arm_shoulder_link = env.collision_links["arm_shoulder_link"],
             radius_body_arm_end_effector_link = env.collision_links["arm_end_effector_link"],
             radius_body_arm_upper_wrist_link = env.collision_links["arm_upper_wrist_link"],
             radius_body_arm_lower_wrist_link = env.collision_links["arm_lower_wrist_link"],
             radius_body_arm_forearm_link = env.collision_links["arm_forearm_link"],
-            # constraint_0=np.array([0, 0, 1, objects_position["z_table"]]),
-
         )
-        start_time = time.perf_counter()
-       
-        timesteps = 100
-        q_rollout, q_rollout_list = compute_rollout(planner_dinova_1, 
-                                    arguments_dict_1, 
-                                    timesteps=timesteps,
-                                    dt=0.5)
-        end_time = time.perf_counter()
-        print("Computational time for rollouts:", end_time-start_time)
 
-        q_kinovas = torch.zeros((timesteps+1, dof-2), dtype=torch.float64)
-        q_kinovas[0,:] = torch.as_tensor(arguments_dict_1["q"])
-        q_kinovas[1:,:] = torch.as_tensor(q_rollout_list)
+        if w == 0:
+            start_time = time.perf_counter()
+            q_rollouts = rollouts.compute_rollout(arguments_dict_1, tolerance=0.05)
+            end_time = time.perf_counter()
+            print(f"Elapsed time: {end_time-start_time} s")
+            print(f"Size of rollout: {len(q_rollouts)}")
 
-        T_W_EEF = chain.forward_kinematics(q_kinovas , end_only=True)
-        T_W_EEFs = T_W_EEF.get_matrix().numpy()
-        p_W_EEF_actual = T_W_EEFs[0,:3,3]
-
-        # for i in range(1, timesteps):
-        #     pybullet.addUserDebugPoints([T_W_EEFs[i, :3, 3]], [[1, 0, 0]], 10, 1)
-     
-        pybullet.addUserDebugPoints(T_W_EEFs[1:, :3, 3].tolist(), [[1, 0, 0]]*timesteps, 5, 0.1)
+            initial_guess = rollouts.get_initial_guess(num_waypoints=5,
+                                                    rollout=q_rollouts)
+            print(len(initial_guess))
 
 
         action[0:(dof-nr_fingers)] = planner_dinova_1.compute_action(**arguments_dict_1)
-        dingo_vel_limit = 0.5
-        if np.linalg.norm(action[0:2]) > dingo_vel_limit:
-            action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dingo_vel_limit
-        action[2:] = np.clip(action[2:], -3, 3)
+        action = rollouts.clip_actions(action)
 
-        p_W_EEF_horizon = T_W_EEFs[-1,:3,3]
-        print("Actual:    ", p_W_EEF_actual)
-        print("Predicted: ", p_W_EEF_horizon)
-        print("desired:   ", ob_robot['FullSensor']['goals'][nr_obst+2]['position'])
-        print()
 
-        # pybullet.addUserDebugLine(p_W_EEF_actual, p_W_EEF_horizon,  [1, 0, 0], 1, 1)
-        # print("act",action)
-        # print()
         ob, *_ = sim.step(action)
         # time.sleep(0.1)
     sim.close()
