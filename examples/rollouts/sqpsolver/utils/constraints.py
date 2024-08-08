@@ -45,8 +45,8 @@ class EuclideanCollisionConstraint(ConstraintTemplate):
 
         self._g = ca.norm_2((x_obs - self._T_W_EEF[:3, 3]))
         self._gradient = ca.gradient(self._g,x_robot)
-        self._eval_g = ca.Function("g_col" + self._link_name, [x_obs, x_robot], [self._g])
-        self._eval_grad = ca.Function("dg_col" + self._link_name, [x_obs, x_robot], [self._gradient])
+        self._eval_g = ca.Function("g_col" + self._link_name, [x_robot, x_obs], [self._g])
+        self._eval_grad = ca.Function("dg_col" + self._link_name, [x_robot, x_obs], [self._gradient])
         self._lb = r_link + r_obst + tolerance
         self._ub = float("inf")
 

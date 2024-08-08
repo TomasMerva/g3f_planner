@@ -27,7 +27,7 @@ from solver.grasp_sqp import GompSQP
 
 
 # HOME_JOINT_CONFIG = np.array([-0.75, 1, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-HOME_JOINT_CONFIG = np.array([0,0, 0, 0, 0, 0, 0, 0, 0, 0.9, -0.9])
+HOME_JOINT_CONFIG = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0.9, -0.9])
 
 class Environment():
     def __init__(self) -> None:
@@ -248,8 +248,9 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_robots = 1
     nr_fingers = 2
     nr_rollout_timesteps = 100
-    nr_rollout_dt = 0.05
+    nr_rollout_dt = 0.1
     nr_waypoints = 5
+    nr_inner_optim = 5
     """
     1. Create environment
     """
@@ -293,9 +294,21 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     )
     gomp_planner = GompSQP(gomp_args)
     gomp_planner.add_grasp_pos_constraint("g_grasp_pos", nr_waypoints-1, 0.0)
-    gomp_planner._param_ca_dict["g_grasp_pos"]["num_param"][:3,3] = [-1.24355761, -0.75252747, 0.5]
+
+    for i in range(nr_waypoints):
+        gomp_planner.add_collision_constraint(name="g_col1_"+str(i), 
+                                            waypoint_ID=i, 
+                                            child_link="chassis_link",
+                                            r_link= 0.6, 
+                                            r_obst=0.2)
+        gomp_planner.add_collision_constraint(name="g_col2_"+str(i), 
+                                            waypoint_ID=i, 
+                                            child_link="chassis_link",
+                                            r_link= 0.6, 
+                                            r_obst=0.2)
+    # gomp_planner.param_ca_dict["g_grasp_pos"]["num_param"][:3,3] = [-1.24355761, -0.75252747, 0.5]
     x_init = np.ones((nr_waypoints, dof-2))
-    gomp_planner.setup_problem(x0=x_init[-1,:])
+    gomp_planner.setup_problem(x0=x_init)
 
 
 
@@ -332,14 +345,31 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             print(f"Elapsed time: {end_time-start_time} s")
             print(f"Size of rollout: {len(q_rollouts)}")
 
-            initial_guess = np.array(rollouts.get_initial_guess(num_waypoints=5,
-                                                      rollout=q_rollouts))
-            
-            gomp_planner.set_starting_state(q_start=initial_guess[0,:])
-            gomp_planner._param_ca_dict["g_grasp_pos"]["num_param"][:3,3] = ob_robot['FullSensor']['goals'][nr_obst+2]['position']
-            gomp_planner.change_fixed_point(x0=initial_guess[-1,:])
-            waypoints_result = gomp_planner.solve(initial_guess.flatten())
+            initial_guess = np.array(rollouts.get_initial_guess(num_waypoints=nr_waypoints, rollout=q_rollouts))
+            waypoints_result = copy.deepcopy(initial_guess)
 
+            
+            for i in range(nr_waypoints):
+                    T_W_EEF = rollouts.fk.compute(initial_guess[i,:])
+                    pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 5, 0)
+
+            for i in range(nr_inner_optim):
+                gomp_planner.set_starting_state(q_start=waypoints_result[0,:])
+                gomp_planner.param_ca_dict["g_grasp_pos"]["num_param"][:3,3] = ob_robot['FullSensor']['goals'][nr_obst+2]['position']
+                
+                for i in range(nr_waypoints):
+                    gomp_planner.param_ca_dict["g_col1_"+str(i)]["num_param"] = ob_robot['FullSensor']['obstacles'][nr_obst]['position']
+                    gomp_planner.param_ca_dict["g_col2_"+str(i)]["num_param"] = ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']
+
+                gomp_planner.change_fixed_point(x0=waypoints_result)
+                waypoints_result = gomp_planner.solve(waypoints_result.flatten())
+
+                for i in range(nr_waypoints):
+                    T_W_EEF = rollouts.fk.compute(waypoints_result[i,:])
+                    pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[1, 0, 0]], 10, 5)
+                time.sleep(5)
+            
+            # draw final
             for i in range(nr_waypoints):
                 T_W_EEF = rollouts.fk.compute(waypoints_result[i,:])
                 pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[1, 0, 0]], 5, 0)

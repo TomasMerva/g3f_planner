@@ -31,17 +31,18 @@ class GompSQP():
         # self._J_eval = ca.Function("fk_x", [self._x_ca], [self._J])
 
         self._g_list = []
-        self._param_ca_dict = {}
+        self.param_ca_dict = {}
 
     
     def setup_problem(self, x0, max_iter=50):
         self._solver = osqp.OSQP()
 
         (A, l, u) = self._get_joint_limits()
-        self._set_starting_boundary_con(l, l)
+        self._set_starting_boundary_con(l, u)
 
         for g_name, g_term in self._g_list:
-            (A_g, l_g, u_g) = self._linearize_constraint(g_term, x0, self._param_ca_dict[g_name])
+            w_ID = self.param_ca_dict[g_name]["waypoint_ID"]
+            (A_g, l_g, u_g) = self._linearize_constraint(g_term, x0[w_ID,:], self.param_ca_dict[g_name])
             A = sparse.vstack([A, A_g], format='csc')
             l = np.concatenate((l, l_g))
             u = np.concatenate((u, u_g))
@@ -51,10 +52,11 @@ class GompSQP():
 
     def change_fixed_point(self, x0):
         (A, l, u) = self._get_joint_limits()
-        self._set_starting_boundary_con(l, l)
+        self._set_starting_boundary_con(l, u)
 
         for g_name, g_term in self._g_list:
-            (A_g, l_g, u_g) = self._linearize_constraint(g_term, x0, self._param_ca_dict[g_name])
+            w_ID = self.param_ca_dict[g_name]["waypoint_ID"]
+            (A_g, l_g, u_g) = self._linearize_constraint(g_term, x0[w_ID,:], self.param_ca_dict[g_name])
             A = sparse.vstack([A, A_g], format='csc')
             l = np.concatenate((l, l_g))
             u = np.concatenate((u, u_g))
@@ -95,7 +97,6 @@ class GompSQP():
         else:
             g_x0 = g.compute_constraint(x0)
             g_grad_x0 = g.compute_gradient(x0)
-        print(g_x0)
         (lb, ub) = g.get_limits()
 
         lb = lb - g_x0 + np.dot(g_grad_x0, x0.T)
@@ -125,8 +126,8 @@ class GompSQP():
 
 
 
-    def add_grasp_pos_constraint(self, name, waypoint_ID, tolerance=0.0):
-        self._param_ca_dict[name] =  {
+    def add_grasp_pos_constraint(self, name, waypoint_ID, tolerance=0.0) -> None:
+        self.param_ca_dict[name] =  {
             "waypoint_ID" : waypoint_ID,
             "sym_param" : ca.SX.sym(name, 4, 4),
             "num_param" : np.eye(4),
@@ -138,7 +139,28 @@ class GompSQP():
         self._g_list.append((name, 
                              GraspPositionConstraint(robot_model = self._robot_model,
                                                     x_robot = self._x_ca[waypoint_ID, :self._num_dim],
-                                                    param_T_W_Grasp = self._param_ca_dict[name]["sym_param"],
+                                                    param_T_W_Grasp = self.param_ca_dict[name]["sym_param"],
                                                     tolerance = tolerance)
                                                     )
                             )
+        
+    def add_collision_constraint(self, name: str, waypoint_ID: int, child_link:str, r_link:float, r_obst:float) -> None:
+        # Define parameter sym variable
+        self.param_ca_dict[name] =  {
+            "waypoint_ID" : waypoint_ID,
+            "sym_param" : ca.SX.sym(name, 3, 1),
+            "num_param" : np.zeros((3,1)),
+            "child_link" : child_link,
+            "r_link" : r_link,
+            "r_obst" : r_obst,
+            "grasp" : False,
+            }
+        self._g_list.append((name,
+                             EuclideanCollisionConstraint(robot_model = self._robot_model,
+                                                          x_robot = self._x_ca[waypoint_ID, :self._num_dim],
+                                                          x_obs = self.param_ca_dict[name]["sym_param"],
+                                                          link_name = child_link,
+                                                          r_link= r_link,
+                                                          r_obst= r_obst,
+                                                          tolerance=0.0)
+                                                    ))
