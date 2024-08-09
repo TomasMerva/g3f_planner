@@ -6,7 +6,10 @@ from scipy import sparse
 import spatial_casadi as sc
 
 from fabrics_rollouts.scripts.utils.robot_model import RobotKinematicModel
-from fabrics_rollouts.scripts.constraints.constraints import * 
+from fabrics_rollouts.scripts.constraints.constaint_template import * 
+from fabrics_rollouts.scripts.constraints.euclidean_collision_constraint import * 
+from fabrics_rollouts.scripts.constraints.grasp_position_constraint import * 
+from fabrics_rollouts.scripts.constraints.grasp_rotation_constraint import * 
 
 
 class GompSQP():
