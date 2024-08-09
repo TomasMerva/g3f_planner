@@ -30,17 +30,8 @@ problem:
         desired_position: [-0.24355761, -0.75252747, 0.5]
         epsilon: 0.05
         type: staticSubGoal
-      # subgoal0:
-      #   weight: 3.0
-      #   is_primary_goal: True
-      #   indices: [0, 1, 2]
-      #   parent_link: world
-      #   child_link: arm_tool_frame
-      #   desired_position: [0, -1, 0.5]
-      #   epsilon: 0.05
-      #   type: staticSubGoal
       subgoal1:
-        weight: 1.0
+        weight: 5.0
         is_primary_goal: False
         indices: [0, 1, 2]
         parent_link: arm_dummy_link
@@ -49,7 +40,7 @@ problem:
         epsilon: 0.03
         type: staticSubGoal
       subgoal2:
-        weight: 1.0
+        weight: 5.0
         is_primary_goal: False
         indices: [0, 1, 2]
         parent_link: arm_dummy_link
@@ -57,13 +48,20 @@ problem:
         desired_position: [0, -1, 0.5]
         epsilon: 0.03
         type: staticSubGoal
+#      subgoal3:
+#        weight: 1.0
+#        is_primary_goal: False
+#        indices: [2]
+#        desired_position: [0.]
+#        epsilon: 0.015
+#        type: staticJointSpaceSubGoal
   joint_limits:
     lower_limits:
     - -10
     - -10
     - -10
     - -2.6896
-    - -2.6197
+    - -1.7628
     - -2.6197
     - -2.6002
     - -2.5302
@@ -75,7 +73,7 @@ problem:
     - 10
     - 10
     - 2.6896
-    - 2.6197
+    - 0.70
     - 2.6197
     - 2.6002
     - 2.5302
@@ -104,8 +102,10 @@ problem:
           radius: 0.1
     self_collision_pairs: {}
 fabrics:
-  limit_geometry: -1.0 / (x ** 1) * xdot ** 2
+  limit_geometry: -0.1 / (x ** 1) * xdot ** 2 #-1.0 / (x ** 1) * xdot ** 2
   limit_finsler: 1.0/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot**2
-  collision_geometry: -0.2 / (x ** 1) * xdot ** 2
-  collision_finsler:  0.2/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
-
+  collision_geometry: -0.1 / (x ** 1) * xdot ** 2 #-0.2 / (x ** 1) * xdot ** 2
+  collision_finsler:  0.1/(x**2) * xdot**2 #0.2/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
+  geometry_plane_constraint: -0.2 / (x ** 1) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
+  finsler_plane_constraint: 0.2/(x**2) * xdot**2
+  base_energy:
