@@ -12,7 +12,11 @@ from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import copy
 import yaml
+import pybullet
+from scipy.spatial.transform import Rotation as R
 
+
+HOME_JOINT_CONFIG_1 = np.array([-0.75, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
 class Environment():
     def __init__(self) -> None:
@@ -61,7 +65,9 @@ class Environment():
             }
             obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
         
-        pos0 = np.zeros((9,))
+        pos0 = np.array([
+            HOME_JOINT_CONFIG_1
+        ])
         env.reset(pos=pos0)
         env.add_sensor(full_sensor, [0])
         for obst in obstacles:
@@ -113,7 +119,34 @@ class Environment():
 
         return (env, goal)
 
+    def create_scene(self) -> tuple:
+         # Table
+        URDF_table = self.URDF_FOLDER + "/table/table.urdf"
+        URDF_cup_red = self.URDF_FOLDER + "/cup/cup_red.urdf"
+        URDF_cup_green = self.URDF_FOLDER + "/cup/cup_green.urdf"
 
+        urdf_links = {"URDF_table": URDF_table,
+                     "URDF_cup_red" : URDF_cup_red,
+                     "URDF_cup_green" : URDF_cup_green}
+        z_table = 0.65*0.3
+        scene_positions = {
+            "z_table" : z_table,
+            "table" : [0., -1., 0.0],
+            "cup_red" : [-0.05, -0.9, z_table-0.01],
+            "cup_green" : [0.05, -0.9, z_table-0.01],
+        }
+
+        tableUid = pybullet.loadURDF(urdf_links["URDF_table"], basePosition=scene_positions["table"],  globalScaling=0.3)
+        cup_redUid = pybullet.loadURDF(urdf_links["URDF_cup_red"], basePosition=scene_positions["cup_red"])
+        cup_greenUid = pybullet.loadURDF(urdf_links["URDF_cup_green"], basePosition=scene_positions["cup_green"])
+
+        scene_id = {
+            "table" : tableUid,
+            "cup_red" : cup_redUid,
+            "cup_green" : cup_greenUid
+        }
+
+        return (scene_id, scene_positions)
 
 
 def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
@@ -122,7 +155,7 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     forward_kinematics = GenericURDFFk(
         urdf,
         root_link="world",
-        end_links=["arm_end_effector_link"],
+        end_links=["arm_tool_frame", "arm_orientation_helper_link"],
     )
 
     planner = ParameterizedFabricPlanner(
@@ -143,25 +176,52 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     """
     env = Environment()
     (sim, goal) = env.initialize(render)
+    pybullet.setGravity(0,0,0)
+    (objects_id, objects_position) = env.create_scene()
     nr_obst = env.nr_obstacles
     action = np.zeros(dof)
     ob, *_ = sim.step(action)
-
+    
+    # Object
+    x_goal_1_x = np.array([0.0, 0.0, 0.13])
+    x_goal_2_z = np.array([0.0, 0.10, 0.00])
+   
     """
     2. Create fabrics
     """
     planner_dinova = set_planner(robot_urdf_path = env.ROBOT_URDF_FILE,
                                    config_dict = env.CONFIG,
                                    degrees_of_freedom = dof-nr_fingers)
+    # objects_position["cup_red"][1] += 0.1
+    objects_position["cup_red"][2] += 0.1
+
 
     for w in range(n_steps):
         ob_robot = ob['robot_0']
 
+        """
+        Grasping
+        """
+        T_Obj_GraspRed, T_W_RedCup = np.eye(4), np.eye(4)
+        T_Obj_GraspRed[:3,:3] = R.from_euler("xyz", [0, 90, -90], degrees=True).as_matrix()
+
+        # Red cup
+        redcup_pos, redcup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_red"])
+        T_W_RedCup[:3,3] = np.asarray(redcup_pos)
+        # T_W_RedCup[:3,:3] = R.from_quat(np.asarray(redcup_quat)).as_matrix()
+        T_W_GraspRed = T_W_RedCup @ T_Obj_GraspRed
+        p_orient_rot_x_red = T_W_GraspRed[:3,:3] @ x_goal_1_x
+        p_orient_rot_z_red = T_W_GraspRed[:3,:3] @ x_goal_2_z
+
         arguments_dict = dict(
             q=ob_robot["joint_state"]["position"][0:(dof-nr_fingers)],
             qdot=ob_robot["joint_state"]["velocity"][0:(dof-nr_fingers)],
-            x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
+            x_goal_0=objects_position["cup_red"],
             weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
+            x_goal_1 = p_orient_rot_x_red,
+            weight_goal_1 = [3],
+            x_goal_2 = p_orient_rot_z_red,
+            weight_goal_2 = [3],
             x_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
                     ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
             radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],

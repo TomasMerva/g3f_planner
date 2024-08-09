@@ -5,10 +5,8 @@ import sys
 from scipy import sparse
 import spatial_casadi as sc
 
-
-from utils.robot_model import RobotKinematicModel
-from utils.constraints import ConstraintTemplate, EuclideanCollisionConstraint, GraspPositionConstraint
-
+from fabrics_rollouts.scripts.utils.robot_model import RobotKinematicModel
+from fabrics_rollouts.scripts.constraints.constraints import * 
 
 
 class GompSQP():
@@ -143,6 +141,23 @@ class GompSQP():
                                                     tolerance = tolerance)
                                                     )
                             )
+        
+    def add_grasp_rot_constraint(self, name, waypoint_ID, tolerance=0.0):
+        self.param_ca_dict[name] =  {
+            "waypoint_ID" : waypoint_ID,
+            "sym_param" : ca.SX.sym(name, 4, 4),
+            "num_param" : np.eye(4),
+            "tolerance" : tolerance,
+            "grasp" : True
+            }
+        self._g_list.append((name,
+                             GraspRotationConstraint(robot_model = self._robot_model,
+                                                     x_robot = self._x_ca[waypoint_ID, :self._num_dim],
+                                                     param_T_W_Grasp = self.param_ca_dict[name]["sym_param"],
+                                                     tolerance = tolerance)
+                                                     )
+                            )
+
         
     def add_collision_constraint(self, name: str, waypoint_ID: int, child_link:str, r_link:float, r_obst:float) -> None:
         # Define parameter sym variable

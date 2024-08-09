@@ -23,11 +23,11 @@ from scipy.spatial.transform import Rotation as R
 from grasp_planning import GOMP
 
 from fabrics_rollouts import FabricsClient
-from solver.grasp_sqp import GompSQP
+from fabrics_rollouts import GompSQP
 
 
 # HOME_JOINT_CONFIG = np.array([-0.75, 1, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-HOME_JOINT_CONFIG = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0.9, -0.9])
+HOME_JOINT_CONFIG =  np.array([-0.75, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
 class Environment():
     def __init__(self) -> None:
@@ -36,10 +36,10 @@ class Environment():
     def define_files_path(self) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
-        self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, '../../', 'urdfs'))
+        self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, '..', 'urdfs'))
         self.ROBOT_URDF_FILE = self.URDF_FOLDER + "/dinova/dinova.urdf"
 
-        config_path = os.path.join(current_script_dir, '../../..', 'config', 'dingo_kinova_config.yaml')
+        config_path = os.path.join(current_script_dir, '../..', 'config', 'dingo_kinova_config.yaml')
         self.CONFIG_FILE = os.path.normpath(config_path)
 
         with open(self.CONFIG_FILE, 'r') as config_file:
@@ -222,7 +222,7 @@ class Rollout():
         dingo_vel_limit = 0.5
         if np.linalg.norm(action[0:2]) > dingo_vel_limit:
             action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dingo_vel_limit
-        action[2:] = np.clip(action[2:], -3, 3)
+        action[2:] = np.clip(action[2:], -2, 2)
         return action
 
     def apply_low_pass_filter(self, x, x_prev):
@@ -247,26 +247,28 @@ class Rollout():
 def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_robots = 1
     nr_fingers = 2
-    nr_rollout_timesteps = 100
-    nr_rollout_dt = 0.1
-    nr_waypoints = 5
-    nr_inner_optim = 5
+    nr_rollout_timesteps = 2000
+    nr_rollout_dt = 0.5
+    nr_waypoints = 10
+    nr_inner_optim = 10
     """
     1. Create environment
     """
     env = Environment()
     (sim, goal) = env.initialize(render)
     nr_obst = env.nr_obstacles
-    # (objects_id, objects_position) = env.create_scene()
     pybullet.setGravity(0,0,0)
+    (objects_id, objects_position) = env.create_scene()
+    objects_position["cup_red"][2] += 0.05
     action = np.zeros(nr_robots*dof)
     ob, *_ = sim.step(action)
-
 
     """
     2. Create fabrics
     """
     planner_dinova_1 = FabricsClient(env.CONFIG_FILE)
+    x_goal_1_x = np.array([0.0, 0.0, 0.13])
+    x_goal_2_z = np.array([0.0, 0.10, 0.00])
 
     """
     3. Rollouts
@@ -294,6 +296,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     )
     gomp_planner = GompSQP(gomp_args)
     gomp_planner.add_grasp_pos_constraint("g_grasp_pos", nr_waypoints-1, 0.0)
+    # gomp_planner.add_grasp_rot_constraint("g_grasp_rot", nr_waypoints-1, 0.0)
 
     for i in range(nr_waypoints):
         gomp_planner.add_collision_constraint(name="g_col1_"+str(i), 
@@ -306,12 +309,26 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                                             child_link="chassis_link",
                                             r_link= 0.6, 
                                             r_obst=0.2)
-    # gomp_planner.param_ca_dict["g_grasp_pos"]["num_param"][:3,3] = [-1.24355761, -0.75252747, 0.5]
+        # gomp_planner.add_collision_constraint(name="g_col1_wrist_"+str(i), 
+        #                                     waypoint_ID=i, 
+        #                                     child_link="arm_upper_wrist_link",
+        #                                     r_link= 0.3, 
+        #                                     r_obst=0.3)
+        # gomp_planner.add_collision_constraint(name="g_col2_wrist_"+str(i), 
+        #                                     waypoint_ID=i, 
+        #                                     child_link="arm_upper_wrist_link",
+        #                                     r_link= 0.3, 
+        #                                     r_obst=0.3)
+    gomp_planner.param_ca_dict["g_grasp_pos"]["num_param"][:3,3] = [-1.24355761, -0.75252747, 0.5]
     x_init = np.ones((nr_waypoints, dof-2))
     gomp_planner.setup_problem(x0=x_init)
 
-
-
+    # T_W_Obj = np.eye(4)
+    # T_W_Obj[:3,3] = [-1.24355761, -0.75252747, 0.5]
+    # temp = np.eye(4)
+    # temp[:3,:3] = R.from_euler("xyz", [0, 90, -90], degrees=True).as_matrix()
+    # T_W_Grasp = T_W_Obj @ temp
+    # print(T_W_Grasp)
 
     """
     4. Main loop
@@ -320,12 +337,28 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
         # Read current state
         ob_robot = ob['robot_0']
 
+        # Red cup
+        T_Obj_GraspRed, T_W_RedCup = np.eye(4), np.eye(4)
+        T_Obj_GraspRed[:3,:3] = R.from_euler("xyz", [0, 90, -90], degrees=True).as_matrix()
+        redcup_pos, redcup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_red"])
+        T_W_RedCup[:3,3] = np.asarray(redcup_pos)
+        # T_W_RedCup[:3,:3] = R.from_quat(np.asarray(redcup_quat)).as_matrix()
+        T_W_GraspRed = T_W_RedCup @ T_Obj_GraspRed
+        p_orient_rot_x_red = T_W_GraspRed[:3,:3] @ x_goal_1_x
+        p_orient_rot_z_red = T_W_GraspRed[:3,:3] @ x_goal_2_z
+
+
         # Fabrics
         arguments_dict_1 = dict(
             q=ob_robot["joint_state"]["position"][0:(dof-nr_fingers)],
             qdot=ob_robot["joint_state"]["velocity"][0:(dof-nr_fingers)],
-            x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
+            # x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
+            x_goal_0 = T_W_GraspRed[:3,3],
             weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
+            x_goal_1 = p_orient_rot_x_red,
+            weight_goal_1 = [3],
+            x_goal_2 = p_orient_rot_z_red,
+            weight_goal_2 = [3],
             x_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
                     ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
             radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
@@ -350,30 +383,38 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 
             
             for i in range(nr_waypoints):
-                    T_W_EEF = rollouts.fk.compute(initial_guess[i,:])
-                    pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 5, 0)
+                T_W_EEF = rollouts.fk.compute(initial_guess[i,:])
+                pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 5, 0)
 
             for i in range(nr_inner_optim):
                 gomp_planner.set_starting_state(q_start=waypoints_result[0,:])
-                gomp_planner.param_ca_dict["g_grasp_pos"]["num_param"][:3,3] = ob_robot['FullSensor']['goals'][nr_obst+2]['position']
-                
+                gomp_planner.param_ca_dict["g_grasp_pos"]["num_param"][:3,3] = arguments_dict_1["x_goal_0"]
+                # gomp_planner.param_ca_dict["g_grasp_rot"]["num_param"][:3,3] = arguments_dict_1["x_goal_0"]
                 for i in range(nr_waypoints):
-                    gomp_planner.param_ca_dict["g_col1_"+str(i)]["num_param"] = ob_robot['FullSensor']['obstacles'][nr_obst]['position']
-                    gomp_planner.param_ca_dict["g_col2_"+str(i)]["num_param"] = ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']
+                    gomp_planner.param_ca_dict["g_col1_"+str(i)]["num_param"] = arguments_dict_1["x_obsts"][0]
+                    gomp_planner.param_ca_dict["g_col2_"+str(i)]["num_param"] = arguments_dict_1["x_obsts"][1]
+                    # gomp_planner.param_ca_dict["g_col1_wrist_"+str(i)]["num_param"] = arguments_dict_1["x_obsts"][0]
+                    # gomp_planner.param_ca_dict["g_col2_wrist_"+str(i)]["num_param"] = arguments_dict_1["x_obsts"][1]
 
                 gomp_planner.change_fixed_point(x0=waypoints_result)
                 waypoints_result = gomp_planner.solve(waypoints_result.flatten())
 
                 for i in range(nr_waypoints):
                     T_W_EEF = rollouts.fk.compute(waypoints_result[i,:])
-                    pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[1, 0, 0]], 10, 5)
-                time.sleep(5)
+                    pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[1, 0, 0]], 10, 1)
+                time.sleep(1)
             
             # draw final
             for i in range(nr_waypoints):
                 T_W_EEF = rollouts.fk.compute(waypoints_result[i,:])
                 pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[1, 0, 0]], 5, 0)
- 
+
+            T_W_EEF_GP = rollouts.fk.compute(waypoints_result[-1,:])
+            p_orient_rot_x_green = T_W_EEF_GP[:3,:3] @ x_goal_1_x
+            p_orient_rot_z_green = T_W_EEF_GP[:3,:3] @ x_goal_2_z
+            arguments_dict_1["x_goal_1"] = p_orient_rot_x_green
+            arguments_dict_1["x_goal_2"] = p_orient_rot_z_green
+
 
         action[0:(dof-nr_fingers)] = planner_dinova_1.compute_action(**arguments_dict_1)
         action = rollouts.clip_actions(action)
@@ -388,4 +429,3 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 if __name__ == "__main__":
     dof = 11
     res = run_kinova_example(n_steps=5000, dof=dof)
-

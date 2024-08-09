@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fabrics_rollouts"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Tomas Merva"]
 readme = "README.md"
@@ -14,6 +14,7 @@ robotmodels = { git = "https://github.com/maxspahn/robotmodels.git"}
 urdfenvs = "^0.9.13"
 pytorch_kinematics = "^0.6.1"
 grasp_planning =">=0.6"
+osqp = ">=0.6.5"
 
 [build-system]
 requires = ["poetry-core"]

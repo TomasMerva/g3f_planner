@@ -13,50 +13,50 @@ problem:
     obstacle_definition:
       obstacle1:
         type: sphere
-        position: [0.3, -0.3, 0.3]
-        radius: 0.1
+        position: [0.2, 1.3, 0.3]
+        radius: 0.2
       obstacle2:
         type: sphere
-        position: [-0.5, 0.0, 0.5]
-        radius: 0.1
+        position: [0, -0.5, 0.2]
+        radius: 0.2
   goal:
     goal_definition:
-      subgoal0:
-        weight: 1.0
-        is_primary_goal: True
-        indices: [0, 1, 2]
-        parent_link: base_link
-        child_link: arm_end_effector_link
-        desired_position: [-0.24355761, -0.75252747, 0.5]
-        epsilon: 0.05
-        type: staticSubGoal
       # subgoal0:
-      #   weight: 3.0
+      #   weight: 1.0
       #   is_primary_goal: True
       #   indices: [0, 1, 2]
-      #   parent_link: world
-      #   child_link: arm_tool_frame
-      #   desired_position: [0, -1, 0.5]
+      #   parent_link: base_link
+      #   child_link: arm_end_effector_link
+      #   desired_position: [-1.24355761, -0.75252747, 0.5]
       #   epsilon: 0.05
       #   type: staticSubGoal
-      # subgoal1:
-      #   weight: 5.0
-      #   is_primary_goal: False
-      #   indices: [0, 1, 2]
-      #   parent_link: arm_dummy_link
-      #   child_link: arm_tool_frame
-      #   desired_position: [0, -1, 0.5]
-      #   epsilon: 0.03
-      #   type: staticSubGoal
-      # subgoal2:
-      #   weight: 5.0
-      #   is_primary_goal: False
-      #   indices: [0, 1, 2]
-      #   parent_link: arm_dummy_link
-      #   child_link: arm_orientation_helper_link
-      #   desired_position: [0, -1, 0.5]
-      #   epsilon: 0.03
-      #   type: staticSubGoal
+      subgoal0:
+        weight: 2.0
+        is_primary_goal: True
+        indices: [0, 1, 2]
+        parent_link: world
+        child_link: arm_tool_frame
+        desired_position: [-0.05, -0.9, 0.19]
+        epsilon: 0.05
+        type: staticSubGoal
+      subgoal1:
+        weight: 3.0
+        is_primary_goal: False
+        indices: [0, 1, 2]
+        parent_link: arm_dummy_link
+        child_link: arm_tool_frame
+        desired_position: [0, -1, 0.5]
+        epsilon: 0.03
+        type: staticSubGoal
+      subgoal2:
+        weight: 3.0
+        is_primary_goal: False
+        indices: [0, 1, 2]
+        parent_link: arm_dummy_link
+        child_link: arm_orientation_helper_link
+        desired_position: [0, -1, 0.5]
+        epsilon: 0.03
+        type: staticSubGoal
   joint_limits:
     lower_limits:
     - -10
