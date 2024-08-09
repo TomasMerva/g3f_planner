@@ -17,7 +17,7 @@ problem:
         radius: 0.2
       obstacle2:
         type: sphere
-        position: [0, -0.5, 0.2]
+        position: [0.3, -0.5, 0.2]
         radius: 0.2
   goal:
     goal_definition:
