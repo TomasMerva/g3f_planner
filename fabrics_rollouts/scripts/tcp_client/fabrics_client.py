@@ -16,7 +16,8 @@ class FabricsArgumentSize():
 
 class FabricsClient():
     def __init__(self, config_file) -> None:
-        self.desired_msg_lenght = 0
+        self.desired_msg_length = 0
+        self.desired_msg_types = 0
         self.config = self.read_config_file(config_file)
         self._compute_args_indices()
         self.print_args_indices()
@@ -25,10 +26,9 @@ class FabricsClient():
         self.client_socket.connect((self.config["server_address"],
                                     self.config["server_port"]))
     
-    def compute_action(self, arguments_dict):
+    def compute_action(self, **arguments_dict):
         msg = self._handle_argument_dict(arguments_dict)
         self._send_data(msg)
-        
         action = self._recv_data()
         return action
 
@@ -61,8 +61,9 @@ class FabricsClient():
         fabrics_config["num_collision_link"] = len(config["problem"]["robot_representation"]["collision_links"])
         fabrics_config["num_planes"]  = config["problem"]["environment"]["number_planes"]
         fabrics_config["num_dofs"]  = len(config["problem"]["joint_limits"]["lower_limits"])
+        print(fabrics_config)
         return fabrics_config
-
+    
     def _compute_args_indices(self):
         start_idx = 0
         self._fabrics_args_idx = {}
@@ -71,37 +72,44 @@ class FabricsClient():
             end_idx = start_idx + FabricsArgumentSize.PLANE_CONSTRAINT_DIM
             self._fabrics_args_idx["plane_"+str(i)] = (start_idx, end_idx)
             start_idx = end_idx
+            self.desired_msg_types += 1
         # q and qdot
         for i in range(self.config["dim_states"]):
             end_idx = start_idx + self.config["num_dofs"]
             self._fabrics_args_idx["q_state_"+str(i)] = (start_idx, end_idx)
             start_idx = end_idx
+            self.desired_msg_types += 1
         # radius body
         for i in range(self.config["num_collision_link"]):
             end_idx = start_idx + FabricsArgumentSize.COLLISION_LINK_DIM
             self._fabrics_args_idx["radius_body_"+str(i)] = (start_idx, end_idx)
             start_idx = end_idx
+            self.desired_msg_types += 1
         # radius obstacle
         for i in range(self.config["num_obstacles"]):
             end_idx = start_idx + FabricsArgumentSize.OBSTACLE_DIM
             self._fabrics_args_idx["radius_obst_"+str(i)] = (start_idx, end_idx)
             start_idx = end_idx
+            self.desired_msg_types += 1
         # weight goal
         for i in range(self.config["num_goals_weights"]):
             end_idx = start_idx + FabricsArgumentSize.GOAL_WEIGTH_DIM
             self._fabrics_args_idx["weight_goal_"+str(i)] = (start_idx, end_idx)
             start_idx = end_idx
+            self.desired_msg_types += 1
         # goals
         for i in range(self.config["num_goals"]):
             end_idx = start_idx + FabricsArgumentSize.GOAL_DIM
             self._fabrics_args_idx["x_goal"+str(i)] = (start_idx, end_idx)
             start_idx = end_idx
+            self.desired_msg_types += 1
         # obstacle pos
         for i in range(self.config["num_obstacles"]):
             end_idx = start_idx + FabricsArgumentSize.OBSTACLE_POS_DIM
-            self._fabrics_args_idx["x_goal"+str(i)] = (start_idx, end_idx)
+            self._fabrics_args_idx["x_obst"+str(i)] = (start_idx, end_idx)
             start_idx = end_idx
-        self.desired_msg_lenght = start_idx
+            self.desired_msg_types += 1
+        self.desired_msg_length = start_idx
     
     def print_args_indices(self):
         print("Fabrics args indices\n---")
@@ -109,46 +117,66 @@ class FabricsClient():
             print(f"{keys}: {values}")
         print("---")
 
-    def _handle_argument_dict(self, arg_dict : dict) -> str:
-        data = []
+    def _handle_argument_dict(self, arg_dict) -> str:
+        data = [0.0] * self.desired_msg_length
+        msg_type_counter = 0
+
         # Plane constraint
         if self.config["num_planes"] > 0:
             plane_constraints = [k for k, v in arg_dict.items() if k.startswith('constraint_')]
-            for plane_g in plane_constraints:
-                data.extend(arg_dict[plane_g].tolist())
-                
-        # q and qdot // np.array
-        data.extend(arg_dict["q"].tolist())
-        data.extend(arg_dict["qdot"].tolist())
+            for i, plane_g in enumerate(plane_constraints):
+                data[self._fabrics_args_idx["plane_"+str(i)][0]:
+                     self._fabrics_args_idx["plane_"+str(i)][1]] = arg_dict[plane_g].tolist()
+                msg_type_counter += 1
+
+        # Robot state
+        data[self._fabrics_args_idx["q_state_0"][0]:
+             self._fabrics_args_idx["q_state_0"][1]] = arg_dict["q"].tolist()
+        data[self._fabrics_args_idx["q_state_1"][0]:
+             self._fabrics_args_idx["q_state_1"][1]] = arg_dict["qdot"].tolist()
+        msg_type_counter += 2
 
         # radius body
         if self.config["num_collision_link"] > 0:
             radius_body = [v for k, v in arg_dict.items() if k.startswith('radius_body_')]
-            data.extend(radius_body)
+            for i, r in enumerate(radius_body):
+                data[self._fabrics_args_idx["radius_body_"+str(i)][0]:
+                     self._fabrics_args_idx["radius_body_"+str(i)][1]] = [r]
+                msg_type_counter += 1
 
         # radius obst
         if self.config["num_obstacles"] > 0:
             radius_obsts = [v for k, v in arg_dict.items() if k.startswith('radius_obst')]
-            data.extend(np.asarray(radius_obsts[0]).flatten().tolist())
+            for i, r in enumerate(radius_obsts[0]): #TODO: potential error because sometimes its single float, sometimes np.array
+                data[self._fabrics_args_idx["radius_obst_"+str(i)][0]:
+                     self._fabrics_args_idx["radius_obst_"+str(i)][1]] = r
+                msg_type_counter += 1
 
         # weight goal
         if self.config["num_goals_weights"] > 0:
             weight_goal = [v for k, v in arg_dict.items() if k.startswith('weight_goal_')]
-            data.extend(weight_goal[0].tolist())
+            for i, w in enumerate(weight_goal):
+                data[self._fabrics_args_idx["weight_goal_"+str(i)][0]:
+                     self._fabrics_args_idx["weight_goal_"+str(i)][1]] = w #TODO: potential bug if there are more goals
+                msg_type_counter += 1
 
-        # x_goal (could be list)
+        # x_goal
         if self.config["num_goals"] > 0:
-            x_goals = [k for k, v in arg_dict.items() if k.startswith('x_goal')]
-            for x_goal in x_goals:
-                data.extend(arg_dict[x_goal].tolist())
-              
-        # x_obst (could be list of arrays)
+            x_goals = [v for k, v in arg_dict.items() if k.startswith('x_goal')]
+            for i, goal in enumerate(x_goals):
+                data[self._fabrics_args_idx["x_goal"+str(i)][0]:
+                     self._fabrics_args_idx["x_goal"+str(i)][1]] = goal
+                msg_type_counter += 1
+
+        # x_obst
         if self.config["num_obstacles"] > 0:
-            x_obsts = [v for k, v in arg_dict.items() if k.startswith('x_obst')]
-            for x_obst in x_obsts[0]:
-                data.extend(x_obst.tolist())
-     
-        assert self.desired_msg_lenght == len(data), f"Desired msg lenght {self.desired_msg_lenght} is not the same as actual msg lenght {len(data)}"
+             x_obsts = [v for k, v in arg_dict.items() if k.startswith('x_obst')]
+             for i, obst in enumerate(x_obsts[0]):  #TODO: potential error because sometimes its single float, sometimes np.array
+                data[self._fabrics_args_idx["x_obst"+str(i)][0]:
+                     self._fabrics_args_idx["x_obst"+str(i)][1]] = obst
+                msg_type_counter += 1
+
+        assert self.desired_msg_types == msg_type_counter, f"Desired arg length {self.desired_msg_types} is not the same as msg length {msg_type_counter}"
 
         data = np.asarray(data)
         msg = map(str, data)  

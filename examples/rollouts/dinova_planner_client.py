@@ -17,108 +17,135 @@ import time
 
 from fabrics_rollouts import FabricsClient
 
+class Environment():
+    def __init__(self) -> None:
+        self.define_files_path()
 
-ROBOTTYPE = 'dingo_kinova'
-ROBOTMODEL = 'dingo_kinova'
+    def define_files_path(self) -> None:
+        current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
-current_script_dir = os.path.dirname(os.path.abspath(__file__))
-config_path = os.path.join(current_script_dir, '..', '..', 'config', ROBOTTYPE+'_config.yaml')
-CONFIG_FILE = os.path.normpath(config_path)
+        self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, '..', 'urdfs'))
+        self.ROBOT_URDF_FILE = self.URDF_FOLDER + "/dinova/dinova.urdf"
 
+        config_path = os.path.join(current_script_dir, '..', '..', 'config', 'dingo_kinova_config.yaml')
+        self.CONFIG_FILE = os.path.normpath(config_path)
 
-with open(CONFIG_FILE, 'r') as config_file:
-    config = yaml.safe_load(config_file)
-    CONFIG_PROBLEM = config['problem']
-    CONFIG_FABRICS = config['fabrics']
+        with open(self.CONFIG_FILE, 'r') as config_file:
+            self.CONFIG = yaml.safe_load(config_file)
+            self.CONFIG_PROBLEM = self.CONFIG['problem']
+            self.CONFIG_FABRICS = self.CONFIG['fabrics']
 
+    
+    def initialize(self, render : bool = True, nr_obst: int = 0) -> tuple:
+        robots = [
+        GenericUrdfReacher(urdf=self.ROBOT_URDF_FILE, mode="acc"),
+        ]
+        env: UrdfEnv = UrdfEnv(
+            robots=robots,
+            dt=0.01,
+            render=render,
+            observation_checking=False,
+        )
+        full_sensor = FullSensor(
+                goal_mask=["position", "weight"],
+                obstacle_mask=['position', 'size'],
+                variance=0.0
+        )
 
-def initalize_environment(render=True, nr_obst: int = 0):
-    """
-    Initializes the simulation environment.
+        goal = GoalComposition(name="goal", content_dict=self.CONFIG_PROBLEM["goal"]["goal_definition"])
+        
+        # Definition of the obstacle.
+        self.nr_obstacles = len(self.CONFIG_PROBLEM["environment"]["obstacle_definition"])
+        obstacles = []
+        for obst_name, obst_param in self.CONFIG_PROBLEM["environment"]["obstacle_definition"].items():
+            static_obst_dict = {
+                "type": obst_param["type"],
+                "geometry": {"position": obst_param["position"], "radius": obst_param["radius"]},
+            }
+            obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
+        
+        pos0 = np.zeros((9,))
+        env.reset(pos=pos0)
+        env.add_sensor(full_sensor, [0])
+        for obst in obstacles:
+            env.add_obstacle(obst)
+        for sub_goal in goal.sub_goals():
+            env.add_goal(sub_goal)
+        env.set_spaces()
 
-    Adds obstacles and goal visualizaion to the environment based and
-    steps the simulation once.
-    """
-    robot_model = RobotModel(ROBOTTYPE, model_name=ROBOTMODEL)
-    urdf_file = robot_model.get_urdf_path()
-    robots = [
-        GenericUrdfReacher(urdf=urdf_file, mode="acc"),
-    ]
-    env: UrdfEnv = UrdfEnv(
-        robots=robots,
-        dt=0.01,
-        render=render,
-        observation_checking=False,
-    )
-    full_sensor = FullSensor(
-            goal_mask=["position", "weight"],
-            obstacle_mask=['position', 'size'],
-            variance=0.0
-    )
-    # Definition of the obstacle.
-    static_obst_dict = {
-        "type": "sphere",
-        "geometry": {"position": [0.3, -0.3, 0.3], "radius": 0.1},
-    }
-    obst1 = SphereObstacle(name="staticObst", content_dict=static_obst_dict)
-    static_obst_dict = {
-        "type": "sphere",
-        "geometry": {"position": [-0.5, 0.0, 0.5], "radius": 0.1},
-    }
-    obst2 = SphereObstacle(name="staticObst", content_dict=static_obst_dict)
-    goal_dict = {
-        "subgoal0": {
-            "weight": 1.0,
-            "is_primary_goal": True,
-            "indices": [0, 1, 2],
-            "parent_link": "base_link",
-            "child_link": "arm_end_effector_link",
-            "desired_position": [-0.24355761, -0.75252747, 0.5],
-            "epsilon": 0.05,
-            "type": "staticSubGoal",
-        },
-    }
-    goal = GoalComposition(name="goal", content_dict=goal_dict)
-    obstacles = [obst1, obst2][0:nr_obst]
-    pos0 = np.zeros((9,))
-    env.reset(pos=pos0)
-    env.add_sensor(full_sensor, [0])
-    for obst in obstacles:
-        env.add_obstacle(obst)
-    for sub_goal in goal.sub_goals():
-        env.add_goal(sub_goal)
-    env.set_spaces()
-    collision_keys_robot0 = [3, 13, 14, 15, 16, 17, 18, 19, 20] #copy.deepcopy(robots[0]._urdf_joints) #[-2:]
-    collision_radii = [0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-    for i, collision_link_nr in enumerate(collision_keys_robot0):
-         env.add_collision_link(0, collision_link_nr, shape_type='sphere', size=[collision_radii[i]])
-    return (env, goal)
+        pybullet_links_idx = {
+            'world': -1, 
+            'base_link': 0, 
+            'base_link_x': 1, 
+            'base_link_y': 2, 
+            'chassis_link': 3, 
+            'front_left_wheel_link': 4,
+            'front_right_wheel_link': 5, 
+            'rear_left_wheel_link': 6, 
+            'rear_right_wheel_link': 7, 
+            'mid_mount': 8, 
+            'front_c_mount': 9, 
+            'front_b_mount': 10, 
+            'front_mount': 11, 
+            'arm_base_link': 12, 
+            'arm_shoulder_link': 13, 
+            'arm_arm_link': 14, 
+            'arm_forearm_link': 15, 
+            'arm_lower_wrist_link': 16, 
+            'arm_upper_wrist_link': 17, 
+            'arm_end_effector_link': 18, 
+            'arm_dummy_link': 19, 
+            'arm_tool_frame': 20, 
+            'arm_orientation_helper_link': 21, 
+            'arm_gripper_base_link': 22, 
+            'arm_right_finger_prox_link': 23, 
+            'arm_left_finger_prox_link': 24, 
+            'rear_c_mount': 25, 
+            'rear_b_mount': 26, 
+            'rear_mount': 27, 
+            'front_bumper_mount': 28
+            }
+        
+        self.collision_links = {}
+        for link_name, val in self.CONFIG_PROBLEM["robot_representation"]["collision_links"].items():
+            env.add_collision_link(0, 
+                                pybullet_links_idx[link_name], 
+                                shape_type='sphere', 
+                                size=[val["sphere"]["radius"]])
+            self.collision_links[link_name] = val["sphere"]["radius"]
 
+        return (env, goal)
 
 
 def run_kinova_example(n_steps=5000, render=True, dof=9):
-    planner_client = FabricsClient(CONFIG_FILE)
-
-    nr_obst = 2
-    (env, goal) = initalize_environment(render, nr_obst=nr_obst)
+    nr_fingers = 2
+    """
+    1. Create environment
+    """
+    env = Environment()
+    (sim, goal) = env.initialize(render)
+    nr_obst = env.nr_obstacles
     action = np.zeros(dof)
-    ob, *_ = env.step(action)
+    ob, *_ = sim.step(action)
 
- 
+    """
+    2. Create fabrics
+    """
+    planner_client = FabricsClient(env.CONFIG_FILE)
 
 
     for w in range(n_steps):
         ob_robot = ob['robot_0']
 
         arguments_dict = dict(
-            q=ob_robot["joint_state"]["position"],
-            qdot=ob_robot["joint_state"]["velocity"],
+            q=ob_robot["joint_state"]["position"][0:(dof-nr_fingers)],
+            qdot=ob_robot["joint_state"]["velocity"][0:(dof-nr_fingers)],
             x_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['position'],
             weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
-            x_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
-                    ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
-            radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
-                        ob_robot['FullSensor']['obstacles'][nr_obst + 1]['size']],
+            # x_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
+            #         ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
+            # radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
+            #             ob_robot['FullSensor']['obstacles'][nr_obst + 1]['size']],
             radius_body_chassis_link=0.4,
             radius_body_arm_shoulder_link=0.1,
             radius_body_arm_end_effector_link = 0.1,
@@ -127,13 +154,13 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             radius_body_arm_forearm_link=0.1,
         )
 
-        action = planner_client.compute_action(arguments_dict)
+        action[0:(dof-nr_fingers)] = planner_client.compute_action(**arguments_dict)
     
-        ob, *_ = env.step(action)
-    env.close()
+        ob, *_ = sim.step(action)
+    sim.close()
     return {}
 
 
 if __name__ == "__main__":
-    dof = 9
+    dof = 11
     res = run_kinova_example(n_steps=5000, dof=dof)

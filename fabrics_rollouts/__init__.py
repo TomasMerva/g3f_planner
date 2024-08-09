@@ -1,4 +1,5 @@
 from importlib.metadata import version
 __version__ = version(__name__)
 
-from fabrics_rollouts.scripts.fabrics_client import FabricsClient
+from fabrics_rollouts.scripts.tcp_client.fabrics_client import FabricsClient
+from fabrics_rollouts.scripts.solver.grasp_sqp import GompSQP
