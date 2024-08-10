@@ -5,18 +5,14 @@ from forwardkinematics.urdfFks.generic_urdf_fk import GenericURDFFk
 from urdfenvs.urdf_common.urdf_env import UrdfEnv
 from urdfenvs.robots.generic_urdf import GenericUrdfReacher
 from urdfenvs.sensors.full_sensor import FullSensor
-
+from mpscenes.goals.static_sub_goal import StaticSubGoal
 from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import copy
 import yaml
-import pybullet
-from scipy.spatial.transform import Rotation as R
 
-
-HOME_JOINT_CONFIG_1 = np.array([-0.75, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
 class Environment():
     def __init__(self) -> None:
@@ -24,11 +20,11 @@ class Environment():
 
     def define_files_path(self) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
-
+        
         self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, '..', 'urdfs'))
         self.ROBOT_URDF_FILE = self.URDF_FOLDER + "/dinova/dinova.urdf"
 
-        config_path = os.path.join(current_script_dir, '..', '..', 'config', 'dingo_kinova_config.yaml')
+        config_path = os.path.join(current_script_dir, '..', '..', 'config', 'dinova_config_full.yaml')
         self.CONFIG_FILE = os.path.normpath(config_path)
 
         with open(self.CONFIG_FILE, 'r') as config_file:
@@ -65,15 +61,13 @@ class Environment():
             }
             obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
         
-        pos0 = np.array([
-            HOME_JOINT_CONFIG_1
-        ])
+        pos0 = np.zeros((9,))
         env.reset(pos=pos0)
         env.add_sensor(full_sensor, [0])
         for obst in obstacles:
             env.add_obstacle(obst)
-        for sub_goal in goal.sub_goals():
-            env.add_goal(sub_goal)
+        # for sub_goal in goal.sub_goals():
+        #     env.add_goal(sub_goal)
         env.set_spaces()
 
         pybullet_links_idx = {
@@ -119,35 +113,48 @@ class Environment():
 
         return (env, goal)
 
-    def create_scene(self) -> tuple:
-         # Table
-        URDF_table = self.URDF_FOLDER + "/table/table.urdf"
-        URDF_cup_red = self.URDF_FOLDER + "/cup/cup_red.urdf"
-        URDF_cup_green = self.URDF_FOLDER + "/cup/cup_green.urdf"
+class goalOperations():
+    def __init__(self, goal_composition: GoalComposition, forward_kinematics:GenericURDFFk):
+        self._goal_composition = goal_composition
+        self._fk = forward_kinematics
 
-        urdf_links = {"URDF_table": URDF_table,
-                     "URDF_cup_red" : URDF_cup_red,
-                     "URDF_cup_green" : URDF_cup_green}
-        z_table = 0.65*0.3
-        scene_positions = {
-            "z_table" : z_table,
-            "table" : [0., -1., 0.0],
-            "cup_red" : [-0.05, -0.9, z_table-0.01],
-            "cup_green" : [0.05, -0.9, z_table-0.01],
-        }
+    def goal_vector(self, q:np.ndarray, subgoal: StaticSubGoal) -> np.ndarray:
+        if isinstance(q, np.ndarray):
+            fk_parent = self._fk.numpy(q, subgoal.parent_link(), position_only=True)
+            fk_child = self._fk.numpy(q, subgoal.child_link(), position_only=True)
+            return fk_child - fk_parent
+        return np.zeros(3)
 
-        tableUid = pybullet.loadURDF(urdf_links["URDF_table"], basePosition=scene_positions["table"],  globalScaling=0.3)
-        cup_redUid = pybullet.loadURDF(urdf_links["URDF_cup_red"], basePosition=scene_positions["cup_red"])
-        cup_greenUid = pybullet.loadURDF(urdf_links["URDF_cup_green"], basePosition=scene_positions["cup_green"])
+    def error(self, q:np.ndarray) -> float:
+        if q is not None:
+            position_error = np.linalg.norm(
+                self._goal_composition.primary_goal().position() \
+                - self.goal_vector(q, self._goal_composition.sub_goals()[0])
+            )
+            # orientation_1_error = np.linalg.norm(
+            #     self._goal_composition.sub_goals()[1].position() \
+            #     - self.goal_vector(q, self._goal_composition.sub_goals()[1])
+            # )
+            # orientation_2_error = np.linalg.norm(
+            #     self._goal_composition.sub_goals()[2].position() \
+            #     - self.goal_vector(q, self._goal_composition.sub_goals()[2])
+            # )
+            index = 0
+            target_position = self._goal_composition.sub_goals()[index].position()
+            actual_position = self.goal_vector(q, self._goal_composition.sub_goals()[index])
+            error = np.linalg.norm(target_position - actual_position)
+            return position_error #+ orientation_1_error + orientation_2_error
+        else:
+            return 1
 
-        scene_id = {
-            "table" : tableUid,
-            "cup_red" : cup_redUid,
-            "cup_green" : cup_greenUid
-        }
-
-        return (scene_id, scene_positions)
-
+    def get_theta_preference(self, q:np.ndarray, goal_position:np.ndarray) ->  float:
+        position_diff = goal_position[0:2] - q[0:2]
+        theta_preference = np.arctan2(position_diff[1], position_diff[0])
+        if theta_preference < -np.pi:
+            theta_preference += 2 * np.pi
+        if theta_preference > 1 * np.pi:
+            theta_preference -= 2 * np.pi
+        return float(theta_preference)
 
 def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     with open(robot_urdf_path, "r", encoding="utf-8") as file:
@@ -155,18 +162,32 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     forward_kinematics = GenericURDFFk(
         urdf,
         root_link="world",
-        end_links=["arm_tool_frame", "arm_orientation_helper_link"],
+        end_links=["arm_end_effector_link"],
     )
+    base_metric = np.eye(9) * 0.3
+    base_metric[0, 0] = 2
+    base_metric[1, 1] = 2
+    base_metric[2, 2] = 2
+    base_energy = f"ca.dot(ca.mtimes(np.array({base_metric.tolist()}), xdot), xdot)"
 
     planner = ParameterizedFabricPlanner(
         degrees_of_freedom,
         forward_kinematics,
+        base_energy=base_energy
     )
+
     planner.load_fabrics_configuration(config_dict['fabrics'])
     planner.load_problem_configuration(config_dict['problem'])
     planner.concretize()
-    planner.export_as_c("pure_controller.c")
+    planner.export_as_c("pure_controller.cpp")
     return planner
+
+def set_runtime_weights(error, goal_weights_offline=None):
+    weight_goal_0 = 0.5 * (np.tanh(4 * error - 1.5) + 1.6) * goal_weights_offline[0]
+    weight_goal_1 = 0.4 * (np.tanh(-4 * error + 2.0) + 1.5) * goal_weights_offline[1]
+    weight_goal_2 = 0.5 * (np.tanh(-4 * error + 2.0) + 1.0) * goal_weights_offline[2]
+    weight_goal_3 = 0.5 * (np.tanh(4 * error - 1.5) + 1.6) * goal_weights_offline[3]
+    return weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3
 
 
 def run_kinova_example(n_steps=5000, render=True, dof=9):
@@ -176,52 +197,51 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     """
     env = Environment()
     (sim, goal) = env.initialize(render)
-    pybullet.setGravity(0,0,0)
-    (objects_id, objects_position) = env.create_scene()
     nr_obst = env.nr_obstacles
     action = np.zeros(dof)
     ob, *_ = sim.step(action)
-    
-    # Object
-    x_goal_1_x = np.array([0.0, 0.0, 0.13])
-    x_goal_2_z = np.array([0.0, 0.10, 0.00])
-   
+
+    #TODO: remove
+    subgoal0 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal0"]["desired_position"]
+    subgoal1 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal1"]["desired_position"]
+    subgoal2 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal2"]["desired_position"]
+    print(type(subgoal0))
     """
     2. Create fabrics
     """
     planner_dinova = set_planner(robot_urdf_path = env.ROBOT_URDF_FILE,
                                    config_dict = env.CONFIG,
                                    degrees_of_freedom = dof-nr_fingers)
-    # objects_position["cup_red"][1] += 0.1
-    objects_position["cup_red"][2] += 0.1
 
+    #goal weights original:
+    goal_operations = goalOperations(goal_composition=goal, forward_kinematics=planner_dinova._forward_kinematics)
+    goal_weights_offline = [goal._config["subgoal"+str(i)]["weight"] for i in range(len(goal._config))]
+
+    # max velocities:
+    dinova_vel_limits = np.asarray(env.CONFIG_PROBLEM["joint_limits"]["velocity"], dtype=np.float32)
+    # dinova_vel_limits = np.array([0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 100., 100.])
 
     for w in range(n_steps):
         ob_robot = ob['robot_0']
+        q = ob_robot["joint_state"]["position"][0:dof-2]
 
-        """
-        Grasping
-        """
-        T_Obj_GraspRed, T_W_RedCup = np.eye(4), np.eye(4)
-        T_Obj_GraspRed[:3,:3] = R.from_euler("xyz", [0, 90, -90], degrees=True).as_matrix()
+        # adapt goal weights online:
+        position_error = goal_operations.error(q)
+        weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = set_runtime_weights(position_error, goal_weights_offline)
+        theta_preference = goal_operations.get_theta_preference(q=q, goal_position=[-0.24355761, -0.75252747, 0.5])
 
-        # Red cup
-        redcup_pos, redcup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_red"])
-        T_W_RedCup[:3,3] = np.asarray(redcup_pos)
-        # T_W_RedCup[:3,:3] = R.from_quat(np.asarray(redcup_quat)).as_matrix()
-        T_W_GraspRed = T_W_RedCup @ T_Obj_GraspRed
-        p_orient_rot_x_red = T_W_GraspRed[:3,:3] @ x_goal_1_x
-        p_orient_rot_z_red = T_W_GraspRed[:3,:3] @ x_goal_2_z
-
+        # compute arguments for the fabrics action
         arguments_dict = dict(
             q=ob_robot["joint_state"]["position"][0:(dof-nr_fingers)],
             qdot=ob_robot["joint_state"]["velocity"][0:(dof-nr_fingers)],
-            x_goal_0=objects_position["cup_red"],
-            weight_goal_0=ob_robot['FullSensor']['goals'][nr_obst+2]['weight'],
-            x_goal_1 = p_orient_rot_x_red,
-            weight_goal_1 = [3],
-            x_goal_2 = p_orient_rot_z_red,
-            weight_goal_2 = [3],
+            x_goal_0= subgoal0,
+            weight_goal_0=weight_goal_0,
+            x_goal_1= subgoal1,
+            weight_goal_1=weight_goal_1,
+            x_goal_2= subgoal2,
+            weight_goal_2=weight_goal_2,
+            x_goal_3=[theta_preference],
+            weight_goal_3=weight_goal_3,
             x_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst]['position'],
                     ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
             radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
@@ -235,6 +255,10 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
         )
 
         action[0:(dof-nr_fingers)] = planner_dinova.compute_action(**arguments_dict)
+        if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
+            action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
+        action[2:(dof-nr_fingers)] = np.clip(action[2:(dof-nr_fingers)], -1*dinova_vel_limits[2:], dinova_vel_limits[2:])
+
         ob, *_ = sim.step(action)
     sim.close()
     return {}
