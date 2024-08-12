@@ -3,18 +3,21 @@ import numpy as np
 from dataclasses import dataclass
 import ctypes
 import os 
+import time
 
+from fabrics_rollouts.scripts.cpp_bridge.fabrics_config import FabricsConfig
 
-class FabricsDriver():
+class FabricsDriver(FabricsConfig):
     def __init__(self, 
                  config_file = None,
                  controller_lib = None) -> None:
-        if config_file is None:
-            raise RuntimeError("No config file loaded")
+        super().__init__(config_file=config_file)
         if controller_lib is None:
-            raise RuntimeError("No fabrics shared library loaded")
+            raise RuntimeError("No fabrics shared library loaded.")
+        
+        
         self._fabrics_lib = self.load_fabrics_lib(controller_lib)
-
+        
     def load_fabrics_lib(self, controller_path):
         lib = ctypes.CDLL(controller_path)  
 
@@ -38,7 +41,9 @@ class FabricsDriver():
 
         return lib
     
-    def compute_action(self, arg_data):
+    def compute_action(self, **arg_dict):
+        arg_data = self.handle_input_arg_dict(arg_dict)
+    
         arg = (ctypes.POINTER(ctypes.c_double) * len(arg_data))(
             *[a.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) for a in arg_data]
         )
@@ -48,47 +53,7 @@ class FabricsDriver():
             *[r.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) for r in res_data]
         )
         err_code = self._fabrics_lib.funs(arg, res, self._setting_0, self._setting_1, self._setting_2)
-        return np.ctypeslib.as_array(res[0], shape=(9,))
-
-
-
-current_script_dir = os.path.dirname(os.path.abspath(__file__))
-fabrics_path = os.path.normpath(os.path.join(current_script_dir, '../../..', 'build', 'libfabrics_controller.so'))
-
-controller = FabricsDriver(fabrics_path)
-
-
-
-i0 = np.zeros((9), dtype=np.float64)
-i1 = np.zeros((9), dtype=np.float64)
-i2 = np.array([0.2], dtype=np.float64)
-i3 = np.array([0.2], dtype=np.float64)
-i4 = np.array([0.2], dtype=np.float64)
-i5 = np.array([0.2], dtype=np.float64)
-i6 = np.array([0.2], dtype=np.float64)
-i7 = np.array([0.2], dtype=np.float64)
-i8 = np.array([0.2], dtype=np.float64)
-i9 = np.array([0.2], dtype=np.float64)
-i10 = np.array([0.2], dtype=np.float64)
-i11 = np.array([0.2], dtype=np.float64)
-i12 = np.array([0.2], dtype=np.float64)
-i13 = np.array([0.2], dtype=np.float64)
-i14 = np.array([1.0, 0, 0.5], dtype=np.float64)
-i15 = np.array([1.0, 0, 0.5], dtype=np.float64)
-i16 = np.array([1.0, 0, 0.5], dtype=np.float64)
-i17 = np.array([5.0], dtype=np.float64)
-i18 = np.array([1.0, 0, 0.5], dtype=np.float64)
-i19 = np.array([1.0, 0, 0.5], dtype=np.float64)
-
-
-arg_data = [
-    i0, i1, i2, i3, i4, i5,
-    i6, i7, i8, i9, i10, i11,
-    i12, i13, i14, i15, i16, i17,
-    i18, i19
-]
-
-action = controller.compute_action(arg_data)
-print(action)
-
+      
+        return np.ctypeslib.as_array(res[0], shape=(9,)).astype(np.float32)
+    
 

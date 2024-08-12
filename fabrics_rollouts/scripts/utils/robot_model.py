@@ -19,7 +19,12 @@ class RobotKinematicModel():
         self._end_link = end_link
         self.n_dofs = self._robot_fk.n()
         
-
+    def compute_fk(self, q, end_link=None):
+        if end_link is not None:
+            return self._robot_fk.numpy(q, end_link, position_only=False)
+        else:
+            return self._robot_fk.numpy(q, self._end_link, position_only=False)
+        
     def compute_fk_ca(self, q_ca, end_link=None):
         if end_link == None:
             return self._robot_fk.casadi(q_ca, self._end_link, position_only=False)
