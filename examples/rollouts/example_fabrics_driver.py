@@ -39,5 +39,5 @@ start_time = time.perf_counter()
 action = controller.compute_action(**arguments_dict)
 end_time = time.perf_counter()
 print(f"Elapsed time: {end_time-start_time}s")
-
-print(controller.print_input_args())
+print(action)
+# print(controller.print_input_args())

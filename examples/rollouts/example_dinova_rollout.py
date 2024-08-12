@@ -56,4 +56,3 @@ q_rollout = rollouts.compute_rollout(timesteps=100,
 end_time = time.perf_counter()
 print(f"Elapsed time: {end_time-start_time}s")
 print(len(q_rollout))
-# print(q_rollout)
