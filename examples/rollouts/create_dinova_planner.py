@@ -205,7 +205,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     subgoal0 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal0"]["desired_position"]
     subgoal1 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal1"]["desired_position"]
     subgoal2 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal2"]["desired_position"]
-    print(type(subgoal0))
+
     """
     2. Create fabrics
     """
@@ -219,7 +219,6 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 
     # max velocities:
     dinova_vel_limits = np.asarray(env.CONFIG_PROBLEM["joint_limits"]["velocity"], dtype=np.float32)
-    # dinova_vel_limits = np.array([0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 100., 100.])
 
     for w in range(n_steps):
         ob_robot = ob['robot_0']
@@ -228,7 +227,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
         # adapt goal weights online:
         position_error = goal_operations.error(q)
         weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = set_runtime_weights(position_error, goal_weights_offline)
-        theta_preference = goal_operations.get_theta_preference(q=q, goal_position=[-0.24355761, -0.75252747, 0.5])
+        theta_preference = goal_operations.get_theta_preference(q = q, goal_position=[-0.24355761, -0.75252747, 0.5])
 
         # compute arguments for the fabrics action
         arguments_dict = dict(
