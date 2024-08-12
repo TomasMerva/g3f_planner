@@ -3,7 +3,7 @@ import numpy as np
 import casadi as ca
 import sys
 from scipy import sparse
-import spatial_casadi as sc
+import time
 
 from fabrics_rollouts.scripts.utils.robot_model import RobotKinematicModel
 from fabrics_rollouts.scripts.constraints.constaint_template import * 
@@ -35,7 +35,7 @@ class GompSQP():
         self.param_ca_dict = {}
 
     
-    def setup_problem(self, x0, max_iter=50):
+    def setup_problem(self, x0, max_iter=50, verbose=True):
         self._solver = osqp.OSQP()
 
         (A, l, u) = self._get_joint_limits()
@@ -49,7 +49,7 @@ class GompSQP():
             u = np.concatenate((u, u_g))
 
 
-        self._solver.setup(self._P, None, A, l, u, max_iter=50)
+        self._solver.setup(self._P, None, A, l, u, max_iter=max_iter, verbose=verbose, polish=True)
 
     def change_fixed_point(self, x0):
         (A, l, u) = self._get_joint_limits()
@@ -70,8 +70,7 @@ class GompSQP():
         else:
             self._solver.warm_start(self._x_init)
         res = self._solver.solve()
-        
-        return res.x.reshape((self._num_waypoints, self._num_dim))
+        return (res.x.reshape((self._num_waypoints, self._num_dim)), res.info.status)
 
    
     def _create_P_matrix(self, num_waypoints, num_dof):
