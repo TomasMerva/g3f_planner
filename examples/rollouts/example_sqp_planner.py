@@ -211,7 +211,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_fingers = 2
     nr_rollout_timesteps = 100
     nr_rollout_dt = 0.1
-    nr_waypoints = 10
+    nr_waypoints = 20
     nr_inner_optim = 10
 
     """
@@ -288,7 +288,18 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     )
     gomp_planner = GompSQP(gomp_args)
     gomp_planner.add_grasp_pos_constraint("g_grasp_pos", nr_waypoints-1, 0.0)
+    gomp_planner.add_grasp_rot_constraint("g_grasp_rot", nr_waypoints-1, 0.0)
+    for i in range(1, nr_waypoints):
+        g_name = "g_col1_"+str(i)
+        gomp_planner.add_collision_constraint(name= g_name, 
+                                              waypoint_ID=i, 
+                                              child_link="chassis_link",
+                                              r_link= 0.6, 
+                                              r_obst=0.2)
+        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst]['position']
+
     gomp_planner.param_dict["g_grasp_pos"]["num_param"][:3,3] = subgoal0
+    gomp_planner.param_dict["g_grasp_rot"]["num_param"] = T_W_GraspRed
 
     gomp_planner.set_starting_state(q_start=HOME_JOINT_CONFIG[:9])    
     gomp_planner.setup_problem(x0=x_init)
@@ -340,6 +351,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             q_rollout = rollouts_planner.compute_rollout(timesteps=100, 
                                                          arg_dict=arguments_dict,
                                                          tolerance=0.15)
+            print(f"Rollout length: {len(q_rollout)}")
             q_fabrics_initial_guess = rollouts_planner.get_initial_guess(num_waypoints=nr_waypoints,
                                                                          rollout=q_rollout)
             for i in range(nr_waypoints):
@@ -348,16 +360,23 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 
             q_prev_solution = copy.deepcopy(q_fabrics_initial_guess)
             f_q_prev = gomp_planner.compute_cost(q_prev_solution.reshape(-1,1))
-            for _ in range(nr_inner_optim):
+            for i_optim in range(nr_inner_optim):
                 gomp_planner.change_fixed_point(x0=q_prev_solution)
                 q_result, solver_status = gomp_planner.solve(q_prev_solution.reshape(-1,1))
 
                 f_q = gomp_planner.compute_cost(q_result.reshape(-1,1))
-                if np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3:
+                if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3) or i_optim == (nr_inner_optim-1):
                     print("Absolute tolerance reached")
                     for i in range(nr_waypoints):
                         T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
                         pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 0)
+                        T_W_base = rollouts_planner._robot_model.compute_fk(q_result[i,:], end_link="chassis_link")
+                        pybullet.addUserDebugPoints([T_W_base[:3, 3].tolist()], [[0, 1, 0]], 7, 0)
+                        print("")
+                        if i == (nr_waypoints -1):
+                            p_orient_rot_x_red = T_W_EEF[:3,:3] @ x_goal_1_x
+                            p_orient_rot_z_red = T_W_EEF[:3,:3] @ x_goal_2_z
+
                     break
                 else:
                     f_q_prev = copy.deepcopy(f_q)
@@ -365,7 +384,6 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                     for i in range(nr_waypoints):
                         T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
                         pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
-
                 q_prev_solution = copy.deepcopy(q_result)
 
         # clip actions
