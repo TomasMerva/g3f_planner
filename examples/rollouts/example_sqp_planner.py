@@ -275,23 +275,23 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     """
     4. 
     """
-    # x_init = np.ones((nr_waypoints, dof-2))
+    x_init = np.ones((nr_waypoints, dof-2))
 
 
-    # gomp_args = dict(
-    #     urdf_file = env.ROBOT_URDF_FILE,
-    #     root_link = "world",
-    #     end_link = "arm_end_effector_link",
-    #     num_waypoints = nr_waypoints,
-    #     num_dim = dof-nr_fingers,
-    #     joint_limits = env.CONFIG_PROBLEM["joint_limits"]
-    # )
-    # gomp_planner = GompSQP(gomp_args)
-    # gomp_planner.add_grasp_pos_constraint("g_grasp_pos", nr_waypoints-1, 0.0)
-    # gomp_planner.param_dict["g_grasp_pos"]["num_param"][:3,3] = [-1.24355761, -0.75252747, 0.5]
+    gomp_args = dict(
+        urdf_file = env.ROBOT_URDF_FILE,
+        root_link = "world",
+        end_link = "arm_end_effector_link",
+        num_waypoints = nr_waypoints,
+        num_dim = dof-nr_fingers,
+        joint_limits = env.CONFIG_PROBLEM["joint_limits"]
+    )
+    gomp_planner = GompSQP(gomp_args)
+    gomp_planner.add_grasp_pos_constraint("g_grasp_pos", nr_waypoints-1, 0.0)
+    gomp_planner.param_dict["g_grasp_pos"]["num_param"][:3,3] = subgoal0
 
-    # gomp_planner.set_starting_state(q_start=HOME_JOINT_CONFIG[:9])    
-    # gomp_planner.setup_problem(x0=x_init)
+    gomp_planner.set_starting_state(q_start=HOME_JOINT_CONFIG[:9])    
+    gomp_planner.setup_problem(x0=x_init)
 
     # start_time = time.perf_counter()
     # q_result, solver_status = gomp_planner.solve(x_init.reshape(-1,1))
@@ -299,8 +299,6 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     # print("elapsed time:", end_time-start_time)
     # print(q_result)
 
-
-    print("subgoal0", subgoal0)
     for w in range(n_steps):
         ob_robot = ob['robot_0']
         q = ob_robot["joint_state"]["position"][0:dof-2]
@@ -333,6 +331,42 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             radius_body_arm_lower_wrist_link = 0.1,
             radius_body_arm_forearm_link=0.1,
         )
+
+        # rollouts
+        if w == 0:
+            arguments_dict["weight_goal_0"] = 5.0
+            arguments_dict["weight_goal_1"] = 10.0
+            arguments_dict["weight_goal_2"] = 10.0
+            q_rollout = rollouts_planner.compute_rollout(timesteps=100, 
+                                                         arg_dict=arguments_dict,
+                                                         tolerance=0.15)
+            q_fabrics_initial_guess = rollouts_planner.get_initial_guess(num_waypoints=nr_waypoints,
+                                                                         rollout=q_rollout)
+            for i in range(nr_waypoints):
+                T_W_EEF = rollouts_planner._robot_model.compute_fk(q_fabrics_initial_guess[i,:])
+                pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 7, 0)
+
+            q_prev_solution = copy.deepcopy(q_fabrics_initial_guess)
+            f_q_prev = gomp_planner.compute_cost(q_prev_solution.reshape(-1,1))
+            for _ in range(nr_inner_optim):
+                gomp_planner.change_fixed_point(x0=q_prev_solution)
+                q_result, solver_status = gomp_planner.solve(q_prev_solution.reshape(-1,1))
+
+                f_q = gomp_planner.compute_cost(q_result.reshape(-1,1))
+                if np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3:
+                    print("Absolute tolerance reached")
+                    for i in range(nr_waypoints):
+                        T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
+                        pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 0)
+                    break
+                else:
+                    f_q_prev = copy.deepcopy(f_q)
+
+                    for i in range(nr_waypoints):
+                        T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
+                        pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
+
+                q_prev_solution = copy.deepcopy(q_result)
 
         # clip actions
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)
