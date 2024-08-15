@@ -12,7 +12,9 @@ from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import copy
 import yaml
+import pybullet
 
+HOME_JOINT_CONFIG =  np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
 class Environment():
     def __init__(self) -> None:
@@ -61,7 +63,7 @@ class Environment():
             }
             obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
         
-        pos0 = np.zeros((9,))
+        pos0 = np.array(HOME_JOINT_CONFIG)
         env.reset(pos=pos0)
         env.add_sensor(full_sensor, [0])
         for obst in obstacles:
@@ -113,6 +115,36 @@ class Environment():
 
         return (env, goal)
 
+    def create_scene(self) -> tuple:
+        # Table
+        URDF_table = self.URDF_FOLDER + "/table/table.urdf"
+        URDF_cup_red = self.URDF_FOLDER + "/cup/cup_red.urdf"
+        URDF_cup_green = self.URDF_FOLDER + "/cup/cup_green.urdf"
+
+        urdf_links = {"URDF_table": URDF_table,
+                    "URDF_cup_red" : URDF_cup_red,
+                    "URDF_cup_green" : URDF_cup_green}
+        z_table = 0.65*0.3
+        scene_positions = {
+            "z_table" : z_table,
+            "table" : [0., -1., 0.0],
+            "cup_red" : [-0.05, -0.9, z_table-0.01],
+            "cup_green" : [0.05, -0.9, z_table-0.01],
+        }
+
+        tableUid = pybullet.loadURDF(urdf_links["URDF_table"], basePosition=scene_positions["table"],  globalScaling=0.3)
+        cup_redUid = pybullet.loadURDF(urdf_links["URDF_cup_red"], basePosition=scene_positions["cup_red"])
+        cup_greenUid = pybullet.loadURDF(urdf_links["URDF_cup_green"], basePosition=scene_positions["cup_green"])
+
+        scene_id = {
+            "table" : tableUid,
+            "cup_red" : cup_redUid,
+            "cup_green" : cup_greenUid
+        }
+
+        return (scene_id, scene_positions)
+    
+
 class goalOperations():
     def __init__(self, goal_composition: GoalComposition, forward_kinematics:GenericURDFFk):
         self._goal_composition = goal_composition
@@ -162,7 +194,7 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     forward_kinematics = GenericURDFFk(
         urdf,
         root_link="world",
-        end_links=["arm_end_effector_link"],
+        end_links=["arm_end_effector_link", "arm_orientation_helper_link"],
     )
     base_metric = np.eye(9) * 0.3
     base_metric[0, 0] = 2
@@ -197,6 +229,11 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     """
     env = Environment()
     (sim, goal) = env.initialize(render)
+    pybullet.setGravity(0,0,0)
+    (objects_id, objects_position) = env.create_scene()
+    redcup_pos, redcup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_red"])
+    T_W_RedCup = np.eye(4)
+    T_W_RedCup[:3,3] = np.asarray(redcup_pos)
     nr_obst = env.nr_obstacles
     action = np.zeros(dof)
     ob, *_ = sim.step(action)
@@ -212,6 +249,13 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     planner_dinova = set_planner(robot_urdf_path = env.ROBOT_URDF_FILE,
                                    config_dict = env.CONFIG,
                                    degrees_of_freedom = dof-nr_fingers)
+    rot_matrix = np.array([[-0.339, -0.784306, -0.51956],
+                           [-0.0851341, 0.57557, -0.813309],
+                           [0.936926, -0.23148, -0.261889]])
+    x_goal_1_x = np.array([0.0, 0.0, 0.13])
+    x_goal_2_z = np.array([0.0, 0.10, 0.00])
+    subgoal1 = rot_matrix @ x_goal_1_x
+    subgoal2 = rot_matrix @ x_goal_2_z
 
     #goal weights original:
     goal_operations = goalOperations(goal_composition=goal, forward_kinematics=planner_dinova._forward_kinematics)
@@ -245,12 +289,12 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                     ob_robot['FullSensor']['obstacles'][nr_obst + 1]['position']],
             radius_obsts=[ob_robot['FullSensor']['obstacles'][nr_obst + 0]['size'],
                         ob_robot['FullSensor']['obstacles'][nr_obst + 1]['size']],
-            radius_body_chassis_link=0.4,
-            radius_body_arm_shoulder_link=0.1,
-            radius_body_arm_end_effector_link = 0.1,
-            radius_body_arm_upper_wrist_link = 0.1,
-            radius_body_arm_lower_wrist_link = 0.1,
-            radius_body_arm_forearm_link=0.1,
+            radius_chassis_link=0.4,
+            radius_arm_shoulder_link=0.1,
+            radius_arm_end_effector_link = 0.1,
+            radius_arm_upper_wrist_link = 0.1,
+            radius_arm_lower_wrist_link = 0.1,
+            radius_arm_forearm_link=0.1,
         )
 
         action[0:(dof-nr_fingers)] = planner_dinova.compute_action(**arguments_dict)

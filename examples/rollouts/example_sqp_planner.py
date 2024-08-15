@@ -25,7 +25,7 @@ from fabrics_rollouts import GompSQP
 from fabrics_rollouts import RolloutFabrics
 
 
-HOME_JOINT_CONFIG =  np.array([-0.75, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
+HOME_JOINT_CONFIG =  np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
 class Environment():
     def __init__(self) -> None:
@@ -74,7 +74,7 @@ class Environment():
             }
             obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
         
-        pos0 = np.zeros((9,))
+        pos0 = np.array(HOME_JOINT_CONFIG)
         env.reset(pos=pos0)
         env.add_sensor(full_sensor, [0])
         for obst in obstacles:
@@ -251,22 +251,24 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                                       alpha_filter=0.7)
     
     #goal weights original:
+    #TODO: PASSING FK this way is wrong, we have to reimplement it (either within rollout class or here)
+    #TODO: but it would be nice to have one FK object that we share with other classes
     goal_operations = goalOperations(goal_composition=goal, forward_kinematics=rollouts_planner._robot_model._robot_fk)
     goal_weights_offline = [goal._config["subgoal"+str(i)]["weight"] for i in range(len(goal._config))]
 
-    # max velocities:
 
-    # # Red cup
-    # x_goal_1_x = np.array([0.0, 0.0, 0.13])
-    # x_goal_2_z = np.array([0.0, 0.10, 0.00])
-    # T_Obj_GraspRed, T_W_RedCup = np.eye(4), np.eye(4)
-    # T_Obj_GraspRed[:3,:3] = R.from_euler("xyz", [0, 90, -90], degrees=True).as_matrix()
-    # redcup_pos, redcup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_red"])
-    # T_W_RedCup[:3,3] = np.asarray(redcup_pos)
-    # # T_W_RedCup[:3,:3] = R.from_quat(np.asarray(redcup_quat)).as_matrix()
-    # T_W_GraspRed = T_W_RedCup @ T_Obj_GraspRed
-    # p_orient_rot_x_red = T_W_GraspRed[:3,:3] @ x_goal_1_x
-    # p_orient_rot_z_red = T_W_GraspRed[:3,:3] @ x_goal_2_z
+    # Red cup
+    x_goal_1_x = np.array([0.0, 0.0, 0.13])
+    x_goal_2_z = np.array([0.0, 0.10, 0.00])
+    T_Obj_GraspRed, T_W_RedCup = np.eye(4), np.eye(4)
+    T_Obj_GraspRed[:3,:3] = R.from_euler("xyz", [0, 90, -90], degrees=True).as_matrix()
+    redcup_pos, redcup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_red"])
+    T_W_RedCup[:3,3] = np.asarray(redcup_pos)
+    # T_W_RedCup[:3,:3] = R.from_quat(np.asarray(redcup_quat)).as_matrix()
+    T_W_GraspRed = T_W_RedCup @ T_Obj_GraspRed
+    T_W_RedCup[2,3] += 0.1  
+    p_orient_rot_x_red = T_W_GraspRed[:3,:3] @ x_goal_1_x
+    p_orient_rot_z_red = T_W_GraspRed[:3,:3] @ x_goal_2_z
 
 
     
@@ -298,7 +300,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     # print(q_result)
 
 
-
+    print("subgoal0", subgoal0)
     for w in range(n_steps):
         ob_robot = ob['robot_0']
         q = ob_robot["joint_state"]["position"][0:dof-2]
@@ -314,9 +316,9 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             qdot=ob_robot["joint_state"]["velocity"][0:(dof-nr_fingers)],
             x_goal_0= subgoal0,
             weight_goal_0=weight_goal_0,
-            x_goal_1= subgoal1,
+            x_goal_1= p_orient_rot_x_red,
             weight_goal_1=weight_goal_1,
-            x_goal_2= subgoal2,
+            x_goal_2= p_orient_rot_z_red,
             weight_goal_2=weight_goal_2,
             x_goal_3=[theta_preference],
             weight_goal_3=weight_goal_3,
@@ -332,6 +334,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             radius_body_arm_forearm_link=0.1,
         )
 
+        # clip actions
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)
         if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
             action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
