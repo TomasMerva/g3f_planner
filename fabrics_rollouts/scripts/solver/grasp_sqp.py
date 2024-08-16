@@ -12,6 +12,7 @@ from fabrics_rollouts.scripts.constraints.grasp_position_constraint import *
 from fabrics_rollouts.scripts.constraints.grasp_rotation_constraint import * 
 
 
+
 class GompSQP():
     def __init__(self, arg_dict) -> None:
         self._robot_model = RobotKinematicModel(arg_dict["urdf_file"], arg_dict["root_link"], arg_dict["end_link"])
