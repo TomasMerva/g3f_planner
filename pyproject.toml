@@ -9,7 +9,7 @@ repository = "https://github.com/TomasMerva/grasp_fabrics"
 
 [tool.poetry.dependencies]
 python = ">=3.8, <3.10"
-fabrics = {git = "https://github.com/tud-amr/fabrics.git"}
+fabrics = "<0.9.6"
 robotmodels = { git = "https://github.com/maxspahn/robotmodels.git"}
 urdfenvs = "^0.9.13"
 pytorch_kinematics = "^0.6.1"

@@ -139,7 +139,7 @@ class FabricsConfig():
              x_obsts = [v for k, v in arg_dict.items() if k.startswith('x_obst')]
              for i, obst in enumerate(x_obsts[0]):  #TODO: potential error because sometimes its single float, sometimes np.array
                 # data.append(np.array(obst, dtype=np.float64))
-                self.input_args_fabrics["x_obst"+str(i)] = np.asarray(obst, dtype=np.float64)
+                self.input_args_fabrics["x_obst_"+str(i)] = np.asarray(obst, dtype=np.float64)
                 msg_type_counter += 1
 
         assert self.desired_msg_types == msg_type_counter, f"Desired arg length {self.desired_msg_types} is not the same as msg length {msg_type_counter}"
