@@ -194,7 +194,7 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     forward_kinematics = GenericURDFFk(
         urdf,
         root_link="world",
-        end_links=["arm_end_effector_link", "arm_orientation_helper_link"],
+        end_links=["arm_tool_frame", "arm_orientation_helper_link"],
     )
     base_metric = np.eye(9) * 0.3
     base_metric[0, 0] = 2

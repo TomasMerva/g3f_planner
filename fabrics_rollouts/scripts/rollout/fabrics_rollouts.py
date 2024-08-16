@@ -39,7 +39,8 @@ class RolloutFabrics(FabricsDriver):
     
     def get_initial_guess(self, num_waypoints, rollout):
         if len(rollout) < 2:
-            raise ValueError("Vector must have at least 2 elements.")
+            rollout = [rollout[0], rollout[0]]
+            #raise ValueError("Vector must have at least 2 elements.")
         
         indices = np.linspace(0, len(rollout) - 1, num_waypoints, dtype=int)
         waypoints = [rollout[i].tolist() for i in indices]

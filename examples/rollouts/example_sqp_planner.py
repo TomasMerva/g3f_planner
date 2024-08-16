@@ -26,7 +26,7 @@ from fabrics_rollouts import RolloutFabrics
 from fabrics_rollouts.scripts.utils.reference_tracker import ReferenceTracker
 
 
-HOME_JOINT_CONFIG =  np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
+HOME_JOINT_CONFIG =  np.array([0, 1, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
 class Environment():
     def __init__(self) -> None:
@@ -240,7 +240,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     fk_args = dict(
     urdf_file = env.ROBOT_URDF_FILE,
     root_link = "world",
-    end_link = "arm_end_effector_link"
+    end_link = "arm_tool_frame"
     )
     dinova_vel_limits = np.asarray(env.CONFIG_PROBLEM["joint_limits"]["velocity"], dtype=np.float32)
 
@@ -282,7 +282,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     gomp_args = dict(
         urdf_file = env.ROBOT_URDF_FILE,
         root_link = "world",
-        end_link = "arm_end_effector_link",
+        end_link = "arm_tool_frame",
         num_waypoints = nr_waypoints,
         num_dim = dof-nr_fingers,
         joint_limits = env.CONFIG_PROBLEM["joint_limits"]
@@ -384,11 +384,15 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                     q_prev_solution = copy.deepcopy(q_result)
 
         # adapt local goal pose on reference:
-        # adapt local goal pose on reference:
         current_pose = rollouts_planner._robot_model.compute_fk(q)
-        T_W_EEF_subgoal, reference_poses = reference_tracker.update_local_goal(current_pos=current_pose[:3, 3],waypoint_list=reference_poses)
-        arguments_dict = reference_tracker.update_arguments_subgoal(T_W_EEF_subgoal, x_goal_1_x, x_goal_2_z, arguments_dict)
-        pybullet.addUserDebugPoints([T_W_EEF_subgoal[:3, 3].tolist()], [[1, 0, 1]], 15, 1)
+        arguments_dict = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
+                                                          waypoint_list=reference_poses,
+                                                          goal_final=env.CONFIG_PROBLEM["goal"]["goal_definition"],
+                                                          arguments_dict=arguments_dict,
+                                                          x_goal_1_x=x_goal_1_x,
+                                                          x_goal_2_z=x_goal_2_z)
+        print("arguments_dict[x_goal_0]", arguments_dict["x_goal_0"])
+        pybullet.addUserDebugPoints([arguments_dict["x_goal_0"]], [[1, 0, 1]], 15, 1)
 
         # clip actions
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)

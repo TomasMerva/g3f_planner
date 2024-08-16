@@ -23,7 +23,7 @@ problem:
         is_primary_goal: True
         indices: [0, 1, 2]
         parent_link: base_link
-        child_link: arm_end_effector_link
+        child_link: arm_tool_frame
         desired_position: [-0.06,  -0.9, 0.35]
         epsilon: 0.05
         type: staticSubGoal
