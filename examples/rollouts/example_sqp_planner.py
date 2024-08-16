@@ -296,7 +296,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                                               child_link="chassis_link",
                                               r_link= 0.6, 
                                               r_obst=0.2)
-        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst]['position']
+        gomp_planner.param_dict[g_name]["num_param"] = np.array([-0.3, -0.3, 0.3])
 
     gomp_planner.param_dict["g_grasp_pos"]["num_param"][:3,3] = subgoal0
     gomp_planner.param_dict["g_grasp_rot"]["num_param"] = T_W_GraspRed
@@ -347,7 +347,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
         if w == 0:
             arguments_dict["weight_goal_0"] = 5.0
             arguments_dict["weight_goal_1"] = 10.0
-            arguments_dict["weight_goal_2"] = 10.0
+            arguments_dict["weight_goal_2"] = 10.0 
             q_rollout = rollouts_planner.compute_rollout(timesteps=100, 
                                                          arg_dict=arguments_dict,
                                                          tolerance=0.15)
@@ -361,18 +361,21 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             q_prev_solution = copy.deepcopy(q_fabrics_initial_guess)
             f_q_prev = gomp_planner.compute_cost(q_prev_solution.reshape(-1,1))
             for i_optim in range(nr_inner_optim):
+                start_time = time.perf_counter()
                 gomp_planner.change_fixed_point(x0=q_prev_solution)
+                end_time = time.perf_counter()
+                print(f"Elapsed time: {end_time-start_time} s")
                 q_result, solver_status = gomp_planner.solve(q_prev_solution.reshape(-1,1))
 
                 f_q = gomp_planner.compute_cost(q_result.reshape(-1,1))
-                if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3) or i_optim == (nr_inner_optim-1):
+                if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3):
                     print("Absolute tolerance reached")
+                if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3) or i_optim == (nr_inner_optim-1):
                     for i in range(nr_waypoints):
                         T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
                         pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 0)
                         T_W_base = rollouts_planner._robot_model.compute_fk(q_result[i,:], end_link="chassis_link")
                         pybullet.addUserDebugPoints([T_W_base[:3, 3].tolist()], [[0, 1, 0]], 7, 0)
-                        print("")
                         if i == (nr_waypoints -1):
                             p_orient_rot_x_red = T_W_EEF[:3,:3] @ x_goal_1_x
                             p_orient_rot_z_red = T_W_EEF[:3,:3] @ x_goal_2_z
@@ -381,10 +384,11 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                 else:
                     f_q_prev = copy.deepcopy(f_q)
 
-                    for i in range(nr_waypoints):
-                        T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
-                        pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
+                    # for i in range(nr_waypoints):
+                    #     T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
+                    #     pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
                 q_prev_solution = copy.deepcopy(q_result)
+
 
         # clip actions
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)
