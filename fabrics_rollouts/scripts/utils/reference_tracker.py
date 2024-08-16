@@ -14,13 +14,9 @@ class ReferenceTracker:
     def update_reference(self, waypoint_list:list):
         self.waypoint_list = waypoint_list
 
-    def update_local_goal(self, current_pos: np.ndarray, waypoint_list=None, goal_final=None) -> (list, list):
+    def update_local_goal(self, current_pos: np.ndarray, waypoint_list=None) -> (list, list):
         if waypoint_list is None:
             waypoint_list = self.waypoint_list
-
-        if goal_final is not None:
-            if self.euclidian_distance(current_pos, goal_final) < self.tolerance:
-                return goal_final, [goal_final]
 
         if self.euclidian_distance(current_pos, waypoint_list[-1][:3, 3]) < self.tolerance:
             return waypoint_list[-1], [waypoint_list[-1]],
@@ -38,4 +34,17 @@ class ReferenceTracker:
         arguments_dict["x_goal_0"] = T_W_EEF_subgoal[:3, 3].tolist()
         arguments_dict["x_goal_1"] = p_orient_rot_x
         arguments_dict["x_goal_2"] = p_orient_rot_z
+        return arguments_dict
+
+    def get_local_goal(self, current_pos:np.ndarray, waypoint_list:list, arguments_dict:dict, x_goal_1_x:np.ndarray, x_goal_2_z:np.ndarray, goal_final=None):
+        if goal_final is not None:
+            goal_final_0 = goal_final["subgoal0"]["desired_position"]
+            if self.euclidian_distance(current_pos, goal_final_0) < self.tolerance:
+                arguments_dict["x_goal_0"] = goal_final["subgoal0"]["desired_position"]
+                arguments_dict["x_goal_1"] = goal_final["subgoal1"]["desired_position"]
+                arguments_dict["x_goal_2"] = goal_final["subgoal2"]["desired_position"]
+                return arguments_dict
+            else:
+                T_W_EEF_subgoal, reference_poses = self.update_local_goal(current_pos=current_pos, waypoint_list=waypoint_list)
+                arguments_dict = self.update_arguments_subgoal(T_W_EEF_subgoal, x_goal_1_x, x_goal_2_z, arguments_dict)
         return arguments_dict
