@@ -43,7 +43,7 @@ class RolloutFabrics(FabricsDriver):
         
         indices = np.linspace(0, len(rollout) - 1, num_waypoints, dtype=int)
         waypoints = [rollout[i].tolist() for i in indices]
-        return waypoints
+        return np.asarray(waypoints)
 
     def compute_rollout(self, timesteps, arg_dict, tolerance=0.15) -> list:
         rollout_arg_dict = copy.deepcopy(arg_dict)

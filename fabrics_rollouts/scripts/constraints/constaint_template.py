@@ -27,3 +27,6 @@ class ConstraintTemplate():
     
     def get_linearized_constraint(self, x0) -> tuple:
         raise SyntaxError("not implemented") 
+    
+    def eval_linearized_constraint(self, x0)-> tuple:
+        raise SyntaxError("not implemented") 
