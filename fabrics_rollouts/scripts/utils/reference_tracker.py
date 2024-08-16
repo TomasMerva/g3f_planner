@@ -33,9 +33,9 @@ class ReferenceTracker:
         return waypoint_list[0], waypoint_list
 
     def update_arguments_subgoal(self, T_W_EEF_subgoal, x_goal_1_x, x_goal_2_z, arguments_dict):
-        p_orient_rot_x_red = T_W_EEF_subgoal[:3, :3] @ x_goal_1_x
-        p_orient_rot_z_red = T_W_EEF_subgoal[:3, :3] @ x_goal_2_z
+        p_orient_rot_x = T_W_EEF_subgoal[:3, :3] @ x_goal_1_x
+        p_orient_rot_z = T_W_EEF_subgoal[:3, :3] @ x_goal_2_z
         arguments_dict["x_goal_0"] = T_W_EEF_subgoal[:3, 3].tolist()
-        arguments_dict["x_goal_1"] = p_orient_rot_x_red
-        arguments_dict["x_goal_2"] = p_orient_rot_z_red
+        arguments_dict["x_goal_1"] = p_orient_rot_x
+        arguments_dict["x_goal_2"] = p_orient_rot_z
         return arguments_dict
