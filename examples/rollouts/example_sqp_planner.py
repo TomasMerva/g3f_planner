@@ -382,10 +382,6 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                         reference_poses.append(T_W_EEF)
                         T_W_base = rollouts_planner._robot_model.compute_fk(q_result[i,:], end_link="chassis_link")
                         pybullet.addUserDebugPoints([T_W_base[:3, 3].tolist()], [[0, 1, 0]], 7, 0)
-                        if i == (nr_waypoints -1):
-                            p_orient_rot_x_red = T_W_EEF[:3,:3] @ x_goal_1_x
-                            p_orient_rot_z_red = T_W_EEF[:3,:3] @ x_goal_2_z
-
                     break
                 else:
                     f_q_prev = copy.deepcopy(f_q)
@@ -397,13 +393,9 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
 
         # adapt local goal pose on reference:
         current_pose = rollouts_planner._robot_model.compute_fk(q)
-        x_subgoal, reference_poses = reference_tracker.update_local_goal(current_pos=current_pose[:3, 3], waypoint_list=reference_poses) #waypoint_list=reference_positions)
-        arguments_dict["x_goal_0"] = x_subgoal[:3, 3].tolist()
-        p_orient_rot_x_red = x_subgoal[:3, :3] @ x_goal_1_x
-        p_orient_rot_z_red = x_subgoal[:3, :3] @ x_goal_2_z
-        arguments_dict["x_goal_1"] = p_orient_rot_x_red
-        arguments_dict["x_goal_2"] = p_orient_rot_z_red
-        pybullet.addUserDebugPoints([x_subgoal[:3, 3].tolist()], [[1, 0, 1]], 15, 1)
+        T_W_EEF_subgoal, reference_poses = reference_tracker.update_local_goal(current_pos=current_pose[:3, 3], waypoint_list=reference_poses) #waypoint_list=reference_positions)
+        arguments_dict = reference_tracker.update_arguments_subgoal(T_W_EEF_subgoal, x_goal_1_x, x_goal_2_z, arguments_dict)
+        pybullet.addUserDebugPoints([T_W_EEF_subgoal[:3, 3].tolist()], [[1, 0, 1]], 15, 1)
 
         # clip actions
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)

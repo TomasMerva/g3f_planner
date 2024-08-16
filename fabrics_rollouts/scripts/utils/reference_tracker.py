@@ -23,7 +23,7 @@ class ReferenceTracker:
                 return goal_final, [goal_final]
 
         if self.euclidian_distance(current_pos, waypoint_list[-1][:3, 3]) < self.tolerance:
-            return list(waypoint_list[-1]), [list(waypoint_list[-1])],
+            return waypoint_list[-1], [waypoint_list[-1]],
         else:
             for i in range(len(waypoint_list)):
                 if self.euclidian_distance(current_pos, waypoint_list[i][:3, 3]) > self.tolerance:
@@ -31,3 +31,11 @@ class ReferenceTracker:
                     return waypoint_list[0], waypoint_list
         print("warning: no waypoints on the path are closer than the tolerance")
         return waypoint_list[0], waypoint_list
+
+    def update_arguments_subgoal(self, T_W_EEF_subgoal, x_goal_1_x, x_goal_2_z, arguments_dict):
+        p_orient_rot_x_red = T_W_EEF_subgoal[:3, :3] @ x_goal_1_x
+        p_orient_rot_z_red = T_W_EEF_subgoal[:3, :3] @ x_goal_2_z
+        arguments_dict["x_goal_0"] = T_W_EEF_subgoal[:3, 3].tolist()
+        arguments_dict["x_goal_1"] = p_orient_rot_x_red
+        arguments_dict["x_goal_2"] = p_orient_rot_z_red
+        return arguments_dict
