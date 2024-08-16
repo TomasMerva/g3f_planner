@@ -10,11 +10,11 @@ problem:
     obstacle_definition:
       obstacle1:
         type: sphere
-        position: [-0.3, -0.3, 0.3]
+        position: [-0.3, 1.5, 0.3]
         radius: 0.2
       obstacle2:
         type: sphere
-        position: [-0.3, -0.3, 0.3]
+        position: [0.3, -0.3, 0.3]
         radius: 0.2
   goal:
     goal_definition:

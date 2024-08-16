@@ -38,7 +38,6 @@ class GompSQP():
 
         (A, l, u) = self._get_joint_limits()
         self._set_starting_boundary_con(l, u)
-
         for g_name, g_term in self._g_list:
             w_ID = self.param_dict[g_name]["waypoint_ID"]
             (A_g, l_g, u_g) = self._linearize_constraint(g_term, x0[w_ID,:], self.param_dict[g_name])
