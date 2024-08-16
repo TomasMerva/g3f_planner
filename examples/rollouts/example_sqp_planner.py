@@ -23,7 +23,7 @@ from scipy.spatial.transform import Rotation as R
 
 from fabrics_rollouts import GompSQP
 from fabrics_rollouts import RolloutFabrics
-
+from fabrics_rollouts import ReferenceTracker
 
 HOME_JOINT_CONFIG =  np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
@@ -328,6 +328,9 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     gomp_planner.set_starting_state(q_start=HOME_JOINT_CONFIG[:9])    
     gomp_planner.setup_problem(x0=x_init)
 
+    # reference tracker:
+    reference_tracker = ReferenceTracker()
+
     # start_time = time.perf_counter()
     # q_result, solver_status = gomp_planner.solve(x_init.reshape(-1,1))
     # end_time = time.perf_counter()
@@ -398,13 +401,15 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                     if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3):
                         print("Absolute tolerance reached")
                     if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3) or i_optim == (nr_inner_optim-1):
+                        reference_positions = []
                         for i in range(nr_waypoints):
                             T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
+                            reference_positions.append(T_W_EEF[:3, 3].tolist())
+
                             pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
+
                             # T_W_base = rollouts_planner._robot_model.compute_fk(q_result[i,:], end_link="chassis_link")
                             # pybullet.addUserDebugPoints([T_W_base[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
-                            if i == 3:
-                                arguments_dict["x_goal_0"] = T_W_EEF[:3, 3]
                             
                             if i == (nr_waypoints -1):
                                 p_orient_rot_x_red = T_W_EEF[:3,:3] @ x_goal_1_x
@@ -418,6 +423,12 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                         #     T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
                         #     pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
                     q_prev_solution = copy.deepcopy(q_result)
+        
+        # adapt local goal pose on reference:
+        current_pos = rollouts_planner._robot_model.compute_fk(q)
+        x_subgoal_0, reference_positions = reference_tracker.update_local_goal(current_pos=current_pos[:3, 3], waypoint_list=reference_positions) #waypoint_list=reference_positions)
+        arguments_dict["x_goal_0"] = x_subgoal_0
+        pybullet.addUserDebugPoints([x_subgoal_0], [[1, 0, 1]], 15, 1)
 
         # clip actions
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)
