@@ -417,9 +417,16 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             and solver_status != "primal infeasible inaccurate" \
             and solver_status != "maximum iterations reached":
             current_pose = rollouts_planner._robot_model.compute_fk(q)
-            T_W_EEF_subgoal, reference_poses = reference_tracker.update_local_goal(current_pos=current_pose[:3, 3],waypoint_list=reference_poses)
-            arguments_dict = reference_tracker.update_arguments_subgoal(T_W_EEF_subgoal, x_goal_1_x, x_goal_2_z, arguments_dict)
-            pybullet.addUserDebugPoints([T_W_EEF_subgoal[:3, 3].tolist()], [[1, 0, 1]], 15, 1)
+            arguments_dict = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
+                                                              waypoint_list=reference_poses,
+                                                              arguments_dict=arguments_dict,
+                                                              x_goal_1_x=x_goal_1_x,
+                                                              x_goal_2_z=x_goal_2_z,
+                                                              goal_final=env.CONFIG_PROBLEM["goal"]["goal_definition"])
+            arguments_dict["weight_goal_0"] = 1.0
+            arguments_dict["weight_goal_1"] = 5.0
+            arguments_dict["weight_goal_2"] = 5.0
+            pybullet.addUserDebugPoints([arguments_dict["x_goal_0"]], [[1, 0, 1]], 15, 1)
 
         # clip actions
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)
