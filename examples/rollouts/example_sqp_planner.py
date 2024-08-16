@@ -375,13 +375,13 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
         if w % 100 == 0:
             arguments_dict["weight_goal_0"] = 10.0
             arguments_dict["weight_goal_1"] = 20.0
-            arguments_dict["weight_goal_2"] = 20.0 
-            q_rollout = rollouts_planner.compute_rollout(timesteps=nr_rollout_timesteps, 
+            arguments_dict["weight_goal_2"] = 20.0
+            q_rollout = rollouts_planner.compute_rollout(timesteps=nr_rollout_timesteps,
                                                          arg_dict=arguments_dict,
                                                          tolerance=0.15)
             q_fabrics_initial_guess = rollouts_planner.get_initial_guess(num_waypoints=nr_waypoints,
                                                                          rollout=q_rollout)
-            
+
             if q_fabrics_initial_guess is not None:
                 q_prev_solution = copy.deepcopy(q_fabrics_initial_guess)
 
@@ -392,7 +392,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                 for i_optim in range(nr_inner_optim):
                     gomp_planner.set_starting_state(q_start=arguments_dict["q"])
                     gomp_planner.change_fixed_point(x0=q_prev_solution)
-        
+
                     q_result, solver_status = gomp_planner.solve(q_prev_solution.reshape(-1,1))
                     if solver_status != "primal infeasible" and solver_status != "primal infeasible inaccurate":
                         f_q = gomp_planner.compute_cost(q_result.reshape(-1,1))
@@ -412,11 +412,11 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             arguments_dict["weight_goal_1"] = weight_goal_1
             arguments_dict["weight_goal_2"] = weight_goal_2
 
-
         if solver_status != "primal infeasible" \
             and solver_status != "primal infeasible inaccurate" \
             and solver_status != "maximum iterations reached":
             current_pose = rollouts_planner._robot_model.compute_fk(q)
+            print("weight_goal_0: ", arguments_dict["weight_goal_0"])
             arguments_dict = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
                                                               waypoint_list=reference_poses,
                                                               arguments_dict=arguments_dict,
@@ -426,9 +426,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             pybullet.addUserDebugPoints([arguments_dict["x_goal_0"]], [[1, 0, 1]], 15, 1)
 
         # clip actions
-        arguments_dict["weight_goal_0"] = 1.0
-        arguments_dict["weight_goal_1"] = 5.0
-        arguments_dict["weight_goal_2"] = 5.0
+
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)
         if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
             action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]

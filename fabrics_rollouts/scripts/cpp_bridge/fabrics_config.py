@@ -147,5 +147,6 @@ class FabricsConfig():
         data = []
         for key in self.input_args_fabrics:
             data.append(self.input_args_fabrics[key])
+        print("self.input_args: ", self.input_args_fabrics)
 
         return data
