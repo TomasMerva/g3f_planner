@@ -240,7 +240,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     fk_args = dict(
     urdf_file = env.ROBOT_URDF_FILE,
     root_link = "world",
-    end_link = "arm_end_effector_link"
+    end_link = "arm_tool_frame"
     )
     dinova_vel_limits = np.asarray(env.CONFIG_PROBLEM["joint_limits"]["velocity"], dtype=np.float32)
 
@@ -282,7 +282,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     gomp_args = dict(
         urdf_file = env.ROBOT_URDF_FILE,
         root_link = "world",
-        end_link = "arm_end_effector_link",
+        end_link = "arm_tool_frame",
         num_waypoints = nr_waypoints,
         num_dim = dof-nr_fingers,
         joint_limits = env.CONFIG_PROBLEM["joint_limits"]
@@ -426,6 +426,9 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             pybullet.addUserDebugPoints([arguments_dict["x_goal_0"]], [[1, 0, 1]], 15, 1)
 
         # clip actions
+        arguments_dict["weight_goal_0"] = 1.0
+        arguments_dict["weight_goal_1"] = 5.0
+        arguments_dict["weight_goal_2"] = 5.0
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)
         if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
             action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
