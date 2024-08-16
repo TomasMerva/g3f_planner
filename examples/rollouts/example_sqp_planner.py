@@ -26,7 +26,7 @@ from fabrics_rollouts import RolloutFabrics
 from fabrics_rollouts.scripts.utils.reference_tracker import ReferenceTracker
 
 
-HOME_JOINT_CONFIG =  np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
+HOME_JOINT_CONFIG =  np.array([0, 1, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
 class Environment():
     def __init__(self) -> None:
