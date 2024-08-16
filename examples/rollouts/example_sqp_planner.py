@@ -373,25 +373,22 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                     if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3):
                         print("Absolute tolerance reached")
                     if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3) or i_optim == (nr_inner_optim-1):
-                        reference_positions = []
+                        reference_poses = []
                         for i in range(nr_waypoints):
                             T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
                             pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
-                            reference_positions.append(T_W_EEF[:3, 3].tolist())
-                            if i == (nr_waypoints -1):
-                                p_orient_rot_x_red = T_W_EEF[:3,:3] @ x_goal_1_x
-                                p_orient_rot_z_red = T_W_EEF[:3,:3] @ x_goal_2_z
-
+                            reference_poses.append(T_W_EEF)
                         break
                     else:
                         f_q_prev = copy.deepcopy(f_q)
                     q_prev_solution = copy.deepcopy(q_result)
 
         # adapt local goal pose on reference:
-        current_pos = rollouts_planner._robot_model.compute_fk(q)
-        x_subgoal_0, reference_positions = reference_tracker.update_local_goal(current_pos=current_pos[:3, 3], waypoint_list=reference_positions) #waypoint_list=reference_positions)
-        arguments_dict["x_goal_0"] = x_subgoal_0
-        pybullet.addUserDebugPoints([x_subgoal_0], [[1, 0, 1]], 15, 1)
+        # adapt local goal pose on reference:
+        current_pose = rollouts_planner._robot_model.compute_fk(q)
+        T_W_EEF_subgoal, reference_poses = reference_tracker.update_local_goal(current_pos=current_pose[:3, 3],waypoint_list=reference_poses)
+        arguments_dict = reference_tracker.update_arguments_subgoal(T_W_EEF_subgoal, x_goal_1_x, x_goal_2_z, arguments_dict)
+        pybullet.addUserDebugPoints([T_W_EEF_subgoal[:3, 3].tolist()], [[1, 0, 1]], 15, 1)
 
         # clip actions
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)
