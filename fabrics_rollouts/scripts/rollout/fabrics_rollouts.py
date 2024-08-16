@@ -67,3 +67,6 @@ class RolloutFabrics(FabricsDriver):
             if error <= tolerance:
                 return q_rollout_record
         return q_rollout_record
+    
+    def compute_noisy_rollout(self, timesteps, arg_dict, tolerance=0.15) -> list:
+        pass

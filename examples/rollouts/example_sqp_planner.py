@@ -276,7 +276,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     4. 
     """
     x_init = np.ones((nr_waypoints, dof-2))
-
+    f_q_prev = 5000.0
 
     gomp_args = dict(
         urdf_file = env.ROBOT_URDF_FILE,
@@ -386,7 +386,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                 T_W_EEF = rollouts_planner._robot_model.compute_fk(q_fabrics_initial_guess[i,:])
                 pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 7, 1)
             q_prev_solution = copy.deepcopy(q_fabrics_initial_guess)
-            f_q_prev = gomp_planner.compute_cost(q_prev_solution.reshape(-1,1))
+            
 
         # if w % 100 == 0:
             for i_optim in range(nr_inner_optim):
