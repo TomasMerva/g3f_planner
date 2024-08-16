@@ -212,7 +212,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_fingers = 2
     nr_rollout_timesteps = 200
     nr_rollout_dt = 0.1
-    nr_waypoints = 20
+    nr_waypoints = 10
     nr_inner_optim = 10
 
     """
@@ -248,7 +248,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                                       config_file=env.CONFIG_FILE,
                                       controller_lib=fabrics_lib,
                                       vel_limits=dinova_vel_limits,
-                                      dt=0.1,
+                                      dt=nr_rollout_dt,
                                       alpha_filter=0.7)
     
     #goal weights original:
@@ -291,13 +291,37 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     gomp_planner.add_grasp_pos_constraint("g_grasp_pos", nr_waypoints-1, 0.0)
     gomp_planner.add_grasp_rot_constraint("g_grasp_rot", nr_waypoints-1, 0.0)
     for i in range(1, nr_waypoints):
-        g_name = "g_col1_"+str(i)
+        # obst1
+        g_name = "g_col1_chassis_"+str(i)
         gomp_planner.add_collision_constraint(name= g_name, 
                                               waypoint_ID=i, 
                                               child_link="chassis_link",
-                                              r_link= 0.6, 
+                                              r_link= 0.5, 
                                               r_obst=0.2)
-        gomp_planner.param_dict[g_name]["num_param"] = np.array([-0.3, -0.3, 0.3])
+        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst]['position']
+        g_name = "g_col1_upper_"+str(i)
+        gomp_planner.add_collision_constraint(name= g_name, 
+                                              waypoint_ID=i, 
+                                              child_link="arm_upper_wrist_link",
+                                              r_link= 0.2, 
+                                              r_obst=0.2)
+        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst]['position']
+        # obst2
+        g_name = "g_col2_chassis_"+str(i)
+        gomp_planner.add_collision_constraint(name= g_name, 
+                                              waypoint_ID=i, 
+                                              child_link="chassis_link",
+                                              r_link= 0.5, 
+                                              r_obst=0.2)
+        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst+1]['position']
+        g_name = "g_col2_upper_"+str(i)
+        gomp_planner.add_collision_constraint(name= g_name, 
+                                              waypoint_ID=i, 
+                                              child_link="arm_upper_wrist_link",
+                                              r_link= 0.2, 
+                                              r_obst=0.2)
+        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst+1]['position']
+
 
     gomp_planner.param_dict["g_grasp_pos"]["num_param"][:3,3] = subgoal0
     gomp_planner.param_dict["g_grasp_rot"]["num_param"] = T_W_GraspRed
@@ -357,42 +381,45 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                                                          tolerance=0.15)
             q_fabrics_initial_guess = rollouts_planner.get_initial_guess(num_waypoints=nr_waypoints,
                                                                          rollout=q_rollout)
-            q_prev_solution = copy.deepcopy(q_fabrics_initial_guess)
+            
+            if q_fabrics_initial_guess is not None:
+                q_prev_solution = copy.deepcopy(q_fabrics_initial_guess)
 
-            for i in range(nr_waypoints):
-                T_W_EEF = rollouts_planner._robot_model.compute_fk(q_fabrics_initial_guess[i,:])
-                pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 7, 1)
+                for i in range(nr_waypoints):
+                    T_W_EEF = rollouts_planner._robot_model.compute_fk(q_fabrics_initial_guess[i,:])
+                    pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 7, 1)
 
-            for i_optim in range(nr_inner_optim):
-                gomp_planner.set_starting_state(q_start=arguments_dict["q"])
-                gomp_planner.change_fixed_point(x0=q_prev_solution)
-      
-                q_result, solver_status = gomp_planner.solve(q_prev_solution.reshape(-1,1))
-                if solver_status != "primal infeasible" and solver_status != "primal infeasible inaccurate":
-                    f_q = gomp_planner.compute_cost(q_result.reshape(-1,1))
-                    if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3):
-                        print("Absolute tolerance reached")
-                    if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3) or i_optim == (nr_inner_optim-1):
-                        reference_poses = []
-                        for i in range(nr_waypoints):
-                            T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
-                            pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
-                            reference_poses.append(T_W_EEF)
-                        break
-                    else:
-                        f_q_prev = copy.deepcopy(f_q)
-                    q_prev_solution = copy.deepcopy(q_result)
+                for i_optim in range(nr_inner_optim):
+                    gomp_planner.set_starting_state(q_start=arguments_dict["q"])
+                    gomp_planner.change_fixed_point(x0=q_prev_solution)
+        
+                    q_result, solver_status = gomp_planner.solve(q_prev_solution.reshape(-1,1))
+                    if solver_status != "primal infeasible" and solver_status != "primal infeasible inaccurate":
+                        f_q = gomp_planner.compute_cost(q_result.reshape(-1,1))
+                        if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3):
+                            print("Absolute tolerance reached")
+                        if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3) or i_optim == (nr_inner_optim-1):
+                            reference_poses = []
+                            for i in range(nr_waypoints):
+                                T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
+                                pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
+                                reference_poses.append(T_W_EEF)
+                            break
+                        else:
+                            f_q_prev = copy.deepcopy(f_q)
+                        q_prev_solution = copy.deepcopy(q_result)
+            arguments_dict["weight_goal_0"] = weight_goal_0
+            arguments_dict["weight_goal_1"] = weight_goal_1
+            arguments_dict["weight_goal_2"] = weight_goal_2
 
-        # adapt local goal pose on reference:
-        current_pose = rollouts_planner._robot_model.compute_fk(q)
-        arguments_dict = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
-                                                          waypoint_list=reference_poses,
-                                                          goal_final=env.CONFIG_PROBLEM["goal"]["goal_definition"],
-                                                          arguments_dict=arguments_dict,
-                                                          x_goal_1_x=x_goal_1_x,
-                                                          x_goal_2_z=x_goal_2_z)
-        print("arguments_dict[x_goal_0]", arguments_dict["x_goal_0"])
-        pybullet.addUserDebugPoints([arguments_dict["x_goal_0"]], [[1, 0, 1]], 15, 1)
+
+        if solver_status != "primal infeasible" \
+            and solver_status != "primal infeasible inaccurate" \
+            and solver_status != "maximum iterations reached":
+            current_pose = rollouts_planner._robot_model.compute_fk(q)
+            T_W_EEF_subgoal, reference_poses = reference_tracker.update_local_goal(current_pos=current_pose[:3, 3],waypoint_list=reference_poses)
+            arguments_dict = reference_tracker.update_arguments_subgoal(T_W_EEF_subgoal, x_goal_1_x, x_goal_2_z, arguments_dict)
+            pybullet.addUserDebugPoints([T_W_EEF_subgoal[:3, 3].tolist()], [[1, 0, 1]], 15, 1)
 
         # clip actions
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dict)
