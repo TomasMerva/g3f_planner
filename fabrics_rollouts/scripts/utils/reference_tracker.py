@@ -22,11 +22,11 @@ class ReferenceTracker:
             if self.euclidian_distance(current_pos, goal_final) < self.tolerance:
                 return goal_final, [goal_final]
 
-        if self.euclidian_distance(current_pos, waypoint_list[-1]) < self.tolerance:
+        if self.euclidian_distance(current_pos, waypoint_list[-1][:3, 3]) < self.tolerance:
             return list(waypoint_list[-1]), [list(waypoint_list[-1])],
         else:
             for i in range(len(waypoint_list)):
-                if self.euclidian_distance(current_pos, waypoint_list[i]) > self.tolerance:
+                if self.euclidian_distance(current_pos, waypoint_list[i][:3, 3]) > self.tolerance:
                     waypoint_list = waypoint_list[i:]
                     return waypoint_list[0], waypoint_list
         print("warning: no waypoints on the path are closer than the tolerance")
