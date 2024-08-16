@@ -40,8 +40,6 @@ class ReferenceTracker:
         if goal_final is not None:
             goal_final_0 = goal_final["subgoal0"]["desired_position"]
             if self.euclidian_distance(current_pos, goal_final_0) < self.tolerance:
-                print("distance to goal: ", self.euclidian_distance(current_pos, goal_final_0))
-                print("goal pos:", goal_final_0, " and current pose: ", current_pos)
                 arguments_dict["x_goal_0"] = goal_final["subgoal0"]["desired_position"]
                 arguments_dict["x_goal_1"] = goal_final["subgoal1"]["desired_position"]
                 arguments_dict["x_goal_2"] = goal_final["subgoal2"]["desired_position"]
