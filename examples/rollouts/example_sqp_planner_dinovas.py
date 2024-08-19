@@ -5,16 +5,26 @@ from forwardkinematics.urdfFks.generic_urdf_fk import GenericURDFFk
 from urdfenvs.urdf_common.urdf_env import UrdfEnv
 from urdfenvs.robots.generic_urdf import GenericUrdfReacher
 from urdfenvs.sensors.full_sensor import FullSensor
-from mpscenes.goals.static_sub_goal import StaticSubGoal
+
 from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
+from mpscenes.obstacles.box_obstacle import BoxObstacle
 from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
+from mpscenes.goals.static_sub_goal import StaticSubGoal
 import torch
+import pytorch_kinematics as pk
 import copy
 import yaml
+
 import pybullet
-import pytorch_kinematics as pk
+
+import time
+from scipy.spatial.transform import Rotation as R
+
+from fabrics_rollouts import GompSQP
+from fabrics_rollouts import RolloutFabrics
+from fabrics_rollouts.scripts.utils.reference_tracker import ReferenceTracker
 
 HOME_JOINT_CONFIGS = np.array([np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9]),
                               np.array([1.5, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])])
@@ -38,7 +48,7 @@ class Environment():
             self.CONFIG_FABRICS = self.CONFIG['fabrics']
 
     
-    def initialize(self, render : bool = True, nr_obst: int = 0, nr_robots: int = 1) -> tuple:
+    def initialize(self, render : bool = True, nr_obst: int = 0, nr_robots: int=1) -> tuple:
         robots = [GenericUrdfReacher(urdf=self.ROBOT_URDF_FILE, mode="acc") for _ in range(nr_robots)]
         env: UrdfEnv = UrdfEnv(
             robots=robots,
@@ -63,8 +73,8 @@ class Environment():
                 "geometry": {"position": obst_param["position"], "radius": obst_param["radius"]},
             }
             obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
-        
-        pos0 = HOME_JOINT_CONFIGS
+
+        pos0 = HOME_JOINT_CONFIGS[0:nr_robots]
         env.reset(pos=pos0)
         env.add_sensor(full_sensor, [0])
         for obst in obstacles:
@@ -109,14 +119,14 @@ class Environment():
         self.collision_links = {}
         for i_robot in range(nr_robots):
             for link_name, val in self.CONFIG_PROBLEM["robot_representation"]["collision_links"].items():
-                env.add_collision_link(i_robot,
-                                    pybullet_links_idx[link_name],
-                                    shape_type='sphere',
-                                    size=[val["sphere"]["radius"]])
+                env.add_collision_link(0,
+                                       pybullet_links_idx[link_name],
+                                       shape_type='sphere',
+                                       size=[val["sphere"]["radius"]])
                 self.collision_links[link_name] = val["sphere"]["radius"]
 
         return (env, goal)
-
+    
     def create_scene(self) -> tuple:
         # Table
         URDF_table = self.URDF_FOLDER + "/table/table.urdf"
@@ -145,7 +155,6 @@ class Environment():
         }
 
         return (scene_id, scene_positions)
-    
 
 class goalOperations():
     def __init__(self, goal_composition: GoalComposition, forward_kinematics:GenericURDFFk):
@@ -180,7 +189,7 @@ class goalOperations():
             return position_error #+ orientation_1_error + orientation_2_error
         else:
             return 1
-
+    
     def get_theta_preference(self, q:np.ndarray, goal_position:np.ndarray) ->  float:
         position_diff = goal_position[0:2] - q[0:2]
         theta_preference = np.arctan2(position_diff[1], position_diff[0])
@@ -189,32 +198,6 @@ class goalOperations():
         if theta_preference > 1 * np.pi:
             theta_preference -= 2 * np.pi
         return float(theta_preference)
-
-def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
-    with open(robot_urdf_path, "r", encoding="utf-8") as file:
-        urdf = file.read()
-    forward_kinematics = GenericURDFFk(
-        urdf,
-        root_link="world",
-        end_links=["arm_tool_frame", "arm_orientation_helper_link"],
-    )
-    base_metric = np.eye(9) * 0.3
-    base_metric[0, 0] = 2
-    base_metric[1, 1] = 2
-    base_metric[2, 2] = 2
-    base_energy = f"ca.dot(ca.mtimes(np.array({base_metric.tolist()}), xdot), xdot)"
-
-    planner = ParameterizedFabricPlanner(
-        degrees_of_freedom,
-        forward_kinematics,
-        base_energy=base_energy
-    )
-
-    planner.load_fabrics_configuration(config_dict['fabrics'])
-    planner.load_problem_configuration(config_dict['problem'])
-    planner.concretize()
-    planner.export_as_c("pure_controller.cpp")
-    return planner
 
 def set_runtime_weights(error, goal_weights_offline=None):
     weight_goal_0 = 0.5 * (np.tanh(4 * error - 1.5) + 1.6) * goal_weights_offline[0]
@@ -226,6 +209,11 @@ def set_runtime_weights(error, goal_weights_offline=None):
 
 def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
     nr_fingers = 2
+    nr_rollout_timesteps = 200
+    nr_rollout_dt = 0.1
+    nr_waypoints = 10
+    nr_inner_optim = 10
+    nr_obst_multirobot = (nr_robots - 1) * 6
     collision_links = [
         "chassis_link",
         "arm_forearm_link",
@@ -241,48 +229,129 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
     """
     env = Environment()
     (sim, goal) = env.initialize(render, nr_robots=nr_robots)
+    nr_obst = env.nr_obstacles
     pybullet.setGravity(0,0,0)
     (objects_id, objects_position) = env.create_scene()
-    redcup_pos, redcup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_red"])
-    T_W_RedCup = np.eye(4)
-    T_W_RedCup[:3,3] = np.asarray(redcup_pos)
-    nr_obst = env.nr_obstacles
+    # objects_position["cup_red"][2] += 0.05
     action = np.zeros(nr_robots*dof)
     ob, *_ = sim.step(action)
 
+    """
+    2. Fabrics
+    """
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
+    fabrics_lib = os.path.normpath(os.path.join(current_script_dir, '../..', 'build', 'libfabrics_controller.so'))
     #TODO: remove
     subgoal0 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal0"]["desired_position"]
     subgoal1 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal1"]["desired_position"]
     subgoal2 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal2"]["desired_position"]
 
-    """
-    2. Create fabrics
-    """
-    planner_dinova = set_planner(robot_urdf_path = env.ROBOT_URDF_FILE,
-                                 config_dict = env.CONFIG,
-                                 degrees_of_freedom = dof-nr_fingers)
-    rot_matrix = np.array([[-0.339, -0.784306, -0.51956],
-                           [-0.0851341, 0.57557, -0.813309],
-                           [0.936926, -0.23148, -0.261889]])
-    x_goal_1_x = np.array([0.0, 0.0, 0.13])
-    x_goal_2_z = np.array([0.0, 0.10, 0.00])
-    subgoal1 = rot_matrix @ x_goal_1_x
-    subgoal2 = rot_matrix @ x_goal_2_z
-
-    #goal weights original:
-    goal_operations = goalOperations(goal_composition=goal, forward_kinematics=planner_dinova._forward_kinematics)
-    goal_weights_offline = [goal._config["subgoal"+str(i)]["weight"] for i in range(len(goal._config))]
-
-    # max velocities:
+    fk_args = dict(
+    urdf_file = env.ROBOT_URDF_FILE,
+    root_link = "world",
+    end_link = "arm_tool_frame"
+    )
     dinova_vel_limits = np.asarray(env.CONFIG_PROBLEM["joint_limits"]["velocity"], dtype=np.float32)
 
+    rollouts_planner = RolloutFabrics(fk_dict=fk_args,
+                                      config_file=env.CONFIG_FILE,
+                                      controller_lib=fabrics_lib,
+                                      vel_limits=dinova_vel_limits,
+                                      dt=nr_rollout_dt,
+                                      alpha_filter=0.7)
+    
+    #goal weights original:
+    #TODO: PASSING FK this way is wrong, we have to reimplement it (either within rollout class or here)
+    #TODO: but it would be nice to have one FK object that we share with other classes
+    goal_operations = goalOperations(goal_composition=goal, forward_kinematics=rollouts_planner._robot_model._robot_fk)
+    goal_weights_offline = [goal._config["subgoal"+str(i)]["weight"] for i in range(len(goal._config))]
+
+
+    # Red cup
+    x_goal_1_x = np.array([0.0, 0.0, 0.13])
+    x_goal_2_z = np.array([0.0, 0.10, 0.00])
+    T_Obj_GraspRed, T_W_RedCup = np.eye(4), np.eye(4)
+    T_Obj_GraspRed[:3,:3] = R.from_euler("xyz", [0, 90, -90], degrees=True).as_matrix()
+    redcup_pos, redcup_quat = pybullet.getBasePositionAndOrientation(objects_id["cup_red"])
+    T_W_RedCup[:3,3] = np.asarray(redcup_pos)
+    # T_W_RedCup[:3,:3] = R.from_quat(np.asarray(redcup_quat)).as_matrix()
+    T_W_GraspRed = T_W_RedCup @ T_Obj_GraspRed
+    T_W_RedCup[2,3] += 0.1  
+    p_orient_rot_x_red = T_W_GraspRed[:3,:3] @ x_goal_1_x
+    p_orient_rot_z_red = T_W_GraspRed[:3,:3] @ x_goal_2_z
+
+
+    
     """
-    3. Multi-robot example
+    4. 
+    """
+    x_init = np.ones((nr_waypoints, dof-2))
+    f_q_prev = 5000.0
+
+    gomp_args = dict(
+        urdf_file = env.ROBOT_URDF_FILE,
+        root_link = "world",
+        end_link = "arm_tool_frame",
+        num_waypoints = nr_waypoints,
+        num_dim = dof-nr_fingers,
+        joint_limits = env.CONFIG_PROBLEM["joint_limits"]
+    )
+    gomp_planner = GompSQP(gomp_args)
+    gomp_planner.add_grasp_pos_constraint("g_grasp_pos", nr_waypoints-1, 0.0)
+    gomp_planner.add_grasp_rot_constraint("g_grasp_rot", nr_waypoints-1, 0.0)
+
+    for i in range(1, nr_waypoints):
+        # obst1
+        g_name = "g_col1_chassis_"+str(i)
+        gomp_planner.add_collision_constraint(name= g_name, 
+                                              waypoint_ID=i, 
+                                              child_link="chassis_link",
+                                              r_link= 0.5, 
+                                              r_obst=0.2)
+        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst+nr_robots-1]['position']
+        g_name = "g_col1_upper_"+str(i)
+        gomp_planner.add_collision_constraint(name= g_name, 
+                                              waypoint_ID=i, 
+                                              child_link="arm_upper_wrist_link",
+                                              r_link= 0.2, 
+                                              r_obst=0.2)
+        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst+nr_robots-1]['position']
+        # obst2
+        g_name = "g_col2_chassis_"+str(i)
+        gomp_planner.add_collision_constraint(name= g_name, 
+                                              waypoint_ID=i, 
+                                              child_link="chassis_link",
+                                              r_link= 0.5, 
+                                              r_obst=0.2)
+        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst+nr_robots]['position']
+        g_name = "g_col2_upper_"+str(i)
+        gomp_planner.add_collision_constraint(name= g_name, 
+                                              waypoint_ID=i, 
+                                              child_link="arm_upper_wrist_link",
+                                              r_link= 0.2, 
+                                              r_obst=0.2)
+        gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst+nr_robots]['position']
+
+
+    gomp_planner.param_dict["g_grasp_pos"]["num_param"][:3,3] = subgoal0
+    gomp_planner.param_dict["g_grasp_rot"]["num_param"] = T_W_GraspRed
+
+    gomp_planner.set_starting_state(q_start=HOME_JOINT_CONFIGS[0][:9])
+    gomp_planner.setup_problem(x0=x_init)
+
+    """
+    reference tracker:
+    """
+    reference_tracker = ReferenceTracker()
+
+    """
+    multi-robot example:
     """
     q_dinovas = torch.zeros((nr_robots, dof), dtype=torch.float64)
     chain = pk.build_serial_chain_from_urdf(open(env.ROBOT_URDF_FILE).read(), "arm_tool_frame")
     chain = chain.to(dtype=torch.float64, device="cpu")
     arguments_dicts = {"robot_0": {}, "robot_1": {}}
+    q_prev_solutions = {"robot_0": {}, "robot_1": {}}
 
     for w in range(n_steps):
         q_robots = []
@@ -305,6 +374,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
             radius_obsts_env.append(ob["robot_0"]['FullSensor']['obstacles'][nr_obst + nr_robots-1+i_obst]['size'])
 
         for i_robot in range(nr_robots):
+            i_robot = 0
             if i_robot == 0:
                 i_other_robot = 1
             else:
@@ -317,43 +387,97 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
             theta_preference = goal_operations.get_theta_preference(q=q_robots[i_robot],
                                                                     goal_position=[-0.24355761, -0.75252747, 0.5])
 
-            arguments_dicts["robot_"+str(i_robot)] = dict(
-                q=ob["robot_"+str(i_robot)]["joint_state"]["position"][0:(dof-nr_fingers)],
-                qdot=ob["robot_"+str(i_robot)]["joint_state"]["velocity"][0:(dof-nr_fingers)],
-                x_goal_0= subgoal0,
+            arguments_dicts["robot_"+str(i_robot)]  = dict(
+                q=ob["robot_"+str(i_robot)]["joint_state"]["position"][0:(dof - nr_fingers)],
+                qdot=ob["robot_"+str(i_robot)]["joint_state"]["velocity"][0:(dof - nr_fingers)],
+                x_goal_0=subgoal0,
                 weight_goal_0=weight_goal_0,
-                x_goal_1= subgoal1,
+                x_goal_1=p_orient_rot_x_red,
                 weight_goal_1=weight_goal_1,
-                x_goal_2= subgoal2,
+                x_goal_2=p_orient_rot_z_red,
                 weight_goal_2=weight_goal_2,
                 x_goal_3=[theta_preference],
                 weight_goal_3=weight_goal_3,
                 x_obsts=[*x_obsts_env, *obst_dinovas["robot_"+str(i_other_robot)]],
                 radius_obsts=[*radius_obsts_env, *collision_radius],
-                radius_chassis_link=collision_radius[0],
-                radius_arm_shoulder_link=collision_radius[1],
-                radius_arm_end_effector_link = collision_radius[2],
-                radius_arm_upper_wrist_link = collision_radius[3],
-                radius_arm_lower_wrist_link = collision_radius[4],
-                radius_arm_forearm_link=collision_radius[5],
+                radius_body_chassis_link=0.4,
+                radius_body_arm_shoulder_link=0.1,
+                radius_body_arm_end_effector_link=0.1,
+                radius_body_arm_upper_wrist_link=0.1,
+                radius_body_arm_lower_wrist_link=0.1,
+                radius_body_arm_forearm_link=0.1,
             )
 
+            # rollouts
+            if w % 100 == 0:
+                arguments_dicts["robot_"+str(i_robot)]["weight_goal_0"] = 10.0
+                arguments_dicts["robot_"+str(i_robot)]["weight_goal_1"] = 20.0
+                arguments_dicts["robot_"+str(i_robot)]["weight_goal_2"] = 20.0
+                q_rollout = rollouts_planner.compute_rollout(timesteps=nr_rollout_timesteps,
+                                                             arg_dict=arguments_dicts["robot_"+str(i_robot)],
+                                                             tolerance=0.15)
+                q_fabrics_initial_guess = rollouts_planner.get_initial_guess(num_waypoints=nr_waypoints,
+                                                                             rollout=q_rollout)
+
+                if q_fabrics_initial_guess is not None:
+                    q_prev_solutions["robot_"+str(i_robot)] = copy.deepcopy(q_fabrics_initial_guess)
+
+                    for i in range(nr_waypoints):
+                        T_W_EEF = rollouts_planner._robot_model.compute_fk(q_fabrics_initial_guess[i,:])
+                        pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 7, 1)
+
+                    for i_optim in range(nr_inner_optim):
+                        gomp_planner.set_starting_state(q_start=arguments_dicts["robot_"+str(i_robot)]["q"])
+                        gomp_planner.change_fixed_point(x0=q_prev_solutions["robot_"+str(i_robot)])
+                        q_result, solver_status = gomp_planner.solve(q_prev_solutions["robot_"+str(i_robot)].reshape(-1,1))
+                        if solver_status != "primal infeasible" and solver_status != "primal infeasible inaccurate":
+                            f_q = gomp_planner.compute_cost(q_result.reshape(-1,1))
+                            if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3):
+                                print("Absolute tolerance reached")
+                            if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3) or i_optim == (nr_inner_optim-1):
+                                reference_poses = []
+                                for i in range(nr_waypoints):
+                                    T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
+                                    pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
+                                    reference_poses.append(T_W_EEF)
+                                break
+                            else:
+                                f_q_prev = copy.deepcopy(f_q)
+                            q_prev_solutions["robot_"+str(i_robot)] = copy.deepcopy(q_result)
+                arguments_dicts["robot_"+str(i_robot)]["weight_goal_0"] = 1 #weight_goal_0
+                arguments_dicts["robot_"+str(i_robot)]["weight_goal_1"] = 0. #weight_goal_1
+                arguments_dicts["robot_"+str(i_robot)]["weight_goal_2"] = 0. #weight_goal_2
+
+            if solver_status != "primal infeasible" \
+                and solver_status != "primal infeasible inaccurate" \
+                and solver_status != "maximum iterations reached":
+                current_pose = rollouts_planner._robot_model.compute_fk(q_robots[i_robot])
+                arguments_dicts["robot_"+str(i_robot)] = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
+                                                                  waypoint_list=reference_poses,
+                                                                  arguments_dict=arguments_dicts["robot_"+str(i_robot)],
+                                                                  x_goal_1_x=x_goal_1_x,
+                                                                  x_goal_2_z=x_goal_2_z,
+                                                                  goal_final=env.CONFIG_PROBLEM["goal"]["goal_definition"])
+                pybullet.addUserDebugPoints([arguments_dicts["robot_"+str(i_robot)]["x_goal_0"]], [[1, 0, 1]], 15, 1)
+
         # actions robot 0:
-        action[0:(dof-nr_fingers)] = planner_dinova.compute_action(**arguments_dicts["robot_0"])
-        if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
-            action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
-        action[2:(dof-nr_fingers)] = np.clip(action[2:(dof-nr_fingers)], -1*dinova_vel_limits[2:], dinova_vel_limits[2:])
+        action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dicts["robot_0"])
+        # clip actions
+        # if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
+        #     action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
+        # action[2:(dof-nr_fingers)] = np.clip(action[2:(dof-nr_fingers)], -1*dinova_vel_limits[2:], dinova_vel_limits[2:])
 
         # actions robot 1:
-        if nr_robots>1:
-            action[dof:(dof*2-nr_fingers)] = planner_dinova.compute_action(**arguments_dicts["robot_1"])
-            action[dof+2:(dof*2 - nr_fingers)] = np.clip(action[dof+2:(dof*2 - nr_fingers)], -1 * dinova_vel_limits[2:],
-                                               dinova_vel_limits[2:])
-            if np.linalg.norm(action[dof:dof+2]) > dinova_vel_limits[0]:
-                action[dof:dof+2] = action[dof:dof+2] / np.linalg.norm(action[dof:dof+2]) * dinova_vel_limits[0:2]
+        # if nr_robots>1:
+        #     action[dof:(dof*2-nr_fingers)] = rollouts_planner.compute_action(**arguments_dicts["robot_1"])
+        #     action[dof+2:(dof*2 - nr_fingers)] = np.clip(action[dof+2:(dof*2 - nr_fingers)], -1 * dinova_vel_limits[2:],
+        #                                        dinova_vel_limits[2:])
+        #     if np.linalg.norm(action[dof:dof+2]) > dinova_vel_limits[0]:
+        #         action[dof:dof+2] = action[dof:dof+2] / np.linalg.norm(action[dof:dof+2]) * dinova_vel_limits[0:2]
 
         ob, *_ = sim.step(action)
     sim.close()
+
     return {}
 
 
