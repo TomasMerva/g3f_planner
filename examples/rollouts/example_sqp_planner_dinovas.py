@@ -408,7 +408,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
             )
 
             # rollouts
-            if w % 100 == 0 and i_robot==0:
+            if w % 100 == 0 and i_robot==0: #todo: fix that it works for robot_1
                 arguments_dicts["robot_"+str(i_robot)]["weight_goal_0"] = 10.0
                 arguments_dicts["robot_"+str(i_robot)]["weight_goal_1"] = 20.0
                 arguments_dicts["robot_"+str(i_robot)]["weight_goal_2"] = 20.0
@@ -449,7 +449,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
 
             if solver_status != "primal infeasible" \
                 and solver_status != "primal infeasible inaccurate" \
-                and solver_status != "maximum iterations reached" and i_robot == 0:
+                and solver_status != "maximum iterations reached" and i_robot == 0: #todo: fix that it works for robot_1
                 current_pose = rollouts_planner._robot_model.compute_fk(q_robots[i_robot])
                 arguments_dicts["robot_"+str(i_robot)] = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
                                                                   waypoint_list=reference_poses,
