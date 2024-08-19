@@ -6,7 +6,7 @@ problem:
     number_planes: 0
     number_spheres:
       dynamic: 0
-      static: 2
+      static: 8
     obstacle_definition:
       obstacle1:
         type: sphere
