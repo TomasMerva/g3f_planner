@@ -352,6 +352,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
     chain = chain.to(dtype=torch.float64, device="cpu")
     arguments_dicts = {"robot_0": {}, "robot_1": {}}
     q_prev_solutions = {"robot_0": {}, "robot_1": {}}
+    reference_poses = {"robot_0": [], "robot_1": []}
 
     for w in range(n_steps):
         q_robots = []
@@ -408,7 +409,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
             )
 
             # rollouts
-            if w % 100 == 0 and i_robot==0: #todo: fix that it works for robot_1
+            if w % 100 == 0: # and i_robot==0: #todo: fix that it works for robot_1
                 arguments_dicts["robot_"+str(i_robot)]["weight_goal_0"] = 10.0
                 arguments_dicts["robot_"+str(i_robot)]["weight_goal_1"] = 20.0
                 arguments_dicts["robot_"+str(i_robot)]["weight_goal_2"] = 20.0
@@ -426,6 +427,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
                         pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 7, 1)
 
                     for i_optim in range(nr_inner_optim):
+                        reference_poses["robot_"+str(i_robot)] = []
                         gomp_planner.set_starting_state(q_start=arguments_dicts["robot_"+str(i_robot)]["q"])
                         gomp_planner.change_fixed_point(x0=q_prev_solutions["robot_"+str(i_robot)])
                         q_result, solver_status = gomp_planner.solve(q_prev_solutions["robot_"+str(i_robot)].reshape(-1,1))
@@ -434,11 +436,10 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
                             if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3):
                                 print("Absolute tolerance reached")
                             if (np.linalg.norm((f_q-f_q_prev), 2) <= 1e-3) or i_optim == (nr_inner_optim-1):
-                                reference_poses = []
                                 for i in range(nr_waypoints):
                                     T_W_EEF = rollouts_planner._robot_model.compute_fk(q_result[i,:])
                                     pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 1, 0]], 7, 1)
-                                    reference_poses.append(T_W_EEF)
+                                    reference_poses["robot_"+str(i_robot)].append(T_W_EEF)
                                 break
                             else:
                                 f_q_prev = copy.deepcopy(f_q)
@@ -449,15 +450,15 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
 
             if solver_status != "primal infeasible" \
                 and solver_status != "primal infeasible inaccurate" \
-                and solver_status != "maximum iterations reached" and i_robot == 0: #todo: fix that it works for robot_1
+                and solver_status != "maximum iterations reached": # and i_robot == 0: #todo: fix that it works for robot_1
                 current_pose = rollouts_planner._robot_model.compute_fk(q_robots[i_robot])
                 arguments_dicts["robot_"+str(i_robot)] = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
-                                                                  waypoint_list=reference_poses,
+                                                                  waypoint_list=reference_poses["robot_"+str(i_robot)],
                                                                   arguments_dict=arguments_dicts["robot_"+str(i_robot)],
                                                                   x_goal_1_x=x_goal_1_x,
                                                                   x_goal_2_z=x_goal_2_z,
                                                                   goal_final=env.CONFIG_PROBLEM["goal"]["goal_definition"])
-                pybullet.addUserDebugPoints([arguments_dicts["robot_"+str(i_robot)]["x_goal_0"]], [[1, 0, 1]], 15, 1)
+                pybullet.addUserDebugPoints([arguments_dicts["robot_"+str(i_robot)]["x_goal_0"]], [[1, 0.3, i_robot]], 15, 1)
 
         # actions robot 0:
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dicts["robot_0"])
