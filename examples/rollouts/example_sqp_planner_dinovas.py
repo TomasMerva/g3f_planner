@@ -374,7 +374,6 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
             radius_obsts_env.append(ob["robot_0"]['FullSensor']['obstacles'][nr_obst + nr_robots-1+i_obst]['size'])
 
         for i_robot in range(nr_robots):
-            i_robot = 0
             if i_robot == 0:
                 i_other_robot = 1
             else:
@@ -409,7 +408,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
             )
 
             # rollouts
-            if w % 100 == 0:
+            if w % 100 == 0 and i_robot==0:
                 arguments_dicts["robot_"+str(i_robot)]["weight_goal_0"] = 10.0
                 arguments_dicts["robot_"+str(i_robot)]["weight_goal_1"] = 20.0
                 arguments_dicts["robot_"+str(i_robot)]["weight_goal_2"] = 20.0
@@ -444,13 +443,13 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
                             else:
                                 f_q_prev = copy.deepcopy(f_q)
                             q_prev_solutions["robot_"+str(i_robot)] = copy.deepcopy(q_result)
-                arguments_dicts["robot_"+str(i_robot)]["weight_goal_0"] = 1 #weight_goal_0
-                arguments_dicts["robot_"+str(i_robot)]["weight_goal_1"] = 0. #weight_goal_1
-                arguments_dicts["robot_"+str(i_robot)]["weight_goal_2"] = 0. #weight_goal_2
+                arguments_dicts["robot_"+str(i_robot)]["weight_goal_0"] = weight_goal_0
+                arguments_dicts["robot_"+str(i_robot)]["weight_goal_1"] = weight_goal_1
+                arguments_dicts["robot_"+str(i_robot)]["weight_goal_2"] = weight_goal_2
 
             if solver_status != "primal infeasible" \
                 and solver_status != "primal infeasible inaccurate" \
-                and solver_status != "maximum iterations reached":
+                and solver_status != "maximum iterations reached" and i_robot == 0:
                 current_pose = rollouts_planner._robot_model.compute_fk(q_robots[i_robot])
                 arguments_dicts["robot_"+str(i_robot)] = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
                                                                   waypoint_list=reference_poses,
@@ -463,17 +462,17 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
         # actions robot 0:
         action[0:(dof-nr_fingers)] = rollouts_planner.compute_action(**arguments_dicts["robot_0"])
         # clip actions
-        # if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
-        #     action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
-        # action[2:(dof-nr_fingers)] = np.clip(action[2:(dof-nr_fingers)], -1*dinova_vel_limits[2:], dinova_vel_limits[2:])
+        if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
+            action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
+        action[2:(dof-nr_fingers)] = np.clip(action[2:(dof-nr_fingers)], -1*dinova_vel_limits[2:], dinova_vel_limits[2:])
 
         # actions robot 1:
-        # if nr_robots>1:
-        #     action[dof:(dof*2-nr_fingers)] = rollouts_planner.compute_action(**arguments_dicts["robot_1"])
-        #     action[dof+2:(dof*2 - nr_fingers)] = np.clip(action[dof+2:(dof*2 - nr_fingers)], -1 * dinova_vel_limits[2:],
-        #                                        dinova_vel_limits[2:])
-        #     if np.linalg.norm(action[dof:dof+2]) > dinova_vel_limits[0]:
-        #         action[dof:dof+2] = action[dof:dof+2] / np.linalg.norm(action[dof:dof+2]) * dinova_vel_limits[0:2]
+        if nr_robots>1:
+            action[dof:(dof*2-nr_fingers)] = rollouts_planner.compute_action(**arguments_dicts["robot_1"])
+            action[dof+2:(dof*2 - nr_fingers)] = np.clip(action[dof+2:(dof*2 - nr_fingers)], -1 * dinova_vel_limits[2:],
+                                               dinova_vel_limits[2:])
+            if np.linalg.norm(action[dof:dof+2]) > dinova_vel_limits[0]:
+                action[dof:dof+2] = action[dof:dof+2] / np.linalg.norm(action[dof:dof+2]) * dinova_vel_limits[0:2]
 
         ob, *_ = sim.step(action)
     sim.close()
