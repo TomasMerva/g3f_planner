@@ -30,7 +30,7 @@ class GompSQP():
         self.param_dict = {}
 
     
-    def setup_problem(self, x0, max_iter=50, verbose=True):
+    def setup_problem(self, x0, max_iter=50, verbose=False):
         self._solver = osqp.OSQP()
         self._P_obj = self._create_quadratic_objective_term(self._num_waypoints, self._num_dim)
 
