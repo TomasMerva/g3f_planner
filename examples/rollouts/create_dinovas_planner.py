@@ -10,11 +10,9 @@ from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
-import torch
 import copy
 import yaml
 import pybullet
-import pytorch_kinematics as pk
 
 HOME_JOINT_CONFIGS = np.array([np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9]),
                               np.array([1.5, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])])
@@ -279,23 +277,18 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
     """
     3. Multi-robot example
     """
-    q_dinovas = torch.zeros((nr_robots, dof), dtype=torch.float64)
-    chain = pk.build_serial_chain_from_urdf(open(env.ROBOT_URDF_FILE).read(), "arm_tool_frame")
-    chain = chain.to(dtype=torch.float64, device="cpu")
     arguments_dicts = {"robot_0": {}, "robot_1": {}}
 
     for w in range(n_steps):
         q_robots = []
         for i_robot in range(nr_robots):
             q_robots.append(ob["robot_"+str(i_robot)]["joint_state"]["position"][0:(dof-nr_fingers)])
-            q_dinovas[i_robot,:] = torch.as_tensor(ob["robot_"+str(i_robot)]["joint_state"]["position"])
 
         # obstacle positions on other robot via FK
-        FK_W = chain.forward_kinematics(q_dinovas[:,:(dof-nr_fingers)], end_only=False)
-        obst_dinovas = {"robot_0": [], "robot_1":[]}
+        obst_dinovas = {"robot_0": [], "robot_1": []}
         for col_link in collision_links:
             for i_robot in range(nr_robots):
-                obst_dinovas["robot_"+str(i_robot)].append( FK_W[col_link].get_matrix().numpy()[i_robot,:3,3] )
+                obst_dinovas["robot_"+str(i_robot)].append(planner_dinova._forward_kinematics.numpy(q_robots[i_robot], child_link=col_link)[:3, 3])
 
         # compute arguments for the fabrics action with environmental obstacles:
         x_obsts_env = []
