@@ -13,6 +13,20 @@ class ReferenceTracker:
 
     def update_reference(self, waypoint_list:list):
         self.waypoint_list = waypoint_list
+    
+    def update_local_goal_pos_orient(self, current_pos: np.ndarray, waypoint_list=None) -> (list, list):
+        if waypoint_list is None:
+            waypoint_list = self.waypoint_list
+  
+        if self.euclidian_distance(current_pos, waypoint_list[-1]["position"]) < self.tolerance:
+            return waypoint_list[-1], [waypoint_list[-1]],
+        else:
+            for i in range(len(waypoint_list)):
+                if self.euclidian_distance(current_pos, waypoint_list[i]["position"]) > self.tolerance:
+                    waypoint_list = waypoint_list[i:]
+                    return waypoint_list[0], waypoint_list
+        print("warning: no waypoints on the path are closer than the tolerance")
+        return waypoint_list[0], waypoint_list
 
     def update_local_goal(self, current_pos: np.ndarray, waypoint_list=None) -> (list, list):
         if waypoint_list is None:
