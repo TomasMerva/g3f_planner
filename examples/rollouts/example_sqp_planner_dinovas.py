@@ -452,12 +452,13 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
                 and solver_status != "primal infeasible inaccurate" \
                 and solver_status != "maximum iterations reached":
                 current_pose = rollouts_planner._robot_model.compute_fk(q_robots[i_robot])
-                arguments_dicts["robot_"+str(i_robot)] = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
-                                                                  waypoint_list=reference_poses["robot_"+str(i_robot)],
-                                                                  arguments_dict=arguments_dicts["robot_"+str(i_robot)],
-                                                                  x_goal_1_x=x_goal_1_x,
-                                                                  x_goal_2_z=x_goal_2_z,
-                                                                  goal_final=env.CONFIG_PROBLEM["goal"]["goal_definition"])
+                if len(reference_poses["robot_"+str(i_robot)]) != 0:
+                    arguments_dicts["robot_"+str(i_robot)] = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
+                                                                      waypoint_list=reference_poses["robot_"+str(i_robot)],
+                                                                      arguments_dict=arguments_dicts["robot_"+str(i_robot)],
+                                                                      x_goal_1_x=x_goal_1_x,
+                                                                      x_goal_2_z=x_goal_2_z,
+                                                                      goal_final=env.CONFIG_PROBLEM["goal"]["goal_definition"])
                 pybullet.addUserDebugPoints([arguments_dicts["robot_"+str(i_robot)]["x_goal_0"]], [[1, 0.3, i_robot]], 15, 1)
 
         # actions robot 0:
