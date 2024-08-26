@@ -28,9 +28,9 @@ class GompSQP():
         
         self._g_list = []
         self.param_dict = {}
-
+        self._ref_guess_weight = 0.1
     
-    def setup_problem(self, x0, max_iter=50, verbose=True):
+    def setup_problem(self, x0, max_iter=1000, verbose=True):
         self._solver = osqp.OSQP()
         self._P_obj = self._create_quadratic_objective_term(self._num_waypoints, self._num_dim)
 
@@ -50,7 +50,7 @@ class GompSQP():
         self._solver.setup(self._P_obj, self._q_obj, A, l, u, max_iter=max_iter, verbose=verbose, polish=True)
 
     def change_fixed_point(self, x0):
-        self._q_obj = -x0.reshape(-1,1)
+        self._q_obj = -self._ref_guess_weight*x0.reshape(-1,1)
         
         (A, l, u) = self._get_joint_limits()
         self._set_starting_boundary_con(l, u)
@@ -61,13 +61,6 @@ class GompSQP():
             A = sparse.vstack([A, A_g], format='csc')
             l = np.concatenate((l, l_g))
             u = np.concatenate((u, u_g))
-
-        # for g_name, g_term in self._g_list[2:]:
-        #     w_ID = self.param_dict[g_name]["waypoint_ID"]
-        #     (A_g, l_g, u_g) = self._ca_linearization(g_term, x0[w_ID,:], self.param_dict[g_name])
-        #     A = sparse.vstack([A, A_g], format='csc')
-        #     l = np.concatenate((l, l_g))
-        #     u = np.concatenate((u, u_g))
 
         self._solver.update(q=self._q_obj, Ax=A.data, l=l ,u=u)
 
@@ -84,17 +77,10 @@ class GompSQP():
         I_waypoint= np.eye(num_dof)
         Q_ref = sparse.kron(sparse.eye(num_waypoints), I_waypoint)
         Q_acc = self._create_Qacc_matrix(num_waypoints, num_dof)
-        P = Q_acc + Q_ref
+        P = Q_acc + self._ref_guess_weight*Q_ref
         return P
     
-    def _create_linear_objective_term(self, num_waypoints, num_dof, x_ref=None):
-        if x_ref is None:
-            return -np.hstack([np.kron(np.ones(num_waypoints), 
-                                np.zeros(num_waypoints*num_dof))])
-        else:
-            return -np.hstack([np.kron(np.ones(num_waypoints), 
-                                x_ref)])
-
+   
     def _create_Qacc_matrix(self, num_waypoints, num_dof):
         FD_matrix = np.zeros((num_waypoints, num_waypoints), dtype=float)
         FD_INDICES = [1., -2., 1.]
@@ -130,23 +116,15 @@ class GompSQP():
 
         return (A, lb, ub)
     
-    def _ca_linearization(self, g: ConstraintTemplate, x0, param_dict) -> tuple:
-        idx_l = param_dict["waypoint_ID"]*self._num_dim
-        idx_u = param_dict["waypoint_ID"]*self._num_dim + self._num_dim
-        print("casadi")
-        g_grad_x0, lb, ub = g.eval_linearized_constraint(x0, param_dict["num_param"])
 
-        A = np.zeros([lb.shape[0], self._num_waypoints*self._num_dim])
-        for i in range(lb.shape[0]):
-            A[i, idx_l:idx_u] = g_grad_x0[i, :].T
-
-        return (A, lb, ub)
-
-    #TODO: this is just wrong
     def _get_joint_limits(self):
         A_limits = sparse.csc_matrix(np.eye(self._num_waypoints*self._num_dim))
-        l_limits = np.full((self._num_waypoints*self._num_dim, 1), -2.61)
-        u_limits = np.full((self._num_waypoints*self._num_dim, 1), 2.61)
+        l_limits = np.asarray(self._joint_limits["lower_limits"], dtype=np.float32)
+        u_limits = np.asarray(self._joint_limits["upper_limits"], dtype=np.float32)
+
+        l_limits = np.tile(l_limits, self._num_waypoints).reshape(-1,1)
+        u_limits = np.tile(u_limits, self._num_waypoints).reshape(-1,1)
+
         return (A_limits, l_limits, u_limits)
     
 

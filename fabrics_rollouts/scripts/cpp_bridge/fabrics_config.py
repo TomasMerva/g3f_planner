@@ -88,20 +88,17 @@ class FabricsConfig():
         print("---")
 
     def handle_input_arg_dict(self, arg_dict:dict) -> list:
-        msg_type_counter = 0
         # Plane constraint
         if self.config["num_planes"] > 0:
             plane_constraints = [k for k, v in arg_dict.items() if k.startswith('constraint_')]
             for i, plane_g in enumerate(plane_constraints):
                 # data.append(np.asarray(arg_dict[plane_g]))
                 self.input_args_fabrics["plane_g_"+ str(i)][:FabricsArgumentSize.PLANE_CONSTRAINT_DIM] = np.asarray(arg_dict[plane_g], dtype=np.float64)
-            msg_type_counter += 1
 
         # robot state
         self.input_args_fabrics["q_state_0"][:self._n_dof] = np.asarray(arg_dict["q"], dtype=np.float64)
         self.input_args_fabrics["q_state_1"][:self._n_dof] = np.asarray(arg_dict["qdot"], dtype=np.float64)
 
-        msg_type_counter += 2
 
         # radius body
         if self.config["num_collision_link"] > 0:
@@ -109,7 +106,6 @@ class FabricsConfig():
             for i, r in enumerate(radius_body):
                 self.input_args_fabrics["radius_body_" + str(i)][:FabricsArgumentSize.COLLISION_LINK_DIM] = np.array([r], dtype=np.float64)
                 # data.append(np.array([r], dtype=np.float64))
-                msg_type_counter += 1
         
         # radius obst
         if self.config["num_obstacles"] > 0: #TODO: potential error because sometimes its single float, sometimes np.array
@@ -117,7 +113,6 @@ class FabricsConfig():
             for i, r in enumerate(radius_obsts[0]): 
                 self.input_args_fabrics["radius_obst_"+str(i)][:FabricsArgumentSize.OBSTACLE_DIM] =  np.array([r], dtype=np.float64)
                 # data.append(np.array([r], dtype=np.float64))
-                msg_type_counter += 1
         
         # weight goal
         if len(self.config["dim_goals"]) > 0:
@@ -125,14 +120,12 @@ class FabricsConfig():
             for i, w in enumerate(weight_goal):
                 self.input_args_fabrics["weight_goal_"+str(i)][:FabricsArgumentSize.GOAL_WEIGTH_DIM] = np.array([w], dtype=np.float64)
                 # data.append(np.array([w], dtype=np.float64))
-                msg_type_counter += 1
         
         if len(self.config["dim_goals"]) > 0:
             x_goals = [v for k, v in arg_dict.items() if k.startswith('x_goal')]
             for i, goal in enumerate(x_goals):
                 # data.append(np.array(goal, dtype=np.float64))
                 self.input_args_fabrics["x_goal_"+str(i)] = np.asarray(goal, dtype=np.float64)
-                msg_type_counter += 1
 
         # x_obst
         if self.config["num_obstacles"] > 0:
@@ -140,12 +133,13 @@ class FabricsConfig():
              for i, obst in enumerate(x_obsts[0]):  #TODO: potential error because sometimes its single float, sometimes np.array
                 # data.append(np.array(obst, dtype=np.float64))
                 self.input_args_fabrics["x_obst_"+str(i)] = np.asarray(obst, dtype=np.float64)
-                msg_type_counter += 1
 
-        assert self.desired_msg_types == msg_type_counter, f"Desired arg length {self.desired_msg_types} is not the same as msg length {msg_type_counter}"
         # copy data
+        msg_type_counter = 0
         data = []
         for key in self.input_args_fabrics:
             data.append(self.input_args_fabrics[key])
+            msg_type_counter += 1
 
+        assert self.desired_msg_types == msg_type_counter, f"Desired arg length {self.desired_msg_types} is not the same as msg length {msg_type_counter}"
         return data

@@ -212,8 +212,8 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
     nr_fingers = 2
     nr_rollout_timesteps = 200
     nr_rollout_dt = 0.1
-    nr_waypoints = 10
-    nr_inner_optim = 10
+    nr_waypoints = 20
+    nr_inner_optim = 1
 
     """
     1. Create environment
@@ -321,23 +321,16 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                                               r_link= 0.2, 
                                               r_obst=0.2)
         gomp_planner.param_dict[g_name]["num_param"] = ob['robot_0']['FullSensor']['obstacles'][nr_obst+1]['position']
-
-
     gomp_planner.param_dict["g_grasp_pos"]["num_param"][:3,3] = subgoal0
     gomp_planner.param_dict["g_grasp_rot"]["num_param"] = T_W_GraspRed
 
     gomp_planner.set_starting_state(q_start=HOME_JOINT_CONFIG[:9])    
-    gomp_planner.setup_problem(x0=x_init)
+    gomp_planner.setup_problem(x0=x_init, verbose=False)
 
     # reference tracker:
     reference_tracker = ReferenceTracker()
 
-    # start_time = time.perf_counter()
-    # q_result, solver_status = gomp_planner.solve(x_init.reshape(-1,1))
-    # end_time = time.perf_counter()
-    # print("elapsed time:", end_time-start_time)
-    # print(q_result)
-
+ 
     for w in range(n_steps):
         ob_robot = ob['robot_0']
         q = ob_robot["joint_state"]["position"][0:dof-2]
@@ -376,6 +369,8 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             arguments_dict["weight_goal_0"] = 10.0
             arguments_dict["weight_goal_1"] = 20.0
             arguments_dict["weight_goal_2"] = 20.0
+            arguments_dict["x_obsts"] = [np.array([]),
+                                         np.array([])]
             q_rollout = rollouts_planner.compute_rollout(timesteps=nr_rollout_timesteps,
                                                          arg_dict=arguments_dict,
                                                          tolerance=0.15)
@@ -385,13 +380,17 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             if q_fabrics_initial_guess is not None:
                 q_prev_solution = copy.deepcopy(q_fabrics_initial_guess)
 
+                # Visualizing 
                 for i in range(nr_waypoints):
                     T_W_EEF = rollouts_planner._robot_model.compute_fk(q_fabrics_initial_guess[i,:])
                     pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [[0, 0, 1]], 7, 1)
 
+                gomp_planner.set_starting_state(q_start=arguments_dict["q"])
                 for i_optim in range(nr_inner_optim):
-                    gomp_planner.set_starting_state(q_start=arguments_dict["q"])
+                    start_time = time.perf_counter()
                     gomp_planner.change_fixed_point(x0=q_prev_solution)
+                    end_time = time.perf_counter()
+                    print("Elapsed time: ", end_time-start_time)
                     q_result, solver_status = gomp_planner.solve(q_prev_solution.reshape(-1,1))
                     if solver_status != "primal infeasible" and solver_status != "primal infeasible inaccurate":
                         f_q = gomp_planner.compute_cost(q_result.reshape(-1,1))
@@ -407,6 +406,8 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
                         else:
                             f_q_prev = copy.deepcopy(f_q)
                         q_prev_solution = copy.deepcopy(q_result)
+
+
             arguments_dict["weight_goal_0"] = weight_goal_0
             arguments_dict["weight_goal_1"] = weight_goal_1
             arguments_dict["weight_goal_2"] = weight_goal_2
