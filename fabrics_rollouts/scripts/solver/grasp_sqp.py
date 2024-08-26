@@ -28,7 +28,7 @@ class GompSQP():
         
         self._g_list = []
         self.param_dict = {}
-        self._ref_guess_weight = 0.1
+        self._ref_guess_weight = 1.0
     
     def setup_problem(self, x0, max_iter=1000, verbose=True):
         self._solver = osqp.OSQP()
@@ -48,6 +48,7 @@ class GompSQP():
 
 
         self._solver.setup(self._P_obj, self._q_obj, A, l, u, max_iter=max_iter, verbose=verbose, polish=True)
+        # self._solver.setup(self._P_obj, None, A, l, u, max_iter=max_iter, verbose=verbose, polish=True)
 
     def change_fixed_point(self, x0):
         self._q_obj = -self._ref_guess_weight*x0.reshape(-1,1)
@@ -63,6 +64,7 @@ class GompSQP():
             u = np.concatenate((u, u_g))
 
         self._solver.update(q=self._q_obj, Ax=A.data, l=l ,u=u)
+        # self._solver.update(Ax=A.data, l=l ,u=u)
 
     def solve(self, x_init=None):
         if x_init is not None:
@@ -96,7 +98,8 @@ class GompSQP():
         quadratic_term = np.dot(np.dot(x.T, self._P_obj.toarray()), x)
         linear_term = np.dot(self._q_obj.T, x)
         return quadratic_term + linear_term 
-
+        # return quadratic_term 
+    
     def _linearize_constraint(self, g: ConstraintTemplate, x0, param_dict) -> tuple:
         idx_l = param_dict["waypoint_ID"]*self._num_dim
         idx_u = param_dict["waypoint_ID"]*self._num_dim + self._num_dim
