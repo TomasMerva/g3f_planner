@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fabrics_rollouts"
-version = "0.2.0"
+version = "0.3.0"
 description = ""
 authors = ["Tomas Merva"]
 readme = "README.md"
