@@ -28,13 +28,13 @@ class GompSQP():
         
         self._g_list = []
         self.param_dict = {}
-        self._ref_guess_weight = 1.0
+        self._ref_guess_weight = 2.0
     
     def setup_problem(self, x0, max_iter=1000, verbose=True):
         self._solver = osqp.OSQP()
         self._P_obj = self._create_quadratic_objective_term(self._num_waypoints, self._num_dim)
 
-        self._q_obj = -x0.reshape(-1,1)
+        self._q_obj = -self._ref_guess_weight*x0.reshape(-1,1)
 
         (A, l, u) = self._get_joint_limits()
         self._set_starting_boundary_con(l, u)
@@ -50,8 +50,12 @@ class GompSQP():
         self._solver.setup(self._P_obj, self._q_obj, A, l, u, max_iter=max_iter, verbose=verbose, polish=True)
         # self._solver.setup(self._P_obj, None, A, l, u, max_iter=max_iter, verbose=verbose, polish=True)
 
-    def change_fixed_point(self, x0):
+    def change_linear_term(self, x0):
         self._q_obj = -self._ref_guess_weight*x0.reshape(-1,1)
+        self._solver.update(q=self._q_obj)
+
+
+    def change_fixed_point(self, x0):
         
         (A, l, u) = self._get_joint_limits()
         self._set_starting_boundary_con(l, u)
@@ -63,8 +67,8 @@ class GompSQP():
             l = np.concatenate((l, l_g))
             u = np.concatenate((u, u_g))
 
-        self._solver.update(q=self._q_obj, Ax=A.data, l=l ,u=u)
-        # self._solver.update(Ax=A.data, l=l ,u=u)
+        # self._solver.update(q=self._q_obj, Ax=A.data, l=l ,u=u)
+        self._solver.update(Ax=A.data, l=l ,u=u)
 
     def solve(self, x_init=None):
         if x_init is not None:
