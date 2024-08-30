@@ -84,6 +84,8 @@ class GompSQP():
             print("enne")
             print("auch enne")
             return (result.reshape((self._num_waypoints, self._num_dim)), "failed")
+        else:
+            print("no limburgs")
         return (result.reshape((self._num_waypoints, self._num_dim)), res.info.status)
 
    
