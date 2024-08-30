@@ -76,7 +76,15 @@ class GompSQP():
         else:
             self._solver.warm_start(self._x_init)
         res = self._solver.solve()
-        return (res.x.reshape((self._num_waypoints, self._num_dim)), res.info.status)
+
+        result = np.asarray(res.x, dtype=np.float32)
+        
+    
+        if np.isnan(result).any():
+            print("enne")
+            print("auch enne")
+            return (result.reshape((self._num_waypoints, self._num_dim)), "failed")
+        return (result.reshape((self._num_waypoints, self._num_dim)), res.info.status)
 
    
     def _create_quadratic_objective_term(self, num_waypoints, num_dof):

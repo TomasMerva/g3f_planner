@@ -4,9 +4,15 @@ class ReferenceTracker:
     """
     Simple reference tracker to track a set of waypoints
     """
-    def __init__(self, tolerance=0.5):
+    def __init__(self, tolerance=0.08, tolerance_gripper=0.08):
         self.waypoint_list = []
         self.tolerance = tolerance
+        self.tolerance_gripper = tolerance_gripper
+        self.GOAL_CLOSE = False
+
+        self.ub = 0.30
+        self.lb = 0.08
+        self.current_distance_to_goal = 10.0
 
     def euclidian_distance(self, pos_0, pos_1):
         return np.linalg.norm(pos_0 - pos_1)
@@ -17,16 +23,26 @@ class ReferenceTracker:
     def update_local_goal_pos_orient(self, current_pos: np.ndarray, waypoint_list=None) -> (list, list):
         if waypoint_list is None:
             waypoint_list = self.waypoint_list
-  
+      
+        self.current_distance_to_goal = self.euclidian_distance(current_pos, waypoint_list[-1]["position"])
+        if  self.current_distance_to_goal < self.tolerance_gripper:
+            self.GOAL_CLOSE = True
+            print("setting gripper flag")
+       
+        self.tolerance = ((self.ub-self.lb) /10.0) * self.current_distance_to_goal + self.lb
+        if np.isnan(self.tolerance):
+            self.tolerance = self.lb
+
         if self.euclidian_distance(current_pos, waypoint_list[-1]["position"]) < self.tolerance:
-            return waypoint_list[-1], [waypoint_list[-1]],
+            return waypoint_list[-1], [waypoint_list[-1]], False
         else:
+            self.GOAL_CLOSE = False
             for i in range(len(waypoint_list)):
                 if self.euclidian_distance(current_pos, waypoint_list[i]["position"]) > self.tolerance:
                     waypoint_list = waypoint_list[i:]
-                    return waypoint_list[0], waypoint_list
+                    return waypoint_list[0], waypoint_list, False
         print("warning: no waypoints on the path are closer than the tolerance")
-        return waypoint_list[0], waypoint_list
+        return waypoint_list[0], waypoint_list, True
 
     def update_local_goal(self, current_pos: np.ndarray, waypoint_list=None) -> (list, list):
         if waypoint_list is None:
