@@ -364,7 +364,10 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             radius_body_arm_forearm_link=0.1,
         )
 
-        # rollouts
+        ##################################################################
+        """
+        ROLLOUTS
+        """
         start_time = time.perf_counter()
         if w % 100 == 0:
             arguments_dict["weight_goal_0"] = 10.0
@@ -379,12 +382,20 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             gomp_planner.param_dict["g_grasp_rot"]["num_param"] = T_W_Grasp
     
 
-            # Computing Initial guesses
+            # Compute Initial guesses
+            ## 1. Fabrics
             q_rollout = rollouts_planner.compute_rollout(timesteps=nr_rollout_timesteps,
                                                          arg_dict=arguments_dict,
                                                          tolerance=0.15)
             q_fabrics_initial_guess = rollouts_planner.get_initial_guess(num_waypoints=nr_waypoints,
                                                                          rollout=q_rollout)
+            
+            ## 2. Fabrics without obstacles
+            q_rollout_free = rollouts_planner.compute_rollout(timesteps=nr_rollout_timesteps,
+                                                              arg_dict=arguments_dict,
+                                                              tolerance=0.15)
+
+
             q_init2 = np.linspace(q_rollout[0], q_rollout[-1], nr_waypoints, axis=0)
             
             # Using fabrics initial guess
@@ -430,9 +441,32 @@ def run_kinova_example(n_steps=5000, render=True, dof=9):
             end_time = time.perf_counter()
             print("Elapsed time:", end_time-start_time)
 
-        # if solver_status != "primal infeasible" \
-        #     and solver_status != "primal infeasible inaccurate" \
-        #     and solver_status != "maximum iterations reached":
+
+
+        ##################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         current_pose = rollouts_planner._robot_model.compute_fk(q)
         arguments_dict = reference_tracker.get_local_goal(current_pos=current_pose[:3, 3],
                                                             waypoint_list=reference_poses,

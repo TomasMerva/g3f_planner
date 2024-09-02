@@ -10,8 +10,8 @@ class ReferenceTracker:
         self.tolerance_gripper = tolerance_gripper
         self.GOAL_CLOSE = False
 
-        self.ub = 0.30
-        self.lb = 0.08
+        self.ub = 1.0
+        self.lb = 0.10
         self.current_distance_to_goal = 10.0
 
     def euclidian_distance(self, pos_0, pos_1):
@@ -32,6 +32,7 @@ class ReferenceTracker:
         self.tolerance = ((self.ub-self.lb) /10.0) * self.current_distance_to_goal + self.lb
         if np.isnan(self.tolerance):
             self.tolerance = self.lb
+        print("tolerance:", self.tolerance)
 
         if self.euclidian_distance(current_pos, waypoint_list[-1]["position"]) < self.tolerance:
             return waypoint_list[-1], [waypoint_list[-1]], False
