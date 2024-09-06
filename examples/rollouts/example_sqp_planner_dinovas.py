@@ -27,12 +27,11 @@ from fabrics_rollouts import GompSQP
 from fabrics_rollouts import RolloutFabrics
 from fabrics_rollouts.scripts.utils.reference_tracker import ReferenceTracker
 
-HOME_JOINT_CONFIGS = np.array([np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9]),
-                              np.array([1.5, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])])
-
 class Environment():
     def __init__(self) -> None:
         self.define_files_path()
+        self.home_config = np.array([np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9]),
+                                     np.array([1.5, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])])
 
     def define_files_path(self) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -49,7 +48,7 @@ class Environment():
             self.CONFIG_FABRICS = self.CONFIG['fabrics']
 
     
-    def initialize(self, render : bool = True, nr_obst: int = 0, nr_robots: int=1) -> tuple:
+    def initialize(self, render : bool = True, nr_obst: int = 0, nr_robots: int=1, home_config=None) -> tuple:
         robots = [GenericUrdfReacher(urdf=self.ROBOT_URDF_FILE, mode="acc") for _ in range(nr_robots)]
         self.env: UrdfEnv = UrdfEnv(
             robots=robots,
@@ -75,7 +74,9 @@ class Environment():
             }
             obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
 
-        pos0 = HOME_JOINT_CONFIGS[0:nr_robots]
+        if home_config is not None:
+            self.home_config = home_config
+        pos0 = self.home_config[0:nr_robots]
         self.env.reset(pos=pos0)
         self.env.add_sensor(full_sensor, [0])
         for obst in obstacles:
@@ -341,7 +342,7 @@ def run_dinova_example(n_steps=5000, render=True, dof=9, nr_robots=2, env=None):
     gomp_planner.param_dict["g_grasp_pos"]["num_param"][:3,3] = subgoal0
     gomp_planner.param_dict["g_grasp_rot"]["num_param"] = T_W_GraspRed
 
-    gomp_planner.set_starting_state(q_start=HOME_JOINT_CONFIGS[0][:9])
+    gomp_planner.set_starting_state(q_start=env.home_config[0][:9])
     gomp_planner.setup_problem(x0=x_init)
 
     """

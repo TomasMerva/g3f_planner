@@ -9,6 +9,7 @@ import latextable
 import copy
 import pickle
 import pybullet
+import random
 
 # import examples:
 from examples.rollouts.example_sqp_planner_dinovas import Environment, run_dinova_example
@@ -19,21 +20,49 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.cases = ["RGF"] #"GF", "RF", "MPC"]
-        self.render = False
+        self.render = True
         self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time_Rollouts":[], "computation time_GOMP":[]}
         self.results = {self.cases[0]: self.results_struct} #, self.cases[1]: self.results_struct, self.cases[2]: self.results_struct}
 
     def create_environment(self):
         # --- create environment ---#
         env = Environment()
-        env.initialize(self.render, nr_robots=self.nr_robots)
+        home_config = self.randomize_default_home_config()
+        env = self.randomize_obstacle_config(env)
+        env.initialize(self.render, nr_robots=self.nr_robots, home_config=home_config)
         pybullet.setGravity(0, 0, 0)
         env.create_scene()
         return env
 
+    def euclidean_distance(self, pos_0, pos_1):
+        return np.linalg.norm(pos_0 - pos_1)
+
+    def randomize_default_home_config(self):
+        home_config = np.array([np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9]),
+                                np.array([1.5, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])])
+        xyz_random = [[random.uniform(-2, 2), random.uniform(1.5, 3), random.uniform(-3.12, 3.12)] for _ in range(self.nr_robots)]
+        while self.euclidean_distance(np.array(xyz_random[0][0:1]), np.array(xyz_random[1][0:1]))<0.8:
+            xyz_random = [[random.uniform(-2, 2), random.uniform(1, 3), random.uniform(-3.12, 3.12)] for _ in range(self.nr_robots)]
+        home_config[0][0:3] = xyz_random[0][0:3]
+        home_config[1][0:3] = xyz_random[1][0:3]
+        return home_config
+
+    def randomize_obstacle_config(self, env):
+        # todo: make working for more than 2 obstacles!
+        obst_struct = env.CONFIG_PROBLEM["environment"]["obstacle_definition"]
+        xyz_random = [[random.uniform(-2, 2), random.uniform(-0.5, 1), random.uniform(0, 0.3)] for _ in
+                      range(self.nr_robots)]
+        while self.euclidean_distance(np.array(xyz_random[0][0:1]), np.array(xyz_random[1][0:1])) < 0.8:
+            xyz_random = [[random.uniform(-2, 2), random.uniform(-0.5, 1), random.uniform(0, 0.3)] for _ in
+                          range(self.nr_robots)]
+            #todo: add check if obstacle is colliding with object position (or check placing better)
+        for i, obstacle_name in enumerate(obst_struct.keys()):
+            env.CONFIG_PROBLEM["environment"]["obstacle_definition"][obstacle_name]["position"] = xyz_random[i]
+        return env
+
     def run_i(self, case="test", env=None):
         # --- run example dinovas --- #
-        results_i = run_dinova_example(n_steps=1000, render=self.render, dof=self.dof, nr_robots=self.nr_robots, env=env)
+        results_i = run_dinova_example(n_steps=5000, render=self.render, dof=self.dof, nr_robots=self.nr_robots, env=env)
         for key in results_i.keys():
             self.results[case][key].append(results_i[key])
 
