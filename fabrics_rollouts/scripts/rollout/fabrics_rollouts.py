@@ -52,6 +52,7 @@ class RolloutFabrics(FabricsDriver):
         qdot = copy.deepcopy(rollout_arg_dict["qdot"])
 
         q_rollout_record = []
+        self.qdot_rollout_record = []
         for _ in range(timesteps):
             action = self.compute_action(**rollout_arg_dict)
 
@@ -63,8 +64,16 @@ class RolloutFabrics(FabricsDriver):
             rollout_arg_dict["q"] = q
             rollout_arg_dict["qdot"] = qdot
             q_rollout_record.append(q)
+            self.qdot_rollout_record.append(qdot)
 
             error = self.compute_error(rollout_arg_dict["x_goal_0"], q)
             if error <= tolerance:
                 return q_rollout_record
         return q_rollout_record
+
+    def get_rollout_velocity_avg(self, horizon=10):
+        timesteps = len(self.qdot_rollout_record)
+        if timesteps < horizon:
+            horizon= timesteps
+        qdot_rollout_avg = np.mean((np.array(self.qdot_rollout_record[0:horizon]))**2)/horizon
+        return qdot_rollout_avg
