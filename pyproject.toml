@@ -15,6 +15,8 @@ urdfenvs = "^0.9.13"
 pytorch_kinematics = "^0.6.1"
 grasp_planning =">=0.6"
 osqp = ">=0.6.5"
+texttable = "^1.7.0"
+latextable = "^1.0.1"
 
 [build-system]
 requires = ["poetry-core"]
