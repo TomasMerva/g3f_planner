@@ -4,9 +4,9 @@ class ReferenceTracker:
     """
     Simple reference tracker to track a set of waypoints
     """
-    def __init__(self, tolerance=0.08, tolerance_gripper=0.08):
+    def __init__(self, tolerance_gripper=0.08):
         self.waypoint_list = []
-        self.tolerance = tolerance
+        self.tolerance = 0.0
         self.tolerance_gripper = tolerance_gripper
         self.GOAL_CLOSE = False
 
@@ -25,6 +25,7 @@ class ReferenceTracker:
             waypoint_list = self.waypoint_list
       
         self.current_distance_to_goal = self.euclidian_distance(current_pos, waypoint_list[-1]["position"])
+        # print("distance",self.current_distance_to_goal)
         if  self.current_distance_to_goal < self.tolerance_gripper:
             self.GOAL_CLOSE = True
             print("setting gripper flag")
@@ -32,7 +33,7 @@ class ReferenceTracker:
         self.tolerance = ((self.ub-self.lb) /10.0) * self.current_distance_to_goal + self.lb
         if np.isnan(self.tolerance):
             self.tolerance = self.lb
-        print("tolerance:", self.tolerance)
+        # print("tolerance:", self.tolerance)
 
         if self.euclidian_distance(current_pos, waypoint_list[-1]["position"]) < self.tolerance:
             return waypoint_list[-1], [waypoint_list[-1]], False
