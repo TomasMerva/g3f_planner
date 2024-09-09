@@ -5,3 +5,4 @@ from fabrics_rollouts.scripts.solver.grasp_sqp import GompSQP
 from fabrics_rollouts.scripts.cpp_bridge.fabrics_driver import FabricsDriver
 from fabrics_rollouts.scripts.rollout.fabrics_rollouts import RolloutFabrics
 from fabrics_rollouts.scripts.utils.reference_tracker import ReferenceTracker
+from fabrics_rollouts.scripts.utils.deadlock_prevention import DeadlockPrevention
