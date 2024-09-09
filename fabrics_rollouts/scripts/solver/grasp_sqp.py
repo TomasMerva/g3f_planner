@@ -155,7 +155,7 @@ class GompSQP():
 
 
 
-    def add_grasp_pos_constraint(self, name, waypoint_ID, tolerance=0.0) -> None:
+    def add_grasp_pos_constraint(self, name, waypoint_ID, tolerance=np.zeros(3)) -> None:
         self.param_dict[name] =  {
             "waypoint_ID" : waypoint_ID,
             "sym_param" : ca.SX.sym(name, 4, 4),
@@ -210,3 +210,6 @@ class GompSQP():
                                                           r_obst= r_obst,
                                                           tolerance=0.0)
                                                     ))
+
+    def compute_fk(self, q, end_link=None):
+        return self._robot_model.compute_fk(q, end_link)

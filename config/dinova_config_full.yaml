@@ -112,3 +112,16 @@ fabrics:
   geometry_plane_constraint: -0.2 / (x ** 1) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
   finsler_plane_constraint: 0.2/(x**2) * xdot**2
   # base_energy: # TODO: should this be empty
+gomp:
+  n_waypoints : 5
+  n_obstacles : 6
+  obstacle_radius : [0.18, 0.25, 0.2, 0.2, 0.55, 0.2] # I do not like that we have to specify this at multiple places
+  collision_links : ["chassis_link", "arm_upper_wrist_link"]
+  collision_link_radius : [0.6, 0.25]
+  rollout_dt : 0.1
+  rollout_timesteps : 1000
+  rollout_tolerance : 0.15
+  alpha_filter: 0.7
+  initial_grasp_roll_deg : 90
+  verbose: false
+  n_optim_steps : 1

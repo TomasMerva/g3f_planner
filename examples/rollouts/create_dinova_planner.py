@@ -13,6 +13,7 @@ from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import copy
 import yaml
 import pybullet
+import shutil
 
 HOME_JOINT_CONFIG =  np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
 
@@ -211,7 +212,14 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     planner.load_fabrics_configuration(config_dict['fabrics'])
     planner.load_problem_configuration(config_dict['problem'])
     planner.concretize()
-    planner.export_as_c("pure_controller.cpp")
+    controller_file = "pure_controller.cpp"
+    planner.export_as_c(controller_file)
+    
+    # Move to src folder
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
+    CONTROLLER_FOLDER_NEW = os.path.normpath(os.path.join(current_script_dir, "../../fabrics_rollouts/src/", controller_file))
+    shutil.move(controller_file, CONTROLLER_FOLDER_NEW)
+
     return planner
 
 def set_runtime_weights(error, goal_weights_offline=None):
