@@ -460,33 +460,29 @@ files = [
 
 [[package]]
 name = "fabrics"
-version = "0.9.6"
+version = "0.9.5"
 description = "Optimization fabrics in python."
 category = "main"
 optional = false
-python-versions = "^3.8,<3.10"
-files = []
-develop = false
+python-versions = "<3.10,>=3.8"
+files = [
+    {file = "fabrics-0.9.5-py3-none-any.whl", hash = "sha256:c4fe203139d45f4500a158a2b6237456f083c20678548d762cc18dfebd548516"},
+    {file = "fabrics-0.9.5.tar.gz", hash = "sha256:119e7f4062bb5d9fb4bd43b2a7065c53569c5d179251a80a437d21281f01cc6d"},
+]
 
 [package.dependencies]
 casadi = ">=3.5.5"
-deprecation = "^2.1.0"
-forwardkinematics = "^1.2.2"
-geomdl = "^5.3.1"
-mpscenes = "^0.4"
-numpy = "^1.15.3"
-pickle-mixin = "^1.0.2"
-pynput = "^1.7.6"
-pyquaternion = "^0.9.9"
+deprecation = ">=2.1.0,<3.0.0"
+forwardkinematics = ">=1.2.2,<2.0.0"
+geomdl = ">=5.3.1,<6.0.0"
+mpscenes = ">=0.4,<0.5"
+numpy = ">=1.15.3,<2.0.0"
+pickle-mixin = ">=1.0.2,<2.0.0"
+pynput = ">=1.7.6,<2.0.0"
+pyquaternion = ">=0.9.9,<0.10.0"
 pytest = "6.2.5"
-quaternionic = "^1.0.0"
-vector = "^1.1.1"
-
-[package.source]
-type = "git"
-url = "https://github.com/tud-amr/fabrics.git"
-reference = "HEAD"
-resolved_reference = "14ea1bc4f57004b7bff19205e1b1b7dfd6093c3d"
+quaternionic = ">=1.0.0,<2.0.0"
+vector = ">=1.1.1,<2.0.0"
 
 [[package]]
 name = "farama-notifications"
@@ -1012,6 +1008,21 @@ files = [
     {file = "kiwisolver-1.4.5-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:11d011a7574eb3b82bcc9c1a1d35c1d7075677fdd15de527d91b46bd35e935ee"},
     {file = "kiwisolver-1.4.5.tar.gz", hash = "sha256:e57e563a57fb22a142da34f38acc2fc1a5c864bc29ca1517a88abc963e60d6ec"},
 ]
+
+[[package]]
+name = "latextable"
+version = "1.0.1"
+description = "An extension to the texttable library that exports tables directly to Latex."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "latextable-1.0.1-py3-none-any.whl", hash = "sha256:3c2db035574f36ef95ed8e2ccf32d37c2f534b6f2701022c5e00f159244b8306"},
+    {file = "latextable-1.0.1.tar.gz", hash = "sha256:e0d5e426f65e06c39d4b16441f027e435393bf11b40151a3aab3c706576d9ce9"},
+]
+
+[package.dependencies]
+texttable = "*"
 
 [[package]]
 name = "llvmlite"
@@ -2841,6 +2852,18 @@ mpmath = ">=1.1.0,<1.4"
 dev = ["hypothesis (>=6.70.0)", "pytest (>=7.1.0)"]
 
 [[package]]
+name = "texttable"
+version = "1.7.0"
+description = "module to create simple ASCII tables"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "texttable-1.7.0-py2.py3-none-any.whl", hash = "sha256:72227d592c82b3d7f672731ae73e4d1f88cd8e2ef5b075a7a7f01a23a3743917"},
+    {file = "texttable-1.7.0.tar.gz", hash = "sha256:2d2068fb55115807d3ac77a4ca68fa48803e84ebb0ee2340f858107a36522638"},
+]
+
+[[package]]
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
@@ -3245,4 +3268,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8, <3.10"
-content-hash = "372a8c79ae0f983a9205fa49573e8a0f522384c2e53e96b310f613497830ccb6"
+content-hash = "a93972483b78f233980bdd11303bd53ab00803bb456214e624093c8ec2d55bc9"
