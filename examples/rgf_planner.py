@@ -12,9 +12,13 @@ from fabrics_rollouts import ReferenceTracker
 
 
 class RGF_Planner():
-    def __init__(self, fk_args, config_file) -> None:
+    def __init__(self, fk_args, config_file_path) -> None:
         self._fk_args = fk_args
-        self._CONFIG = config_file
+
+        self._CONFIG_FILE_PATH = config_file_path
+        with open(config_file_path, 'r') as config_file:
+            self._CONFIG = yaml.safe_load(config_file)
+
         self._dinova_vel_limits = np.asarray(self._CONFIG["problem"]["joint_limits"]["velocity"], dtype=np.float32)
         self._T_W_Obj, self._T_W_StaticGrasp = np.eye(4), np.eye(4)
         self.z_offset_grasping = 0.05
@@ -35,7 +39,7 @@ class RGF_Planner():
         
         self._init_rollouts_parameters()
         self._rollouts_planner = RolloutFabrics(fk_dict=self._fk_args,
-                                                config_file=self._CONFIG,
+                                                config_file=self._CONFIG_FILE_PATH,
                                                 controller_lib=_fabrics_lib,
                                                 vel_limits=self._dinova_vel_limits,
                                                 dt=self._CONFIG["gomp"]["rollout_dt"],
@@ -44,8 +48,8 @@ class RGF_Planner():
     def establish_planner(self):
         gomp_args = dict(
             urdf_file = self._fk_args["urdf_file"],
-            root_link = self._fk_args["world"],
-            end_link = self._fk_args["arm_tool_frame"],
+            root_link = self._fk_args["root_link"],
+            end_link = self._fk_args["end_link"],
             num_waypoints = self._CONFIG["gomp"]["n_waypoints"],
             num_dim = self._fk_args["num_dofs"],
             joint_limits = self._CONFIG["problem"]["joint_limits"]
@@ -54,10 +58,10 @@ class RGF_Planner():
         self._gomp_planner = GompSQP(gomp_args)
 
         self._gomp_planner.add_grasp_pos_constraint("g_grasp_pos", self.num_waypoints-1, np.zeros(3))
-        self._gomp_planner.add_grasp_rot_constraint("g_grasp_rot", self.num_waypoints-1, np.zeros(3))
+        self._gomp_planner.add_grasp_rot_constraint("g_grasp_rot", self.num_waypoints-1, 0.0)
         
-        self._establish_obstacles()
-        self._establish_collision_constraint()
+        # self._establish_obstacles()
+        # self._establish_collision_constraint()
 
         self._gomp_planner.set_starting_state(np.zeros(self.num_dofs))
         self._gomp_planner.setup_problem(x0=np.ones((self.num_waypoints, self.num_dofs)),
@@ -90,7 +94,7 @@ class RGF_Planner():
                     self.collision_constraint_names.append(name)
                     self._gomp_planner.param_dict[name]["num_param"] = np.array([100, 100, 100])
         
-    def update_gomp_parameters(self, q_current, obst_pos, T_W_Obj):
+    def update_gomp_parameters(self, q_current, T_W_Obj, obst_pos=None):
         self._T_W_Obj[:3,3] = T_W_Obj[:3,3]
         self.theta_preference = self.compute_theta_preference(q_current, self._T_W_Obj)
         self._T_W_StaticGrasp = self.compute_static_grasp(self._T_W_Obj)
@@ -99,30 +103,32 @@ class RGF_Planner():
         self._gomp_planner.param_dict["g_grasp_pos"]["num_param"] = self._T_W_StaticGrasp
         self._gomp_planner.param_dict["g_grasp_rot"]["num_param"] = self._T_W_StaticGrasp
         
-        x_obsts = []
-        for id_obst, x_obst in enumerate(obst_pos):
-            x_obsts.append(x_obst)
-            for id_way in range(1, self.num_waypoints):
-                for link_name, _ in self.collision_links.items():
-                    name = "g_col_" + "way" + str(id_way) + "_" + link_name + "_obst" + str(id_obst)
-                    self._gomp_planner.param_dict[name]["num_param"] = x_obst
-        
+        if obst_pos is not None:
+            x_obsts = []
+            for id_obst, x_obst in enumerate(obst_pos):
+                x_obsts.append(x_obst)
+                for id_way in range(1, self.num_waypoints):
+                    for link_name, _ in self.collision_links.items():
+                        name = "g_col_" + "way" + str(id_way) + "_" + link_name + "_obst" + str(id_obst)
+                        self._gomp_planner.param_dict[name]["num_param"] = x_obst
+            
 
 
-    def update_rollouts_parameters(self, q_current, obst_pos, T_W_Obj):
+    def update_rollouts_parameters(self, joint_state, T_W_Obj, obst_pos=None):
         x_goal_1_x = np.array([0.0, 0.0, 0.13])
         x_goal_2_z = np.array([0.0, 0.10, 0.00])
         self._T_W_StaticGrasp = self.compute_static_grasp(T_W_Obj)
         p_orient_rot_x = self._T_W_StaticGrasp[:3,:3] @ x_goal_1_x
         p_orient_rot_z = self._T_W_StaticGrasp[:3,:3] @ x_goal_2_z
 
-        self._rollouts_args_dict["q"] = q_current
+        self._rollouts_args_dict["q"] = joint_state[0]
+        self._rollouts_args_dict["qdot"] = joint_state[1]
         self._rollouts_args_dict["x_goal_0"] = self._T_W_StaticGrasp[:3, 3]
         self._rollouts_args_dict["x_goal_1"] = p_orient_rot_x
         self._rollouts_args_dict["x_goal_2"] = p_orient_rot_z
         self._rollouts_args_dict["x_goal_3"] = [self.theta_preference]
-
-        self._rollouts_args_dict["x_obsts"] = obst_pos
+        if obst_pos is not None:
+            self._rollouts_args_dict["x_obsts"] = obst_pos
 
 
 
@@ -175,11 +181,8 @@ class RGF_Planner():
 
 
 
-    def compute_initial_guesses(self, q_current, x_obsts, T_W_Obj):
+    def _compute_initial_guesses(self):
         # Collision-free
-        self.update_rollouts_parameters(q_current=q_current,
-                                        obst_pos=x_obsts,
-                                        T_W_Obj=T_W_Obj)
         q_coll_rollout = self._rollouts_planner.compute_rollout(
                                                 timesteps=self._CONFIG["gomp"]["rollout_timesteps"],
                                                 arg_dict=self._rollouts_args_dict,
@@ -226,14 +229,14 @@ class RGF_Planner():
             return None, None
     
 
-    def solve(self, q_current, x_obsts, T_W_Obj):
-        self._gomp_planner.set_starting_state(q_start=q_current)
+    def solve(self, joint_state, T_W_Obj, x_obsts=None):
+        self._gomp_planner.set_starting_state(q_start=joint_state[0])
 
-        self.update_gomp_parameters(q_current, x_obsts, T_W_Obj)
-        self.update_rollouts_parameters(q_current, x_obsts, T_W_Obj)
+        self.update_gomp_parameters(joint_state[0], T_W_Obj, x_obsts)
+        self.update_rollouts_parameters(joint_state, T_W_Obj, x_obsts)
 
         
-        (q_coll_init, q_free_init) = self.compute_initial_guesses(q_current, x_obsts, T_W_Obj)
+        (q_coll_init, q_free_init) = self._compute_initial_guesses()
 
         q_result_coll, f_q_coll = self._solve_QP(q_init=q_coll_init)
         q_result_free, f_q_free = self._solve_QP(q_init=q_free_init)
@@ -267,9 +270,12 @@ class RGF_Planner():
             return pose_waypoints, solver_flag
         else:
             for id_way in range(self.num_waypoints):
-                T_W_EEF = self._gomp_planner.compute_fk(joint_waypoints[id_way,:])
+                T_W_EEF = self.compute_fk(joint_waypoints[id_way,:])
                 pose_waypoints.append(T_W_EEF)
         return pose_waypoints, solver_flag
+    
+    def compute_fk(self, q, end_link=None):
+        return self._gomp_planner.compute_fk(q, end_link)
 
 
     

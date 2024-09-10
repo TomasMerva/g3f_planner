@@ -144,8 +144,17 @@ class Environment():
 
         return (self.scene_id, self.scene_positions)
     
-    def get_config_file(self):
-        return self.CONFIG
+    def get_config_file_path(self):
+        return self.CONFIG_FILE
     
-
+    
+    def get_redcup_pose(self):
+        return pybullet.getBasePositionAndOrientation(self.scene_id["cup_red"])
+    
+    def get_greencup_pose(self):
+        return pybullet.getBasePositionAndOrientation(self.scene_id["cup_green"])
+    
+    def get_table_pose(self):
+        return pybullet.getBasePositionAndOrientation(self.scene_id["table"])
+    
 
