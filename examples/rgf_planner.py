@@ -4,7 +4,7 @@ import yaml
 import time
 import os
 from scipy.spatial.transform import Rotation as R
-
+import threading
 
 from fabrics_rollouts import GompSQP
 from fabrics_rollouts import RolloutFabrics
@@ -21,7 +21,7 @@ class RGF_Planner():
 
         self._dinova_vel_limits = np.asarray(self._CONFIG["problem"]["joint_limits"]["velocity"], dtype=np.float32)
         self._T_W_Obj, self._T_W_StaticGrasp = np.eye(4), np.eye(4)
-        self.z_offset_grasping = 0.05
+        self.z_offset_grasping = 0.1
         self._roll_obj_grasp =  np.deg2rad(self._CONFIG["gomp"]["initial_grasp_roll_deg"])
         
         self.num_dofs = self._fk_args["num_dofs"]
@@ -60,8 +60,8 @@ class RGF_Planner():
         self._gomp_planner.add_grasp_pos_constraint("g_grasp_pos", self.num_waypoints-1, np.zeros(3))
         self._gomp_planner.add_grasp_rot_constraint("g_grasp_rot", self.num_waypoints-1, 0.0)
         
-        # self._establish_obstacles()
-        # self._establish_collision_constraint()
+        self._establish_obstacles()
+        self._establish_collision_constraint()
 
         self._gomp_planner.set_starting_state(np.zeros(self.num_dofs))
         self._gomp_planner.setup_problem(x0=np.ones((self.num_waypoints, self.num_dofs)),
@@ -99,8 +99,7 @@ class RGF_Planner():
         self.theta_preference = self.compute_theta_preference(q_current, self._T_W_Obj)
         self._T_W_StaticGrasp = self.compute_static_grasp(self._T_W_Obj)
 
-
-        self._gomp_planner.param_dict["g_grasp_pos"]["num_param"] = self._T_W_StaticGrasp
+        self._gomp_planner.param_dict["g_grasp_pos"]["num_param"] = self._T_W_StaticGrasp  
         self._gomp_planner.param_dict["g_grasp_rot"]["num_param"] = self._T_W_StaticGrasp
         
         if obst_pos is not None:
@@ -114,7 +113,7 @@ class RGF_Planner():
             
 
 
-    def update_rollouts_parameters(self, joint_state, T_W_Obj, obst_pos=None):
+    def update_rollouts_parameters(self, joint_state, T_W_Obj, obst_pos=None, obst_radius=None):
         x_goal_1_x = np.array([0.0, 0.0, 0.13])
         x_goal_2_z = np.array([0.0, 0.10, 0.00])
         self._T_W_StaticGrasp = self.compute_static_grasp(T_W_Obj)
@@ -129,6 +128,8 @@ class RGF_Planner():
         self._rollouts_args_dict["x_goal_3"] = [self.theta_preference]
         if obst_pos is not None:
             self._rollouts_args_dict["x_obsts"] = obst_pos
+        if obst_radius is not None:
+            self._rollouts_args_dict["radius_obsts"] = obst_radius
 
 
 
@@ -207,11 +208,33 @@ class RGF_Planner():
 
     
 
-    def _solve_QP(self, q_init):
-        if len(q_init) <= 2:
-            q_init = np.linspace(q_init[0], q_init[-1], self.num_waypoints, axis=0)
+    # def _solve_QP(self, q_init):
+    #     if len(q_init) <= 2:
+    #         q_init = np.linspace(q_init[0], q_init[-1], self.num_waypoints, axis=0)
         
+    #     if q_init is not None:
+    #         self._gomp_planner.change_linear_term(q_init)
+    #         q_result_prev = copy.deepcopy(q_init)
+    #         for _ in range(self.num_optim_steps):
+    #             self._gomp_planner.change_fixed_point(x0=q_result_prev)
+    #             q_result, solver_status = self._gomp_planner.solve(q_result_prev.reshape(-1,1))
+    #             if solver_status =="solved":
+    #                 q_result_prev = q_result
+    #         if solver_status == "solved":
+    #             f_q_result = self._gomp_planner.compute_cost(q_result_prev.reshape(-1,1))
+    #         else:
+    #             f_q_result = None
+            
+    #         return q_result_prev, f_q_result
+    #     else:
+    #         return None, None
+
+
+    def _solve_QP(self, index, q_init):
         if q_init is not None:
+            # if len(q_init) <= 2:
+            #     q_init = np.linspace(q_init[0], q_init[-1], self.num_waypoints, axis=0)
+        
             self._gomp_planner.change_linear_term(q_init)
             q_result_prev = copy.deepcopy(q_init)
             for _ in range(self.num_optim_steps):
@@ -224,9 +247,13 @@ class RGF_Planner():
             else:
                 f_q_result = None
             
-            return q_result_prev, f_q_result
+            self._q_solutions[index] = q_result_prev
+            self._f_q_values[index] = f_q_result
+            # return q_result_prev, f_q_result
         else:
-            return None, None
+            # return None, None
+            self._q_solutions[index] = None
+            self._f_q_values[index] = None
     
 
     def solve(self, joint_state, T_W_Obj, x_obsts=None):
@@ -235,13 +262,30 @@ class RGF_Planner():
         self.update_gomp_parameters(joint_state[0], T_W_Obj, x_obsts)
         self.update_rollouts_parameters(joint_state, T_W_Obj, x_obsts)
 
-        
         (q_coll_init, q_free_init) = self._compute_initial_guesses()
+        self._q_solutions, self._f_q_values = [None,None], [None, None]
 
-        q_result_coll, f_q_coll = self._solve_QP(q_init=q_coll_init)
-        q_result_free, f_q_free = self._solve_QP(q_init=q_free_init)
+        qp_thread1 = threading.Thread(target=self._solve_QP, args=(0, q_coll_init))
+        qp_thread2 = threading.Thread(target=self._solve_QP, args=(1, q_free_init))
+        # Starting threads
+        qp_thread1.start()
+        qp_thread2.start()
+
+        # Waiting for both threads to finish
+        qp_thread1.join()
+        qp_thread2.join()
+
+  
+
+        q_result_coll, q_result_free = self._q_solutions
+        f_q_coll, f_q_free = self._f_q_values
+
+        # q_result_coll, f_q_coll = self._solve_QP(q_init=q_coll_init)
+        # q_result_free, f_q_free = self._solve_QP(q_init=q_free_init)
+        
 
         solver_flag = False
+        joint_waypoints = []
         # Take better solution
         if f_q_coll is not None and f_q_free is not None:
             if f_q_coll + 1 < f_q_free:

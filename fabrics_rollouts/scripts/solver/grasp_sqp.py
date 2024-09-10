@@ -81,7 +81,7 @@ class GompSQP():
         
     
         if np.isnan(result).any():
-            print("Enne? Auch enne")
+            # print("Enne? Auch enne")
             return (result.reshape((self._num_waypoints, self._num_dim)), "failed")
         else:
             # print("no limburgs")

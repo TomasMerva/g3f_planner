@@ -52,6 +52,8 @@ class Environment():
         
         # Definition of the obstacle.
         self.nr_obstacles = len(self.CONFIG_PROBLEM["environment"]["obstacle_definition"])
+        
+        self._obstacles_dict = {}
         obstacles = []
         for obst_name, obst_param in self.CONFIG_PROBLEM["environment"]["obstacle_definition"].items():
             static_obst_dict = {
@@ -59,7 +61,12 @@ class Environment():
                 "geometry": {"position": obst_param["position"], "radius": obst_param["radius"]},
             }
             obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
+            self._obstacles_dict[obst_name] = {
+                "position" : obst_param["position"], 
+                "radius": obst_param["radius"]
+            }
 
+        
         if home_config is not None:
             self.home_config = home_config
         pos0 = self.home_config[0:nr_robots]
@@ -158,3 +165,5 @@ class Environment():
         return pybullet.getBasePositionAndOrientation(self.scene_id["table"])
     
 
+    def get_obstacles(self):
+        return self._obstacles_dict
