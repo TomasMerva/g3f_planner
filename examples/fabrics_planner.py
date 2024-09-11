@@ -123,7 +123,6 @@ class Fabrics():
         weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = self.set_runtime_weights(position_error)
         theta_preference = self.get_theta_preference(q = joint_state[0], \
                                                      goal_position=T_W_Goal[:3,3])
-
         self._arguments_dict["q"] = joint_state[0]
         self._arguments_dict["qdot"] = joint_state[1]
         self._arguments_dict["x_goal_0"] = T_W_Goal[:3,3]

@@ -37,7 +37,7 @@ if __name__=="__main__":
     NUM_DOF = 11
     NUM_GRIPPER_FINGERS = 2
     NUM_TIMESTEPS = 10000
-    PLANNER_FREQ = 10
+    PLANNER_FREQ = 5
 
     # Environment
     env = Environment()
@@ -63,7 +63,7 @@ if __name__=="__main__":
                       degrees_of_freedom=NUM_DOF-NUM_GRIPPER_FINGERS)
     
     # Reference
-    reference_tracker = ReferenceTracker()
+    reference_tracker = ReferenceTracker(ub=1.0, lb=0.2)
 
     T_W_RedCup, T_W_GrenCup = np.eye(4), np.eye(4)
     T_W_Goal = np.eye(4)
@@ -77,7 +77,8 @@ if __name__=="__main__":
 
         T_W_RedCup[:3,3], redcup_quat = env.get_redcup_pose()
         T_W_GrenCup[:3,3], greencup_quat = env.get_greencup_pose()
-
+        T_W_Objects_robots = [T_W_RedCup, 
+                            T_W_GrenCup]
         x_obsts = [obstacles[i]["position"] for i in obstacles]
         r_obsts = [obstacles[i]["radius"] for i in obstacles]
 
@@ -85,7 +86,7 @@ if __name__=="__main__":
             for robot_id in range(1):
                 start_time = time.perf_counter()
                 waypoints_list, planner_status = planner.solve(joint_state=robot_states[robot_id], 
-                                                              T_W_Obj=T_W_RedCup,
+                                                              T_W_Obj=T_W_Objects_robots[robot_id],
                                                               x_obsts=x_obsts
                                                               )
                 end_time = time.perf_counter()
@@ -98,18 +99,22 @@ if __name__=="__main__":
                             pybullet.addUserDebugPoints([waypoints_list[i][:3, 3].tolist()], [[0, 1, 0]], 7, 1.0)
 
 
-                # Reference tracker
-                if waypoints_list is None or len(waypoints_list) == 0:
-                    pass
+                if np.linalg.norm(T_W_EEFs_current[robot_id][:3,3] - T_W_Objects_robots[robot_id][:3,3]) < 0.2:
+                    T_W_Goal = waypoints_list[-1]
                 else:
-                    current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
-                    waypoint_dict = [transformation2dict(waypoints_list[i]) for i in range(len(waypoints_list))]
-                    current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
+                    # Reference tracker
+                    if waypoints_list is None or len(waypoints_list) == 0:
+                        pass
+                    else:
+                        current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
+                        waypoint_dict = [transformation2dict(waypoints_list[i]) for i in range(len(waypoints_list))]
+                        current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
 
-                    if current_goal_dict is not None and not flag:
-                        T_W_Goal = dict2transformation(current_goal_dict)
+                        if current_goal_dict is not None:
+                            T_W_Goal = dict2transformation(current_goal_dict)
 
-        for robot_id in range(1):
+
+
             fabrics.update_arguments(joint_state= robot_states[robot_id],
                                      T_W_Goal=T_W_Goal,
                                      obst_pos=x_obsts,
