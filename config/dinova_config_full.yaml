@@ -148,4 +148,4 @@ gomp:
   alpha_filter: 0.7
   initial_grasp_roll_deg : 90
   verbose: false
-  n_optim_steps : 5
+  n_optim_steps : 1

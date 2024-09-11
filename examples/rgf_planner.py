@@ -174,8 +174,8 @@ class RGF_Planner():
         T_Obj_Grasp = np.eye(4)
         T_Obj_Grasp[:3,:3] = R.from_euler('xyz', [0, self._roll_obj_grasp, 0], degrees=True).as_matrix()
         T_Grasp_Theta = np.eye(4)
-        # T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [-self.theta_preference, 0, 0], degrees=False).as_matrix()
-        T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [1.57, 0, 0], degrees=False).as_matrix()
+        T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [-self.theta_preference, 0, 0], degrees=False).as_matrix()
+        # T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [1.57, 0, 0], degrees=False).as_matrix()
         T_W_Grasp = T_W_Obj @ T_Obj_Grasp @ T_Grasp_Theta
         T_W_Grasp[2,3] += self.z_offset_grasping
         return T_W_Grasp
