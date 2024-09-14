@@ -17,13 +17,16 @@ from dinovas_pybullet_env import Environment
 from fabrics_planner import Fabrics
 
 def compute_static_grasp(T_W_Obj):
-        T_Obj_Grasp = np.eye(4)
-        T_Obj_Grasp[:3,:3] = R.from_euler('xyz', [0, 90, 0], degrees=True).as_matrix()
-        T_Grasp_Theta = np.eye(4)
-        T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [90, 0, 0], degrees=False).as_matrix()
-        T_W_Grasp = T_W_Obj @ T_Obj_Grasp @ T_Grasp_Theta
-        T_W_Grasp[2,3] += 0.02
-        return T_W_Grasp
+    T_Obj_Grasp = np.eye(4)
+    T_Obj_Grasp[:3,:3] = R.from_euler('xyz', [0, 90, 0], degrees=True).as_matrix()
+    T_Grasp_Theta = np.eye(4)
+    T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [90, 0, 0], degrees=True).as_matrix()
+    T_W_Grasp = T_W_Obj @ T_Obj_Grasp @ T_Grasp_Theta
+
+    T_Grasp_Offset = np.eye(4)
+    T_Grasp_Offset[:3, 3] = [-0, 0, -0.05]
+    return T_W_Grasp @ T_Grasp_Offset
+
 
 if __name__=="__main__":
     RENDER = True
@@ -47,7 +50,12 @@ if __name__=="__main__":
                       degrees_of_freedom=NUM_DOF-NUM_GRIPPER_FINGERS)
     
     T_W_RedCup, T_W_GrenCup = np.eye(4), np.eye(4)
-    
+
+    # Static obstacles
+    x_obsts = [obstacles[i]["position"] for i in obstacles]
+    r_obsts = [obstacles[i]["radius"] for i in obstacles]
+    x_obsts_robots = [copy.deepcopy(x_obsts), copy.deepcopy(x_obsts)]
+
     # Main loop
     for timestep in range(NUM_TIMESTEPS):
         robot_states = [[ob["robot_"+str(i)]["joint_state"]["position"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)],
@@ -59,14 +67,23 @@ if __name__=="__main__":
         T_W_Grasp_robots = [compute_static_grasp(T_W_RedCup), 
                             compute_static_grasp(T_W_GrenCup)]
 
-        x_obsts = [obstacles[i]["position"] for i in obstacles]
-        r_obsts = [obstacles[i]["radius"] for i in obstacles]
+        
+        # Compute robots' position for collision avoidance
+        T_W_chassis_robots = [fabrics.compute_fk(robot_states[i][0], "chassis_link") for i in range(NUM_ROBOTS)]
+        T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_upper_wrist_link") for i in range(NUM_ROBOTS)]
 
-        for robot_id in range(1):
+        x_obsts_robots[0][-2] =  T_W_chassis_robots[1][:3,3].tolist()
+        x_obsts_robots[0][-1] =  T_W_wrist_robots[1][:3,3].tolist()
+        x_obsts_robots[1][-2] =  T_W_chassis_robots[0][:3,3].tolist()
+        x_obsts_robots[1][-1] =  T_W_wrist_robots[0][:3,3].tolist()
+     
+     
+        for robot_id in range(NUM_ROBOTS):
             fabrics.update_arguments(joint_state= robot_states[robot_id],
                                      T_W_Goal=T_W_Grasp_robots[robot_id],
-                                     obst_pos=x_obsts,
-                                     obst_radius=None)
+                                     obst_pos=x_obsts_robots[robot_id],
+                                     obst_radius=r_obsts)
+            
             action_unclipped = fabrics.compute_action()
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
 

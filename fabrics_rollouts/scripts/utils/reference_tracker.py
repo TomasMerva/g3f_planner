@@ -27,7 +27,6 @@ class ReferenceTracker:
         self.current_distance_to_goal = self.euclidian_distance(current_pos, waypoint_list[-1]["position"])
         if  self.current_distance_to_goal < self.tolerance_gripper:
             self.GOAL_CLOSE = True
-            print("setting gripper flag")
        
         self.tolerance = ((self.ub-self.lb) /10.0) * self.current_distance_to_goal + self.lb
         if np.isnan(self.tolerance):

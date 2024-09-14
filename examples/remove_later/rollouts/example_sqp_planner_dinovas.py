@@ -480,13 +480,13 @@ def run_dinova_example(n_steps=5000, render=True, dof=9, nr_robots=2, env=None):
             action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
         action[2:(dof-nr_fingers)] = np.clip(action[2:(dof-nr_fingers)], -1*dinova_vel_limits[2:], dinova_vel_limits[2:])
 
-        # actions robot 1:
-        if nr_robots>1:
-            action[dof:(dof*2-nr_fingers)] = rollouts_planner.compute_action(**arguments_dicts["robot_1"])
-            action[dof+2:(dof*2 - nr_fingers)] = np.clip(action[dof+2:(dof*2 - nr_fingers)], -1 * dinova_vel_limits[2:],
-                                               dinova_vel_limits[2:])
-            if np.linalg.norm(action[dof:dof+2]) > dinova_vel_limits[0]:
-                action[dof:dof+2] = action[dof:dof+2] / np.linalg.norm(action[dof:dof+2]) * dinova_vel_limits[0:2]
+        # # actions robot 1:
+        # if nr_robots>1:
+        #     action[dof:(dof*2-nr_fingers)] = rollouts_planner.compute_action(**arguments_dicts["robot_1"])
+        #     action[dof+2:(dof*2 - nr_fingers)] = np.clip(action[dof+2:(dof*2 - nr_fingers)], -1 * dinova_vel_limits[2:],
+        #                                        dinova_vel_limits[2:])
+        #     if np.linalg.norm(action[dof:dof+2]) > dinova_vel_limits[0]:
+        #         action[dof:dof+2] = action[dof:dof+2] / np.linalg.norm(action[dof:dof+2]) * dinova_vel_limits[0:2]
 
         ob, *_ = sim.step(action)
     sim.close()

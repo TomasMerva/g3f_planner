@@ -42,12 +42,15 @@ class Fabrics():
     def _establish_fabrics(self, robot_urdf_path):
         with open(robot_urdf_path, "r", encoding="utf-8") as file:
             urdf = file.read()
+
+        self._end_link = "arm_tool_frame"
+
         self._forward_kinematics = GenericURDFFk(
             urdf,
             root_link="world",
-            end_links=["arm_tool_frame", "arm_orientation_helper_link"],
+            end_links=[self._end_link , "arm_orientation_helper_link"],
         )
-        self._end_link = "arm_tool_frame"
+        
 
         
         base_metric = np.eye(9) * 0.3
@@ -149,3 +152,9 @@ class Fabrics():
         action[2:] = np.clip(action[2:], -1*self._vel_limits[2:], self._vel_limits[2:])
 
         return action
+    
+    def compute_fk(self, q, end_link=None):
+        if end_link is not None:
+            return self._forward_kinematics.numpy(q, end_link)
+        else:
+            return self._forward_kinematics.numpy(q, self._end_link)

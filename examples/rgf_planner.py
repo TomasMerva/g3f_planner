@@ -21,14 +21,14 @@ class RGF_Planner():
 
         self._dinova_vel_limits = np.asarray(self._CONFIG["problem"]["joint_limits"]["velocity"], dtype=np.float32)
         self._T_W_Obj, self._T_W_StaticGrasp = np.eye(4), np.eye(4)
-        self.z_offset_grasping = 0.1
+        self.z_offset_grasping = 0.02
         self._roll_obj_grasp =  np.deg2rad(self._CONFIG["gomp"]["initial_grasp_roll_deg"])
-        
+        self.theta_preference = 0.0
+
         self.num_dofs = self._fk_args["num_dofs"]
         self.num_waypoints = self._CONFIG["gomp"]["n_waypoints"]
         self.num_obstacles = self._CONFIG["gomp"]["n_obstacles"]
         self.num_optim_steps = self._CONFIG["gomp"]["n_optim_steps"]
-
 
         self.establish_rollouts()
         self.establish_planner()
@@ -172,14 +172,17 @@ class RGF_Planner():
     
     def compute_static_grasp(self, T_W_Obj):
         T_Obj_Grasp = np.eye(4)
-        T_Obj_Grasp[:3,:3] = R.from_euler('xyz', [0, self._roll_obj_grasp, 0], degrees=True).as_matrix()
+        T_Obj_Grasp[:3,:3] = R.from_euler('xyz', [0, self._roll_obj_grasp, 0], degrees=False).as_matrix()
         T_Grasp_Theta = np.eye(4)
         T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [-self.theta_preference, 0, 0], degrees=False).as_matrix()
-        # T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [1.57, 0, 0], degrees=False).as_matrix()
+ 
+        # Compute correct rotation
         T_W_Grasp = T_W_Obj @ T_Obj_Grasp @ T_Grasp_Theta
-        T_W_Grasp[2,3] += self.z_offset_grasping
-        return T_W_Grasp
+        # Compute offset
         
+        T_Grasp_Offset = np.eye(4)
+        T_Grasp_Offset[:3, 3] = [-self.z_offset_grasping, 0, -0.05 ]
+        return T_W_Grasp @ T_Grasp_Offset
 
 
 
@@ -222,13 +225,13 @@ class RGF_Planner():
                 if solver_status =="solved":
                     q_result_prev = q_result
             if solver_status == "solved":
-                f_q_result = self._gomp_planner.compute_cost(q_result_prev.reshape(-1,1))
+                f_q_result = self._gomp_planner.compute_cost(q_result_prev.reshape(-1,1))[0].item()
             else:
-                f_q_result = None
+                f_q_result = np.nan
             
             return q_result_prev, f_q_result
         else:
-            return None, None
+            return None, np.nan
 
 
 
@@ -239,29 +242,22 @@ class RGF_Planner():
         self.update_rollouts_parameters(joint_state, T_W_Obj, x_obsts)
 
         (q_coll_init, q_free_init) = self._compute_initial_guesses()
-
+      
         q_result_coll, f_q_coll = self._solve_QP(q_init=q_coll_init)
         q_result_free, f_q_free = self._solve_QP(q_init=q_free_init)
-        
-        solver_flag = False
-        joint_waypoints = []
-        # Take better solution
-        if f_q_coll is not None and f_q_free is not None:
-            if f_q_coll + 1 < f_q_free:
-                joint_waypoints = q_result_coll
-                solver_flag = True
-            else:
-                joint_waypoints = q_result_free
-                solver_flag= True
-        # Collision-free is better
-        elif f_q_coll is not None and f_q_free is None:
-            joint_waypoints = q_result_coll
+        q_results = {
+            f_q_coll: q_result_coll,
+            f_q_free : q_result_free
+        }
+        f_results = np.array([f_q_coll, f_q_free], dtype=object)
+        if all(isinstance(x, float) and np.isnan(x) for x in f_results):
+            solver_flag = False
+            joint_waypoints = []
+            return self._return_solution(joint_waypoints, solver_flag)
+        else:
+            best_f = np.nanmin(f_results)
             solver_flag = True
-        # Obstacle free is better
-        elif f_q_coll is None and f_q_free is not None:
-            joint_waypoints = q_result_free
-            solver_flag = True
-        
+            joint_waypoints = q_results[best_f] 
 
         return self._return_solution(joint_waypoints, solver_flag)
     
@@ -273,12 +269,15 @@ class RGF_Planner():
             return pose_waypoints, solver_flag
         else:
             for id_way in range(self.num_waypoints):
-                T_W_EEF = self.compute_fk(joint_waypoints[id_way,:])
+                T_W_EEF = self.compute_fk(joint_waypoints[id_way,:], self._fk_args["end_link"])
                 pose_waypoints.append(T_W_EEF)
         return pose_waypoints, solver_flag
     
     def compute_fk(self, q, end_link=None):
-        return self._gomp_planner.compute_fk(q, end_link)
+        if end_link is None:
+            return self._gomp_planner.compute_fk(q, self._fk_args["end_link"])
+        else:
+            return self._gomp_planner.compute_fk(q)
 
 
     

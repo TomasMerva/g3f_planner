@@ -37,7 +37,9 @@ if __name__=="__main__":
     NUM_DOF = 11
     NUM_GRIPPER_FINGERS = 2
     NUM_TIMESTEPS = 10000
-    PLANNER_FREQ = 100
+    PLANNER_PERIOD = 100
+    REFERENCE_TRACKER_PERIOD = 10
+
 
     # Environment
     env = Environment()
@@ -63,33 +65,17 @@ if __name__=="__main__":
                       degrees_of_freedom=NUM_DOF-NUM_GRIPPER_FINGERS)
     
     # Reference
-    reference_tracker = ReferenceTracker(ub=1.0, lb=0.2)
+    reference_tracker = ReferenceTracker(ub=1.0, lb=0.1)
 
     T_W_RedCup, T_W_GrenCup = np.eye(4), np.eye(4)
-    T_W_Goal = [np.eye(4), np.eye(4)]
+    T_W_Goal_robots = [np.eye(4)] * NUM_ROBOTS
+    waypoints_list_robots = [None]* NUM_ROBOTS
+    solver_status_robots = [None] * NUM_ROBOTS
+
+    x_obsts = [obstacles[i]["position"] for i in obstacles]
+    r_obsts = [obstacles[i]["radius"] for i in obstacles]
+    x_obsts_robots = [copy.deepcopy(x_obsts), copy.deepcopy(x_obsts)]
     
-    import threading
-    def call_gomp(robot_id, robot_states, T_W_object, x_obsts):
-        waypoints_list, planner_status = planner.solve(joint_state=robot_states[robot_id], 
-                                                              T_W_Obj=T_W_Objects_robots[robot_id],
-                                                              x_obsts=x_obsts
-                                                              )
-        if planner_status:
-            T_W_Goal[robot_id] = waypoints_list[-1]
-            rpy = R.from_matrix(T_W_Goal[0][:3,:3]).as_euler(seq="xyz", degrees=True)
-            print(rpy)
-            rpy = R.from_matrix(waypoints_list[0][:3,:3]).as_euler(seq="xyz", degrees=True)
-            print("first\n",rpy)
-            print("\n")
-
-
-        if RENDER:
-            if planner_status:
-                for i in range(len(waypoints_list)):
-                    pybullet.addUserDebugPoints([waypoints_list[i][:3, 3].tolist()], [[0, 1, 0]], 7, 1.0)
-
-
-
     # Main loop
     for timestep in range(NUM_TIMESTEPS):
         robot_states = [[ob["robot_"+str(i)]["joint_state"]["position"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)],
@@ -99,61 +85,62 @@ if __name__=="__main__":
 
         T_W_RedCup[:3,3], redcup_quat = env.get_redcup_pose()
         T_W_GrenCup[:3,3], greencup_quat = env.get_greencup_pose()
-        T_W_Objects_robots = [T_W_GrenCup, T_W_RedCup
-                              ]
-        x_obsts = [obstacles[i]["position"] for i in obstacles]
-        r_obsts = [obstacles[i]["radius"] for i in obstacles]
-
-        if timestep%PLANNER_FREQ == 0:
-            start_time = time.perf_counter()
-            thread1 = threading.Thread(target=call_gomp, args=(0, robot_states, T_W_Objects_robots, x_obsts))  # For first call, index 0
-            # thread2 = threading.Thread(target=call_gomp, args=(1, robot_states, T_W_Objects_robots, x_obsts)) 
-            thread1.start()
-            # thread2.start()
-            end_time = time.perf_counter()
-            print(f'Computational time: {end_time-start_time} s')   
-            # thread1.join()
-            # thread2.join()
-            # for robot_id in range(NUM_ROBOTS):
-                # start_time = time.perf_counter()
-                # waypoints_list, planner_status = planner.solve(joint_state=robot_states[robot_id], 
-                #                                               T_W_Obj=T_W_Objects_robots[robot_id],
-                #                                               x_obsts=x_obsts
-                #                                               )
-                # end_time = time.perf_counter()
-                # print(f"Solver status for robot {robot_id}: {planner_status}")
-                # print(f'Computational time: {end_time-start_time} s for robot: {robot_id}')                
-
-                # thread1 = threading.Thread(target=task, args=(0,))  # For first call, index 0
-                # thread2 = threading.Thread(target=task, args=(1,))  # For second call, index 1
-                # if RENDER:
-                #     if planner_status:
-                #         for i in range(len(waypoints_list)):
-                #             pybullet.addUserDebugPoints([waypoints_list[i][:3, 3].tolist()], [[0, 1, 0]], 7, 1.0)
+        T_W_Objects_robots = [T_W_RedCup, T_W_GrenCup]
 
 
-                # if np.linalg.norm(T_W_EEFs_current[robot_id][:3,3] - T_W_Objects_robots[robot_id][:3,3]) < 0.2:
-                #     T_W_Goal = waypoints_list[-1]
-                # else:
-                #     # Reference tracker
-                #     if waypoints_list is None or len(waypoints_list) == 0:
-                #         pass
-                #     else:
-                #         current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
-                #         waypoint_dict = [transformation2dict(waypoints_list[i]) for i in range(len(waypoints_list))]
-                #         current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
+        # Update collision spheres for GOMP & fabrics
+        T_W_chassis_robots = [fabrics.compute_fk(robot_states[i][0], "chassis_link") for i in range(NUM_ROBOTS)]
+        T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_upper_wrist_link") for i in range(NUM_ROBOTS)]
 
-                #         if current_goal_dict is not None:
-                #             T_W_Goal = dict2transformation(current_goal_dict)
-                # if planner_status:
-                #     T_W_Goal = waypoints_list[-1]
-                
-        for robot_id in range(1):
+        x_obsts_robots[0][-2] =  T_W_chassis_robots[1][:3,3].tolist()
+        x_obsts_robots[0][-1] =  T_W_wrist_robots[1][:3,3].tolist()
+        x_obsts_robots[1][-2] =  T_W_chassis_robots[0][:3,3].tolist()
+        x_obsts_robots[1][-1] =  T_W_wrist_robots[0][:3,3].tolist()
+
+        
+        # GOMP
+        if timestep%PLANNER_PERIOD == 0:
+            for robot_id in range(NUM_ROBOTS):
+                start_time = time.perf_counter()
+                waypoint_list, solver_status_robots[robot_id] = planner.solve(joint_state=robot_states[robot_id], 
+                                                                                T_W_Obj=T_W_Objects_robots[robot_id],
+                                                                                x_obsts=x_obsts_robots[robot_id]
+                                                                                )
+
+                end_time = time.perf_counter()
+                print(f"Solver status for robot {robot_id}: {solver_status_robots[robot_id]}")
+                print(f'Computational time for robot {robot_id}: {end_time-start_time} s')                
+                print()
+                if solver_status_robots[robot_id] == True:
+                    waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
+                if RENDER:
+                    if solver_status_robots[robot_id]:
+                        for i in range(len(waypoints_list_robots[robot_id])):
+                            pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [[0, 1, 0]], 7, 1.0)
+
+        if timestep%REFERENCE_TRACKER_PERIOD == 0:
+            for robot_id in range(NUM_ROBOTS):
+                # Reference tracker
+                if np.linalg.norm(T_W_EEFs_current[robot_id][:3,3] - T_W_Objects_robots[robot_id][:3,3]) <= 0.2:
+                    T_W_Goal_robots[robot_id] = waypoints_list_robots[robot_id][-1]
+                else:
+                    if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
+                        pass
+                    else:
+                        current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
+                        waypoint_dict = [transformation2dict(waypoints_list_robots[robot_id][i]) for i in range(len(waypoints_list_robots[robot_id]))]
+                        current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
+                        if current_goal_dict is not None:
+                            T_W_Goal_robots[robot_id] = dict2transformation(current_goal_dict)
+     
+        
+        for robot_id in range(NUM_ROBOTS):
             fabrics.update_arguments(joint_state= robot_states[robot_id],
-                                     T_W_Goal=T_W_Goal[robot_id],
-                                     obst_pos=x_obsts,
-                                     obst_radius=None)
-            action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(fabrics.compute_action())
+                                    T_W_Goal=T_W_Goal_robots[robot_id],
+                                    obst_pos=x_obsts_robots[robot_id],
+                                    obst_radius=None)
+            unclipped_action = fabrics.compute_action()
+            action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(unclipped_action)
 
         ob, *_ = sim.step(action)
     sim.close()

@@ -14,8 +14,9 @@ from mpscenes.goals.static_sub_goal import StaticSubGoal
 class Environment():
     def __init__(self) -> None:
         self._define_files_path()
-        self.home_config = np.array([np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9]),
-                                     np.array([1.5, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])])
+        self.home_config = np.array([np.array([-0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]),
+                                     np.array([0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9])
+                                     ])
         
 
 
