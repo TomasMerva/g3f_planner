@@ -1,9 +1,3 @@
-# 1. Read yaml [x]
-# 2. Create env [x]
-# 3. Create planner (it includes rollouts, QP and outputs the waypoints)
-# 4. Reference tracker
-# 5. Execute fabrics
-
 import numpy as np
 import copy
 import yaml
@@ -31,24 +25,24 @@ def dict2transformation(pose : dict) -> np.ndarray:
     T[:3,:3] = R.from_quat(pose["orientation"]).as_matrix()
     return T
 
-if __name__=="__main__":
-    RENDER = True
-    NUM_ROBOTS = 2
-    NUM_DOF = 11
+
+
+def run_dinova_example(n_steps, render, dof, n_robots, env, planner_period, reference_tracker_period=None):
+    RENDER = render
+    NUM_ROBOTS = n_robots
+    NUM_DOF = dof
     NUM_GRIPPER_FINGERS = 2
-    NUM_TIMESTEPS = 10000
-    PLANNER_PERIOD = 100
-    REFERENCE_TRACKER_PERIOD = 10
+    NUM_TIMESTEPS = n_steps
+    PLANNER_PERIOD = planner_period
+    REFERENCE_TRACKER_PERIOD = reference_tracker_period
 
-
-    # Environment
-    env = Environment()
     (sim, goal) = env.initialize(render=RENDER, nr_robots=NUM_ROBOTS)
     CONFIG_FILE_PATH = env.get_config_file_path()
     action = np.zeros(NUM_ROBOTS*NUM_DOF)
     ob, *_ = sim.step(action)
     obstacles = env.get_obstacles()
 
+    
     # Planner
     fk_args = dict(
         urdf_file = env.ROBOT_URDF_FILE,
@@ -144,3 +138,26 @@ if __name__=="__main__":
 
         ob, *_ = sim.step(action)
     sim.close()
+
+
+if __name__=="__main__":
+    RENDER = True
+    NUM_ROBOTS = 2
+    NUM_DOF = 11
+    NUM_GRIPPER_FINGERS = 2
+    NUM_TIMESTEPS = 10000
+    PLANNER_PERIOD = 100
+    REFERENCE_TRACKER_PERIOD = 10
+
+    # Environment
+    env = Environment()
+    run_dinova_example(n_steps=NUM_TIMESTEPS,
+                       render=RENDER,
+                       dof=NUM_DOF,
+                       n_robots=NUM_ROBOTS,
+                       env=env,
+                       planner_period=PLANNER_PERIOD,
+                       reference_tracker_period=REFERENCE_TRACKER_PERIOD
+                       )
+
+    

@@ -2,6 +2,7 @@ import pybullet
 import numpy as np
 import os
 import yaml
+import random
 
 from forwardkinematics.urdfFks.generic_urdf_fk import GenericURDFFk
 from urdfenvs.urdf_common.urdf_env import UrdfEnv
@@ -18,7 +19,7 @@ class Environment():
                                      np.array([0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9])
                                      ])
         
-
+        self._objects_pose_noise = None
 
     def _define_files_path(self) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -35,8 +36,15 @@ class Environment():
             self.CONFIG_FABRICS = self.CONFIG['fabrics']
 
     
-    def initialize(self, render : bool = True, nr_obst: int = 0, nr_robots: int=1, home_config=None) -> tuple:
-        robots = [GenericUrdfReacher(urdf=self.ROBOT_URDF_FILE, mode="acc") for _ in range(nr_robots)]
+    def initialize(self, render : bool = True, 
+                   nr_robots: int=1, 
+                   home_config=None) -> tuple:
+        self.n_robots = nr_robots
+        robots_urdf = []
+        for robot_id in range(self.n_robots):
+            robots_urdf.append(self.URDF_FOLDER + "/dinova/dinova_" + str(robot_id+1) +".urdf")
+
+        robots = [GenericUrdfReacher(urdf=robots_urdf[i], mode="acc") for i in range(nr_robots)]
         self.env: UrdfEnv = UrdfEnv(
             robots=robots,
             dt=0.01,
@@ -126,41 +134,45 @@ class Environment():
     def load_scene(self) -> tuple:
         # Table
         URDF_table = self.URDF_FOLDER + "/table/table.urdf"
-        URDF_cup_red = self.URDF_FOLDER + "/cup/cup_red.urdf"
-        URDF_cup_green = self.URDF_FOLDER + "/cup/cup_green.urdf"
 
-        urdf_links = {"URDF_table": URDF_table,
-                    "URDF_cup_red" : URDF_cup_red,
-                    "URDF_cup_green" : URDF_cup_green}
+        table_pos = [0., 0.0, 0.0]
         z_table = 0.65*0.3
-        self.scene_positions = {
-            "z_table" : z_table,
-            "table" : [0., -1., 0.0],
-            "cup_red" : [-0.05, -0.9, z_table-0.01],
-            "cup_green" : [0.05, -0.9, z_table-0.01],
-        }
+        
+        if self._objects_pose_noise is None:
+            objects_pos = [
+                [table_pos[0]-0.05, table_pos[1]+0.1, z_table - 0.01],
+                [table_pos[0]+0.05, table_pos[1]+0.1, z_table - 0.01],
+                [table_pos[0]-0.05, table_pos[1]-0.1, z_table - 0.01],
+                [table_pos[0]+0.05, table_pos[1]-0.1, z_table - 0.01],
+            ]
+        else:
+            objects_pos = [
+                [table_pos[0]+self._objects_pose_noise[0][0], table_pos[1]-self._objects_pose_noise[0][1], z_table - 0.01],
+                [table_pos[0]+self._objects_pose_noise[1][0], table_pos[1]-self._objects_pose_noise[1][1], z_table - 0.01],
+                [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table - 0.01],
+                [table_pos[0]+self._objects_pose_noise[3][0], table_pos[1]-self._objects_pose_noise[3][1], z_table - 0.01],
+            ]
+        for pos in objects_pos:
+            print(pos)
+        self.scene_id = {}
+        for object_id in range(self.n_robots):
+            urdf_file = self.URDF_FOLDER + "/cup/cup_" + str(object_id+1) +".urdf"
+            object_pybulletID = pybullet.loadURDF(urdf_file, basePosition=objects_pos[object_id])
+            self.scene_id["cup_"+str(object_id)] = object_pybulletID
+        self.scene_id["table"] = pybullet.loadURDF(URDF_table, basePosition=table_pos,  globalScaling=0.3)
 
-        tableUid = pybullet.loadURDF(urdf_links["URDF_table"], basePosition=self.scene_positions["table"],  globalScaling=0.3)
-        cup_redUid = pybullet.loadURDF(urdf_links["URDF_cup_red"], basePosition=self.scene_positions["cup_red"])
-        cup_greenUid = pybullet.loadURDF(urdf_links["URDF_cup_green"], basePosition=self.scene_positions["cup_green"])
-
-        self.scene_id = {
-            "table" : tableUid,
-            "cup_red" : cup_redUid,
-            "cup_green" : cup_greenUid
-        }
-
-        return (self.scene_id, self.scene_positions)
-    
     def get_config_file_path(self):
         return self.CONFIG_FILE
     
-    
+    def get_cup(self, cup_id):
+        name = "cup_" + str(cup_id)
+        return pybullet.getBasePositionAndOrientation(self.scene_id[name])
+
     def get_redcup_pose(self):
-        return pybullet.getBasePositionAndOrientation(self.scene_id["cup_red"])
+        return pybullet.getBasePositionAndOrientation(self.scene_id["cup_1"])
     
     def get_greencup_pose(self):
-        return pybullet.getBasePositionAndOrientation(self.scene_id["cup_green"])
+        return pybullet.getBasePositionAndOrientation(self.scene_id["cup_2"])
     
     def get_table_pose(self):
         return pybullet.getBasePositionAndOrientation(self.scene_id["table"])
@@ -168,3 +180,10 @@ class Environment():
 
     def get_obstacles(self):
         return self._obstacles_dict
+    
+    def get_sim_handler(self):
+        return self.env
+    
+    def set_objects_pos_noise(self, pos):
+        assert self._objects_pose_noise == None, "Objects positions have already been set"
+        self._objects_pose_noise = pos
