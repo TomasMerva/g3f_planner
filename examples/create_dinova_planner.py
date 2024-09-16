@@ -8,7 +8,6 @@ from urdfenvs.sensors.full_sensor import FullSensor
 from mpscenes.goals.static_sub_goal import StaticSubGoal
 from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
-from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import copy
 import yaml

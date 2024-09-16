@@ -152,8 +152,7 @@ class Environment():
                 [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table - 0.01],
                 [table_pos[0]+self._objects_pose_noise[3][0], table_pos[1]-self._objects_pose_noise[3][1], z_table - 0.01],
             ]
-        for pos in objects_pos:
-            print(pos)
+
         self.scene_id = {}
         for object_id in range(self.n_robots):
             urdf_file = self.URDF_FOLDER + "/cup/cup_" + str(object_id+1) +".urdf"

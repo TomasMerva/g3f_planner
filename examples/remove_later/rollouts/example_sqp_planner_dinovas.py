@@ -9,7 +9,6 @@ from urdfenvs.sensors.full_sensor import FullSensor
 from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from mpscenes.obstacles.box_obstacle import BoxObstacle
-from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 from mpscenes.goals.static_sub_goal import StaticSubGoal
 import torch

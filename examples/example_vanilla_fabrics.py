@@ -48,7 +48,17 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
     # Static obstacles #TODO: change to num_robots
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
-    x_obsts_robots = [copy.deepcopy(x_obsts), copy.deepcopy(x_obsts)]
+
+    
+    """
+    Results metrics:
+    """
+    results = {"collision":[], 
+               "goal_reached": [0], 
+               "time_to_goal":[], 
+               "computation_time":[], 
+               }
+
 
     # Main loop
     for timestep in range(NUM_TIMESTEPS):
@@ -81,7 +91,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
                     r_obsts[chassis_idx] = 0.55
                     r_obsts[wrist_idx] = 0.2
                     counter += 1
-
+            start_time = time.perf_counter()
             fabrics.update_arguments(joint_state= robot_states[robot_id],
                                     T_W_Goal=T_W_Goals[robot_id],
                                     obst_pos=x_obsts,
@@ -89,12 +99,20 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
             
             action_unclipped = fabrics.compute_action()
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
+            end_time = time.perf_counter()
 
+            results["computation_time"].append(end_time-start_time)
+            
         ob, *_ = sim.step(action)
     sim.close()
 
-    #TODO: return something meaningful
-    return 0
+    success_rate = 1.0
+    for robot_id in range(NUM_ROBOTS):
+        if fabrics.error(goal_pos=T_W_Goals[robot_id][:3,3], q_current=robot_states[robot_id][0]) >= 0.08:
+            success_rate = 0.0
+    results["goal_reached"] = [success_rate]
+
+    return results
 
 
 if __name__=="__main__":

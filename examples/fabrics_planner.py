@@ -8,7 +8,6 @@ from urdfenvs.sensors.full_sensor import FullSensor
 from mpscenes.goals.static_sub_goal import StaticSubGoal
 from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
-from robotmodels.utils.robotmodel import RobotModel, LocalRobotModel
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import yaml
 
@@ -86,7 +85,7 @@ class Fabrics():
         return float(theta_preference)
     
     def error(self, goal_pos:np.ndarray, q_current:np.ndarray) -> float:
-        fk_current = self._forward_kinematics.numpy(q_current, self._end_link, position_only=True)
+        fk_current = self.compute_fk(q_current)[:3,3]
         return np.linalg.norm(goal_pos-fk_current)
 
 

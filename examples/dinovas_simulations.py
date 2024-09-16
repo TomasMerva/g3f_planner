@@ -11,6 +11,9 @@ import pickle
 import pybullet
 import random
 import time
+from tqdm import tqdm
+import contextlib
+
 # import examples:
 # from examples.rollouts.example_sqp_planner_dinovas import Environment, run_dinova_example
 from dinovas_pybullet_env import Environment
@@ -18,13 +21,15 @@ from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
 
 
 class ComparisonDinovas():
-    def __init__(self, n_runs=2):
+    def __init__(self, n_runs=2, n_steps_per_run=1000):
         self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
         self.n_runs = n_runs
+        self.n_steps_per_run = n_steps_per_run
         self.cases = ["GF"] #["RGF" ,"GF", "RF", "MPC"]
-        self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time_Rollouts":[], "computation time_GOMP":[]}
+        # self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time_Rollouts":[], "computation time_GOMP":[]}
+        self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time":[]}
         self.results = {self.cases[0]: self.results_struct} #, self.cases[1]: self.results_struct, self.cases[2]: self.results_struct}
 
     def create_environment(self, render=False):
@@ -109,34 +114,23 @@ class ComparisonDinovas():
         return np.asarray(points)
 
 
-
-        #     xy_random = [random.uniform(x_range[0], x_range[1]),
-        #                   random.uniform(y_range[0], y_range[1])]
-        #     safety_counter = 0
-        #     while self.euclidean_distance(np.array(xy_random), noise_set[i-1]) < 0.1:
-        #         xy_random = [random.uniform(x_range[0], x_range[1]),
-        #                       random.uniform(y_range[0], y_range[1])]
-        #         safety_counter +1
-        #         if safety_counter >= 20:
-        #                 raise ValueError("Cannot find valid objects' positions")
-        #     noise_set[i][0:2] = xy_random
-        # return noise_set
-        
-
-
     def run_i(self, case="test", env=None):
         # --- run example dinovas --- #
         #["RGF" ,"GF", "RF", "MPC"]
         if case == "RGF":
-            raise ValueError("Test has not been implemented yet")
+            raise ValueError("RGF has not been implemented yet")
         elif case == "GF":
-            results_i = fabrics_dinova_example(n_steps=1000, dof=self.dof, n_robots=self.nr_robots, env=env)
-            #TODO:
-        # for key in results_i.keys():
-        #     self.results[case][key].append(results_i[key])
+            results_i = fabrics_dinova_example(n_steps=self.n_steps_per_run, dof=self.dof, n_robots=self.nr_robots, env=env)
+            for key in results_i.keys():
+                self.results[case][key].append(results_i[key])
+        elif case == "RF":
+            raise ValueError("RF has not been implemented yet")
+        elif case == "MPC":
+            raise ValueError("MPC is not implemented.")
+      
 
     def run_comparison(self, render):
-        for i_run in range(self.n_runs):
+        for i_run in tqdm(range(self.n_runs)):
             for algorithm in self.cases:
                 env = self.create_environment(render)
                 self.run_i(case=algorithm, env=env)
@@ -144,15 +138,15 @@ class ComparisonDinovas():
     def table_results(self, results):
         # --- create and plot table --- #
         rows = []
-        title_row = [' ', "Computation time RF [ms]"] #'Success-Rate', 'Time-to-Success [s]',
+        title_row = [' ', "Success rate [\%]", "Computation time RF [s]"] #'Success-Rate', 'Time-to-Success [s]',
         nr_column = len(title_row)
         rows.append(title_row)
         for case in self.cases:
             rows.append([case,
-                         # str(np.round(np.sum(results[case]["goal_reached"]) / n_runs, decimals=1)), #+ "+-" + str(np.round(np.nanstd(results[case]["goal_reached"]), decimals=4)),
-                         # str(np.round(np.nanmean(results[case]["time_to_goal"]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(results[case]["time_to_goal"]), decimals=4)),
+                         str(np.round(np.sum(results[case]["goal_reached"]) / self.n_runs, decimals=1)), # + "+-" + str(np.round(np.nanstd(results[case]["goal_reached"]), decimals=4)),
+                        #  str(np.round(np.nanmean(results[case]["time_to_goal"]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(results[case]["time_to_goal"]), decimals=4)),
                          # str(np.round(np.nanmean(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)),
-                         str(np.round(np.nanmean(np.concatenate(results[case]["computation_time_Rollouts"], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["computation_time_Rollouts"], axis=0)), decimals=6)),
+                         str(np.round(np.nanmean(np.concatenate(results[case]["computation_time"], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["computation_time"], axis=0)), decimals=6)),
                          ])
         table = Texttable()
         table.set_cols_align(["c"] * nr_column)
@@ -161,12 +155,38 @@ class ComparisonDinovas():
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
 
+
+import sys
+import os
+@contextlib.contextmanager
+def suppress_stdout():
+    fd = sys.stdout.fileno()
+
+    def _redirect_stdout(to):
+        sys.stdout.close()  # + implicit flush()
+        os.dup2(to.fileno(), fd)  # fd writes to 'to' file
+        sys.stdout = os.fdopen(fd, "w")  # Python writes to fd
+
+    with os.fdopen(os.dup(fd), "w") as old_stdout:
+        with open(os.devnull, "w") as file:
+            _redirect_stdout(to=file)
+        try:
+            yield  # allow code to be run with the redirected stdout
+        finally:
+            _redirect_stdout(to=old_stdout)  # restore stdout.
+            # buffering and flags such as
+            # CLOEXEC may be different
+
 if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
-    comparison_dinovas = ComparisonDinovas(n_runs=10)
-    comparison_dinovas.run_comparison(render= True)
-    #comparison_dinovas.table_results(comparison_dinovas.results)
+    start_time = time.perf_counter()
+    with suppress_stdout():
+        comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=2500)
+    comparison_dinovas.run_comparison(render = False)
+    end_time = time.perf_counter()
+    print("Computational time: ", end_time-start_time)
+    comparison_dinovas.table_results(comparison_dinovas.results)
 
 
 
