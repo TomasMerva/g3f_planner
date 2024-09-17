@@ -119,7 +119,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
                                     T_W_Goal=T_W_Goals[robot_id],
                                     obst_pos=x_obsts,
                                     obst_radius=r_obsts)
-            arguments_dicts["robot_"+str(robot_id)] = fabrics.get_arguments()
+            arguments_dicts["robot_"+str(robot_id)] = copy.deepcopy(fabrics.get_arguments())
 
             if timestep % 100 == 0:
                 q_rollout = rollouts_planner.compute_rollout(timesteps=nr_rollout_timesteps,
