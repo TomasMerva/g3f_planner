@@ -141,6 +141,11 @@ class Fabrics():
         if obst_radius is not None:
             self._arguments_dict["radius_obsts"] = obst_radius
 
+    def get_arguments(self):
+        return self._arguments_dict
+
+    def set_arguments(self, arguments_dict):
+        self._arguments_dict = arguments_dict
 
     def compute_action(self):
         return self._planner.compute_action(**self._arguments_dict)
