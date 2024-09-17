@@ -48,12 +48,12 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
     # Static obstacles #TODO: change to num_robots
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
-
+    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(n_robots)}
     
     """
     Results metrics:
     """
-    results = {"collision":[], 
+    results = {"collision": 0.,
                "goal_reached": 0.,
                "time_to_goal":np.nan,
                "computation_time":[], 
@@ -102,6 +102,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
             end_time = time.perf_counter()
 
             results["computation_time"].append(end_time-start_time)
+            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
+            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
             
         ob, *_ = sim.step(action)
 
@@ -112,10 +114,13 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
             results["time_to_goal"] = timestep * sim._dt
             break
 
+        results["collision"] = fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.)
+
     sim.close()
 
     print("The success-rate of the scenario is: ", results["goal_reached"], ", with a time-to-goal of: ", results["time_to_goal"], " sec.")
     print("The success-rate per robot is: ", success_rate_per_robot)
+    print("Has a collision occurred?: ", results["collision"])
 
     return results
 
@@ -125,7 +130,7 @@ if __name__=="__main__":
     NUM_ROBOTS = 2
     NUM_DOF = 11
     NUM_GRIPPER_FINGERS = 2
-    NUM_TIMESTEPS = 2000
+    NUM_TIMESTEPS = 2500
     PLANNER_FREQ = 10
 
     # Environment
