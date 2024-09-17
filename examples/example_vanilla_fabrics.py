@@ -54,11 +54,11 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
     Results metrics:
     """
     results = {"collision":[], 
-               "goal_reached": [0], 
-               "time_to_goal":[], 
+               "goal_reached": 0.,
+               "time_to_goal":np.nan,
                "computation_time":[], 
                }
-
+    success_rate_per_robot = [0] * n_robots
 
     # Main loop
     for timestep in range(NUM_TIMESTEPS):
@@ -104,13 +104,18 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
             results["computation_time"].append(end_time-start_time)
             
         ob, *_ = sim.step(action)
+
+        for robot_id in range(NUM_ROBOTS):
+            success_rate_per_robot[robot_id] = (fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= 0.08)
+        if np.all(success_rate_per_robot):
+            results["goal_reached"] = 1.
+            results["time_to_goal"] = timestep * sim._dt
+            break
+
     sim.close()
 
-    success_rate = 1.0
-    for robot_id in range(NUM_ROBOTS):
-        if fabrics.error(goal_pos=T_W_Goals[robot_id][:3,3], q_current=robot_states[robot_id][0]) >= 0.08:
-            success_rate = 0.0
-    results["goal_reached"] = [success_rate]
+    print("The success-rate of the scenario is: ", results["goal_reached"], ", with a time-to-goal of: ", results["time_to_goal"], " sec.")
+    print("The success-rate per robot is: ", success_rate_per_robot)
 
     return results
 
@@ -120,7 +125,7 @@ if __name__=="__main__":
     NUM_ROBOTS = 2
     NUM_DOF = 11
     NUM_GRIPPER_FINGERS = 2
-    NUM_TIMESTEPS = 10000
+    NUM_TIMESTEPS = 2000
     PLANNER_FREQ = 10
 
     # Environment

@@ -138,13 +138,13 @@ class ComparisonDinovas():
     def table_results(self, results):
         # --- create and plot table --- #
         rows = []
-        title_row = [' ', "Success rate [\%]", "Computation time RF [s]"] #'Success-Rate', 'Time-to-Success [s]',
+        title_row = [' ', "Success rate [\%]", "Time-to-Success [s]", "Computation time RF [s]"] #'Success-Rate', 'Time-to-Success [s]',
         nr_column = len(title_row)
         rows.append(title_row)
         for case in self.cases:
             rows.append([case,
                          str(np.round(np.sum(results[case]["goal_reached"]) / self.n_runs, decimals=1)), # + "+-" + str(np.round(np.nanstd(results[case]["goal_reached"]), decimals=4)),
-                        #  str(np.round(np.nanmean(results[case]["time_to_goal"]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(results[case]["time_to_goal"]), decimals=4)),
+                         str(np.round(np.nanmean(results[case]["time_to_goal"]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(results[case]["time_to_goal"]), decimals=4)),
                          # str(np.round(np.nanmean(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)),
                          str(np.round(np.nanmean(np.concatenate(results[case]["computation_time"], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["computation_time"], axis=0)), decimals=6)),
                          ])
@@ -182,8 +182,8 @@ if __name__ == "__main__":
     np.random.seed(0)
     start_time = time.perf_counter()
     with suppress_stdout():
-        comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=2500)
-    comparison_dinovas.run_comparison(render = False)
+        comparison_dinovas = ComparisonDinovas(n_runs=3, n_steps_per_run=2500)
+    comparison_dinovas.run_comparison(render =False)
     end_time = time.perf_counter()
     print("Computational time: ", end_time-start_time)
     comparison_dinovas.table_results(comparison_dinovas.results)
