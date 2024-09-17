@@ -32,9 +32,9 @@ class Fabrics():
         self.num_obstacles = self._CONFIG["problem"]["environment"]["number_spheres"]["static"]
 
         self._collision_links = []
-        _collision_dict = self._CONFIG["problem"]["robot_representation"]["collision_links"]
-        for coll_link in _collision_dict:
-            self._collision_links.append(_collision_dict[coll_link]["sphere"]["radius"])
+        self._collision_dict = self._CONFIG["problem"]["robot_representation"]["collision_links"]
+        for coll_link in self._collision_dict:
+            self._collision_links.append(self._collision_dict[coll_link]["sphere"]["radius"])
 
         self._vel_limits = np.asarray(self._CONFIG["problem"]["joint_limits"]["velocity"], dtype=np.float32)
 
@@ -158,3 +158,18 @@ class Fabrics():
             return self._forward_kinematics.numpy(q, end_link)
         else:
             return self._forward_kinematics.numpy(q, self._end_link)
+
+    def collision_check(self, x_r_obsts, robot_states, threshold=0.):
+        collision_link_names = list(self._collision_dict.keys())
+        for i_robot in range(len(robot_states)):
+            x_obsts = x_r_obsts["robot_"+str(i_robot)]["x_obsts"]
+            r_obsts = x_r_obsts["robot_"+str(i_robot)]["r_obsts"]
+            for i_obst in range(len(x_obsts)):
+                for collision_link_name in collision_link_names:
+                    x_collision_robot = self.compute_fk(robot_states[i_robot], end_link=collision_link_name)[0:3, 3]
+                    error = np.linalg.norm(x_collision_robot - x_obsts[i_obst] - r_obsts[i_obst])
+                    if error <= threshold:
+                        print("A collision has occurred for robot ", str(i_robot), " with collision sphere ", str(collision_link_name), ".")
+                        return True
+        return False
+

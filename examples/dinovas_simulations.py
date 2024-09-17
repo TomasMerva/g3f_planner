@@ -142,7 +142,7 @@ class ComparisonDinovas():
     def table_results(self, results):
         # --- create and plot table --- #
         rows = []
-        title_row = [' ', "Success rate [\%]", "Time-to-Success [s]", "Computation time RF [s]"] #'Success-Rate', 'Time-to-Success [s]',
+        title_row = [' ', "Success rate [\%]", "Time-to-Success [s]", "Computation time[s]", "Collision-rate"] #'Success-Rate', 'Time-to-Success [s]',
         nr_column = len(title_row)
         rows.append(title_row)
         for case in self.cases:
@@ -151,6 +151,7 @@ class ComparisonDinovas():
                          str(np.round(np.nanmean(results[case]["time_to_goal"]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(results[case]["time_to_goal"]), decimals=4)),
                          # str(np.round(np.nanmean(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)),
                          str(np.round(np.nanmean(np.concatenate(results[case]["computation_time"], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["computation_time"], axis=0)), decimals=6)),
+                         str(np.round(np.sum(results[case]["collision"]) / self.n_runs, decimals=1)),
                          ])
         table = Texttable()
         table.set_cols_align(["c"] * nr_column)
