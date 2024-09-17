@@ -144,8 +144,8 @@ gomp:
   collision_link_radius : [0.65, 0.2]
   rollout_dt : 0.05
   rollout_timesteps : 1000
-  rollout_tolerance : 0.05
+  rollout_tolerance : 0.15
   alpha_filter: 0.7
   initial_grasp_roll_deg : 90
   verbose: False
-  n_optim_steps : 5
+  n_optim_steps : 2

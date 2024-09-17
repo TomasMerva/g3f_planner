@@ -243,7 +243,7 @@ class RGF_Planner():
             q_coll_rollout = np.linspace(q_coll_rollout[0], q_coll_rollout[-1], self.num_waypoints, axis=0)
         q_coll_guess = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
                                                                 rollout=q_coll_rollout)
-        # print(f"len of coll rollout {len(q_coll_guess)}")
+        print(f"len of coll rollout {len(q_coll_guess)}")
 
         # Obstacle-free
         arguments_dicts_free = copy.deepcopy(self._rollouts_args_dict)
@@ -253,7 +253,7 @@ class RGF_Planner():
                                                 arg_dict=arguments_dicts_free,
                                                 tolerance=self._CONFIG["gomp"]["rollout_tolerance"]
                                                 )
-        # print(f"len of free rollout {len(q_free_rollout)}")
+        print(f"len of free rollout {len(q_free_rollout)}")
         if len(q_free_rollout) <= 2: 
             q_free_rollout = np.linspace(q_free_rollout[0], q_free_rollout[-1], self.num_waypoints, axis=0)
         q_free_guess = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
