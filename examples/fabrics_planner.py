@@ -69,7 +69,8 @@ class Fabrics():
         self._planner.concretize()
 
     def set_runtime_weights(self, error):
-        weight_goal_0 = 0.5 * (np.tanh(4 * error - 1.5) + 1.6) * self._goal_weights_offline[0]
+        # weight_goal_0 = 0.5 * (np.tanh(4 * error - 1.5) + 1.6) * self._goal_weights_offline[0]
+        weight_goal_0 = 0.4 * (np.tanh(4 * error - 0.5) + 2.0) * self._goal_weights_offline[0]
         weight_goal_1 = 0.4 * (np.tanh(-4 * error + 2.0) + 1.5) * self._goal_weights_offline[1]
         weight_goal_2 = 0.5 * (np.tanh(-4 * error + 2.0) + 1.0) * self._goal_weights_offline[2]
         weight_goal_3 = 0.5 * (np.tanh(4 * error - 1.5) + 1.6) * self._goal_weights_offline[3]
