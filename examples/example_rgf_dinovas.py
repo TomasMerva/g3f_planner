@@ -116,7 +116,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False):
 
         # GOMP
         if timestep%PLANNER_PERIOD == 0:
-            for robot_id in range(1):
+            for robot_id in range(NUM_ROBOTS):
                 # other robots as dynamic obstacles
                 num_obst2replace = -2*(n_robots-1)
                 counter = 0
@@ -155,24 +155,24 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False):
                         pybullet.addUserDebugPoints([T_W_EEE_init[:3, 3].tolist()], [[255,0,0]], 10, 1)
 
         if timestep%REFERENCE_TRACKER_PERIOD == 0:
-            for robot_id in range(1):
+            for robot_id in range(NUM_ROBOTS):
                 #TODO: SARAY
-                # # Reference tracker
-                # if np.linalg.norm(T_W_EEFs_current[robot_id][:3,3] - T_W_Goals[robot_id][:3,3]) <= 0.2:
-                #     print("using final waypoint")
-                #     T_W_Goals[robot_id] = waypoints_list_robots[robot_id][-1]
-                # else:
-                if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
-                    continue
+                # Reference tracker
+                if np.linalg.norm(T_W_EEFs_current[robot_id][:3,3] - T_W_Objects[robot_id][:3,3]) <= 0.2:
+                    print("using final waypoint")
+                    T_W_Goals[robot_id] = waypoints_list_robots[robot_id][-1]
                 else:
-                    current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
-                    waypoint_dict = [transformation2dict(waypoints_list_robots[robot_id][i]) for i in range(len(waypoints_list_robots[robot_id]))]
-                    current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
-                    if current_goal_dict is not None:
-                        T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
+                    if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
+                        continue
+                    else:
+                        current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
+                        waypoint_dict = [transformation2dict(waypoints_list_robots[robot_id][i]) for i in range(len(waypoints_list_robots[robot_id]))]
+                        current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
+                        if current_goal_dict is not None:
+                            T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
      
         
-        for robot_id in range(1):
+        for robot_id in range(NUM_ROBOTS):
             # other robots as dynamic obstacles
             num_obst2replace = -2*(n_robots-1)
             counter = 0

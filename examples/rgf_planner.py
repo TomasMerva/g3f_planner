@@ -37,7 +37,7 @@ class RGF_Planner():
         self.establish_rollouts()
         self.establish_planner()
 
-        self._q_result_coll, self._q_result_free = None, None
+        self._q_coll_init, self._q_free_init = None, None
 
     def establish_rollouts(self) -> None:
         _current_script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -289,14 +289,14 @@ class RGF_Planner():
         self.update_gomp_parameters(joint_state[0], T_W_Obj, x_obsts)
         self.update_rollouts_parameters(joint_state, T_W_Obj, x_obsts, r_obsts)
 
-        (q_coll_init, q_free_init) = self._compute_initial_guesses()
+        (self._q_coll_init, self._q_free_init) = self._compute_initial_guesses()
       
-        self._q_result_coll, f_q_coll = self._solve_QP(q_init=q_coll_init)
-        self._q_result_free, f_q_free = self._solve_QP(q_init=q_free_init)
+        _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
+        _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)
         f_q_coll += 1.0
         q_results = {
-            f_q_coll: self._q_result_coll,
-            f_q_free : self._q_result_free
+            f_q_coll: _q_result_coll,
+            f_q_free : _q_result_free
         }
         f_results = np.array([f_q_coll, f_q_free], dtype=object)
         if all(isinstance(x, float) and np.isnan(x) for x in f_results):
@@ -330,5 +330,5 @@ class RGF_Planner():
 
     
     def get_initial_guesses(self):
-        assert self._q_result_coll is not None and self._q_result_free is not None, "Initial guesses have not been computed"
-        return (self._q_result_coll, self._q_result_free)
+        assert self._q_coll_init is not None and self._q_free_init is not None, "Initial guesses have not been computed"
+        return (self._q_coll_init, self._q_free_init)

@@ -185,8 +185,8 @@ if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    with suppress_stdout():
-        comparison_dinovas = ComparisonDinovas(n_runs=3, n_steps_per_run=15000)
+    # with suppress_stdout():
+    comparison_dinovas = ComparisonDinovas(n_runs=4, n_steps_per_run=2500)
     comparison_dinovas.run_comparison(render = True)
     end_time = time.perf_counter()
     print("Computational time: ", end_time-start_time)
