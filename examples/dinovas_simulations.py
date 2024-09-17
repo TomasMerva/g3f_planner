@@ -17,20 +17,22 @@ import contextlib
 # import examples:
 # from examples.rollouts.example_sqp_planner_dinovas import Environment, run_dinova_example
 from dinovas_pybullet_env import Environment
-from example_deadlock_resolution import run_dinova_example as fabrics_dinova_example
-
+from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
+from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
+from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, n_steps_per_run=1000):
-        self.nr_robots = 2
+        self.nr_robots = 3
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["GF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
         # self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time_Rollouts":[], "computation time_GOMP":[]}
         self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time":[]}
         self.results = {self.cases[0]: self.results_struct} #, self.cases[1]: self.results_struct, self.cases[2]: self.results_struct}
+        self._render = False
 
     def create_environment(self, render=False):
         # --- create environment ---#
@@ -53,7 +55,7 @@ class ComparisonDinovas():
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
         inner_radius = 1.5
-        outer_radius = 3.0
+        outer_radius = 6.0
         z_range = [-3.12, 3.12]
 
         xyz_random = []
@@ -118,7 +120,9 @@ class ComparisonDinovas():
         # --- run example dinovas --- #
         #["RGF" ,"GF", "RF", "MPC"]
         if case == "RGF":
-            raise ValueError("RGF has not been implemented yet")
+            results_i = gomp_dinova_example(n_steps=self.n_steps_per_run, dof=self.dof, n_robots=self.nr_robots, env=env, render=self._render)
+            for key in results_i.keys():
+                self.results[case][key].append(results_i[key])        
         elif case == "GF":
             results_i = fabrics_dinova_example(n_steps=self.n_steps_per_run, dof=self.dof, n_robots=self.nr_robots, env=env)
             for key in results_i.keys():
@@ -130,9 +134,10 @@ class ComparisonDinovas():
       
 
     def run_comparison(self, render):
+        self._render = render
         for i_run in tqdm(range(self.n_runs)):
             for algorithm in self.cases:
-                env = self.create_environment(render)
+                env = self.create_environment(self._render)
                 self.run_i(case=algorithm, env=env)
 
     def table_results(self, results):
@@ -182,9 +187,9 @@ if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    with suppress_stdout():
-        comparison_dinovas = ComparisonDinovas(n_runs=3, n_steps_per_run=2500)
-    comparison_dinovas.run_comparison(render =False)
+    # with suppress_stdout():
+    comparison_dinovas = ComparisonDinovas(n_runs=4, n_steps_per_run=2500)
+    comparison_dinovas.run_comparison(render = True)
     end_time = time.perf_counter()
     print("Computational time: ", end_time-start_time)
     comparison_dinovas.table_results(comparison_dinovas.results)

@@ -70,7 +70,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
         T_W_chassis_robots = [fabrics.compute_fk(robot_states[i][0], "chassis_link") for i in range(NUM_ROBOTS)]
         T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_upper_wrist_link") for i in range(NUM_ROBOTS)]
 
-
+        # Compute static grasps at the beginning
         if timestep == 0:
             for robot_id in range(NUM_ROBOTS):
                 theta = fabrics.get_theta_preference(q=robot_states[robot_id][0], 
@@ -78,6 +78,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
                 T_W_Goals[robot_id] = compute_static_grasp(T_W_Goals[robot_id], theta)
 
         for robot_id in range(NUM_ROBOTS):
+            # other robots as dynamic obstacles
             num_obst2replace = -2*(n_robots-1)
             counter = 0
             for i in range(n_robots):
@@ -91,6 +92,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
                     r_obsts[chassis_idx] = 0.55
                     r_obsts[wrist_idx] = 0.2
                     counter += 1
+            # Planner computes new action
             start_time = time.perf_counter()
             fabrics.update_arguments(joint_state= robot_states[robot_id],
                                     T_W_Goal=T_W_Goals[robot_id],
@@ -101,6 +103,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
             end_time = time.perf_counter()
 
+            # Log data
             results["computation_time"].append(end_time-start_time)
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
             x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
@@ -130,12 +133,12 @@ if __name__=="__main__":
     NUM_ROBOTS = 2
     NUM_DOF = 11
     NUM_GRIPPER_FINGERS = 2
-    NUM_TIMESTEPS = 2500
-    PLANNER_FREQ = 10
+    NUM_TIMESTEPS = 2000
+
 
     # Environment
     env = Environment()
-    (sim, goal) = env.initialize(render=RENDER, nr_robots=NUM_ROBOTS)
+    env.initialize(render=RENDER, nr_robots=NUM_ROBOTS)
     run_dinova_example(n_steps=NUM_TIMESTEPS,
                        dof=NUM_DOF,
                        n_robots=NUM_ROBOTS,

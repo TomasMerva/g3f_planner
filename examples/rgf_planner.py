@@ -24,6 +24,10 @@ class RGF_Planner():
         self.z_offset_grasping = 0.02
         self._roll_obj_grasp =  np.deg2rad(self._CONFIG["gomp"]["initial_grasp_roll_deg"])
         self.theta_preference = 0.0
+        
+        _goal_config = self._CONFIG['problem']["goal"]["goal_definition"]
+        self._goal_weights_offline = [_goal_config["subgoal"+str(i)]["weight"] for i in range(len(_goal_config))]
+
 
         self.num_dofs = self._fk_args["num_dofs"]
         self.num_waypoints = self._CONFIG["gomp"]["n_waypoints"]
@@ -32,6 +36,8 @@ class RGF_Planner():
 
         self.establish_rollouts()
         self.establish_planner()
+
+        self._q_coll_init, self._q_free_init = None, None
 
     def establish_rollouts(self) -> None:
         _current_script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -112,26 +118,46 @@ class RGF_Planner():
                         self._gomp_planner.param_dict[name]["num_param"] = x_obst
             
 
+    def error(self, goal_pos:np.ndarray, q_current:np.ndarray) -> float:
+        fk_current = self.compute_fk(q_current)[:3,3]
+        return np.linalg.norm(goal_pos-fk_current)
 
     def update_rollouts_parameters(self, joint_state, T_W_Obj, obst_pos=None, obst_radius=None):
         x_goal_1_x = np.array([0.0, 0.0, 0.13])
         x_goal_2_z = np.array([0.0, 0.10, 0.00])
         self._T_W_StaticGrasp = self.compute_static_grasp(T_W_Obj)
+        self.theta_preference = self.compute_theta_preference(joint_state[0], self._T_W_Obj)
         p_orient_rot_x = self._T_W_StaticGrasp[:3,:3] @ x_goal_1_x
         p_orient_rot_z = self._T_W_StaticGrasp[:3,:3] @ x_goal_2_z
+
+        position_error = self.error(goal_pos=self._T_W_StaticGrasp[:3,3],
+                                    q_current=joint_state[0])
+        weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = self.set_runtime_weights(position_error)
 
         self._rollouts_args_dict["q"] = joint_state[0]
         self._rollouts_args_dict["qdot"] = joint_state[1]
         self._rollouts_args_dict["x_goal_0"] = self._T_W_StaticGrasp[:3, 3]
+        self._rollouts_args_dict["weight_goal_0"] = weight_goal_0
         self._rollouts_args_dict["x_goal_1"] = p_orient_rot_x
+        self._rollouts_args_dict["weight_goal_1"] = weight_goal_1
         self._rollouts_args_dict["x_goal_2"] = p_orient_rot_z
+        self._rollouts_args_dict["weight_goal_2"] = weight_goal_2
         self._rollouts_args_dict["x_goal_3"] = [self.theta_preference]
+        self._rollouts_args_dict["weight_goal_3"] = weight_goal_3
         if obst_pos is not None:
             self._rollouts_args_dict["x_obsts"] = obst_pos
         if obst_radius is not None:
             self._rollouts_args_dict["radius_obsts"] = obst_radius
 
 
+    def set_runtime_weights(self, error):
+        # weight_goal_0 = 0.5 * (np.tanh(4 * error - 1.5) + 1.6) * self._goal_weights_offline[0]
+        weight_goal_0 = 0.4 * (np.tanh(4 * error - 0.5) + 2.0) * self._goal_weights_offline[0]
+        weight_goal_1 = 0.4 * (np.tanh(-4 * error + 2.0) + 1.5) * self._goal_weights_offline[1]
+        weight_goal_2 = 0.5 * (np.tanh(-4 * error + 2.0) + 1.0) * self._goal_weights_offline[2]
+        weight_goal_3 = 0.5 * (np.tanh(4 * error - 1.5) + 1.6) * self._goal_weights_offline[3]
+        return weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3
+    
 
     def _init_rollouts_parameters(self):
         x_goal_1_x = np.array([0.0, 0.0, 0.13])
@@ -140,25 +166,45 @@ class RGF_Planner():
         p_orient_rot_z = self._T_W_StaticGrasp[:3,:3] @ x_goal_2_z
 
         self._rollouts_args_dict  = dict(
-                q=np.zeros(self.num_dofs),
-                qdot=np.zeros(self.num_dofs),
-                x_goal_0= self._T_W_StaticGrasp[:3, 3],
-                weight_goal_0=10.,
-                x_goal_1=p_orient_rot_x,
-                weight_goal_1=5.,
-                x_goal_2=p_orient_rot_z,
-                weight_goal_2=20.,
-                x_goal_3=[0.0],
-                weight_goal_3=30.,
-                x_obsts=[np.array([20., 20., 20.]) for _ in range(self.num_obstacles)],
-                radius_obsts=[0.1]*self.num_obstacles, #TODO: this could be read from yaml file
-                radius_body_chassis_link=0.4,
-                radius_body_arm_shoulder_link=0.1,
-                radius_body_arm_end_effector_link=0.1,
-                radius_body_arm_upper_wrist_link=0.1,
-                radius_body_arm_lower_wrist_link=0.1,
-                radius_body_arm_forearm_link=0.1,
-            )
+            q=np.zeros(self.num_dofs),
+            qdot=np.zeros(self.num_dofs),
+            x_goal_0= self._T_W_StaticGrasp[:3, 3],
+            weight_goal_0=self._goal_weights_offline[0],
+            x_goal_1=p_orient_rot_x,
+            weight_goal_1=self._goal_weights_offline[1],
+            x_goal_2=p_orient_rot_z,
+            weight_goal_2=self._goal_weights_offline[2],
+            x_goal_3=[0.0],
+            weight_goal_3=self._goal_weights_offline[3],
+            x_obsts=[np.array([20., 20., 20.]) for _ in range(self.num_obstacles)],
+            radius_obsts=[0.1]*self.num_obstacles, #TODO: this could be read from yaml file
+            radius_body_chassis_link=0.5,
+            radius_body_arm_shoulder_link=0.1,
+            radius_body_arm_end_effector_link=0.1,
+            radius_body_arm_upper_wrist_link=0.1,
+            radius_body_arm_lower_wrist_link=0.1,
+            radius_body_arm_forearm_link=0.1,
+        )
+        # self._rollouts_args_dict  = dict(
+        #         q=np.zeros(self.num_dofs),
+        #         qdot=np.zeros(self.num_dofs),
+        #         x_goal_0= self._T_W_StaticGrasp[:3, 3],
+        #         weight_goal_0=10.,
+        #         x_goal_1=p_orient_rot_x,
+        #         weight_goal_1=5.,
+        #         x_goal_2=p_orient_rot_z,
+        #         weight_goal_2=20.,
+        #         x_goal_3=[0.0],
+        #         weight_goal_3=30.,
+        #         x_obsts=[np.array([20., 20., 20.]) for _ in range(self.num_obstacles)],
+        #         radius_obsts=[0.1]*self.num_obstacles, #TODO: this could be read from yaml file
+        #         radius_body_chassis_link=0.6,
+        #         radius_body_arm_shoulder_link=0.3,
+        #         radius_body_arm_end_effector_link=0.1,
+        #         radius_body_arm_upper_wrist_link=0.3,
+        #         radius_body_arm_lower_wrist_link=0.3,
+        #         radius_body_arm_forearm_link=0.3,
+        #     )
         
     
     def compute_theta_preference(self, q_current, T_W_Obj):
@@ -197,7 +243,8 @@ class RGF_Planner():
             q_coll_rollout = np.linspace(q_coll_rollout[0], q_coll_rollout[-1], self.num_waypoints, axis=0)
         q_coll_guess = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
                                                                 rollout=q_coll_rollout)
-        
+        print(f"len of coll rollout {len(q_coll_guess)}")
+
         # Obstacle-free
         arguments_dicts_free = copy.deepcopy(self._rollouts_args_dict)
         arguments_dicts_free["x_obsts"] = [np.array([2000., 2000., 2000.]) for _ in range(self.num_obstacles)]
@@ -206,6 +253,7 @@ class RGF_Planner():
                                                 arg_dict=arguments_dicts_free,
                                                 tolerance=self._CONFIG["gomp"]["rollout_tolerance"]
                                                 )
+        print(f"len of free rollout {len(q_free_rollout)}")
         if len(q_free_rollout) <= 2: 
             q_free_rollout = np.linspace(q_free_rollout[0], q_free_rollout[-1], self.num_waypoints, axis=0)
         q_free_guess = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
@@ -235,19 +283,20 @@ class RGF_Planner():
 
 
 
-    def solve(self, joint_state, T_W_Obj, x_obsts=None):
+    def solve(self, joint_state, T_W_Obj, x_obsts=None, r_obsts=None):
         self._gomp_planner.set_starting_state(q_start=joint_state[0])
 
         self.update_gomp_parameters(joint_state[0], T_W_Obj, x_obsts)
-        self.update_rollouts_parameters(joint_state, T_W_Obj, x_obsts)
+        self.update_rollouts_parameters(joint_state, T_W_Obj, x_obsts, r_obsts)
 
-        (q_coll_init, q_free_init) = self._compute_initial_guesses()
+        (self._q_coll_init, self._q_free_init) = self._compute_initial_guesses()
       
-        q_result_coll, f_q_coll = self._solve_QP(q_init=q_coll_init)
-        q_result_free, f_q_free = self._solve_QP(q_init=q_free_init)
+        _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
+        _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)
+        f_q_coll += 1.0
         q_results = {
-            f_q_coll: q_result_coll,
-            f_q_free : q_result_free
+            f_q_coll: _q_result_coll,
+            f_q_free : _q_result_free
         }
         f_results = np.array([f_q_coll, f_q_free], dtype=object)
         if all(isinstance(x, float) and np.isnan(x) for x in f_results):
@@ -279,5 +328,7 @@ class RGF_Planner():
         else:
             return self._gomp_planner.compute_fk(q)
 
-
     
+    def get_initial_guesses(self):
+        assert self._q_coll_init is not None and self._q_free_init is not None, "Initial guesses have not been computed"
+        return (self._q_coll_init, self._q_free_init)
