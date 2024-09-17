@@ -28,7 +28,7 @@ class GompSQP():
         
         self._g_list = []
         self.param_dict = {}
-        self._ref_guess_weight = 2.0
+        self._ref_guess_weight = 0.0
     
     def setup_problem(self, x0, max_iter=1000, verbose=True):
         self._solver = osqp.OSQP()

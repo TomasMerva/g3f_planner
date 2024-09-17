@@ -78,6 +78,10 @@ class Environment():
         
         if home_config is not None:
             self.home_config = home_config
+        self.home_config[0][:3] = [1.22466862, -1.72433948,  1.94785656]
+        self.home_config[1] = np.array([-0.188354, 0.84605903, -1.34784925, -0.01746023, -0.90232639,  1.16808536,  -0.05370079, -0.4273152,  -0.02838291, 0.9, -0.9])
+        self.home_config[2] = np.array([-0.64654884, -0.54696915,  0.47987815,  0.00676067, -1.0327904,   0.94264399, -0.07074774,  0.16436266, -0.07603307, 0.9, -0.9])
+
         pos0 = self.home_config[0:nr_robots]
         self.env.reset(pos=pos0)
         self.env.add_sensor(full_sensor, [0])
@@ -121,10 +125,10 @@ class Environment():
         self.collision_links = {}
         for i_robot in range(nr_robots):
             for link_name, val in self.CONFIG_PROBLEM["robot_representation"]["collision_links"].items():
-                self.env.add_collision_link(0,
-                                       pybullet_links_idx[link_name],
-                                       shape_type='sphere',
-                                       size=[val["sphere"]["radius"]])
+                # self.env.add_collision_link(0,
+                #                        pybullet_links_idx[link_name],
+                #                        shape_type='sphere',
+                #                        size=[val["sphere"]["radius"]])
                 self.collision_links[link_name] = val["sphere"]["radius"]
 
         pybullet.setGravity(0,0,0)
