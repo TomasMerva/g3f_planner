@@ -17,6 +17,7 @@ import contextlib
 # import examples:
 # from examples.rollouts.example_sqp_planner_dinovas import Environment, run_dinova_example
 from dinovas_pybullet_env import Environment
+from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
 from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
 from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 
