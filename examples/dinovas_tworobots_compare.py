@@ -23,25 +23,27 @@ from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, n_steps_per_run=1000):
-        self.nr_robots = 3
+        self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF", "GF"] #["RGF" ,"GF", "RF", "MPC"]
         # self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time_Rollouts":[], "computation time_GOMP":[]}
         self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time":[]}
-        self.results = {self.cases[0]: self.results_struct} #, self.cases[1]: self.results_struct, self.cases[2]: self.results_struct}
+        self.results = {self.cases[0]: self.results_struct,
+                        self.cases[1]: self.results_struct} #, self.cases[1]: self.results_struct, self.cases[2]: self.results_struct}
         self._render = False
 
     def create_environment(self, render=False):
         # --- create environment ---#
         env = Environment()
-        home_config = self.randomize_default_home_config()
+        self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
+
         env.set_objects_pos_noise(objects_pos_noise)
         # env = self.randomize_obstacle_config(env)
-        env.initialize(render, nr_robots=self.nr_robots, home_config=home_config)
+        env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
@@ -54,26 +56,21 @@ class ComparisonDinovas():
 
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        inner_radius = 1.5
-        outer_radius = 6.0
+        x_range = [-3, 3]
+        y_range = [1.0, 3.0]
         z_range = [-3.12, 3.12]
 
         xyz_random = []
         safety_counter = 0
         while len(xyz_random) < self.nr_robots:
-            angle = random.uniform(0, 2 * np.pi)
-            radius = random.uniform(inner_radius, outer_radius)
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5), 
+                         round(random.uniform(y_range[0], y_range[1]), 5), 
+                         round(random.uniform(z_range[0], z_range[1]), 5))
 
-             # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
-            x = round(radius * np.cos(angle), 5)
-            y = round(radius * np.sin(angle), 5)
-            new_point = (x, y, round(random.uniform(z_range[0], z_range[1]), 5))
-
-            if self._is_within_annular_region(new_point[0:2], outer_radius, inner_radius):
-                if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.2 for p in xyz_random):
-                    xyz_random.append(new_point)
+            if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 2 for p in xyz_random):
+                xyz_random.append(new_point)
             safety_counter += 1
-            if safety_counter >= 20:
+            if safety_counter >= 50:
                 raise ValueError("Cannot find valid home configurations for so many robots")
         
         configs = np.zeros((self.nr_robots, self.dof))
@@ -96,23 +93,25 @@ class ComparisonDinovas():
         return env
 
     def randomize_objects_pos(self):
-        x_range = [-0.2, 0.2]
-        y_range = [-0.15, 0.15]
+        x_range = [-0.3, 0.3]
+        y_range = [-0.1, 0.1]
 
         points = []
-        max_number_of_objects = 4
+
+        max_number_of_objects = 2
         safety_counter = 0
         while len(points) < max_number_of_objects:
             new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
                          round(random.uniform(y_range[0], y_range[1]), 5))
             
-            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.15 for p in points):
+            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.2 for p in points):
                 points.append(new_point)
             
             safety_counter += 1
-            if safety_counter >= 200:
+            if safety_counter >= 2000:
                 raise ValueError("Cannot find valid points for so many objects")
-        
+        points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+        points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         return np.asarray(points)
 
 
@@ -128,7 +127,9 @@ class ComparisonDinovas():
             for key in results_i.keys():
                 self.results[case][key].append(results_i[key])
         elif case == "RF":
-            raise ValueError("RF has not been implemented yet")
+            results_i = deadlock_dinova_example(n_steps=self.n_steps_per_run, dof=self.dof, n_robots=self.nr_robots, env=env)
+            for key in results_i.keys():
+                self.results[case][key].append(results_i[key])
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
       
@@ -136,14 +137,16 @@ class ComparisonDinovas():
     def run_comparison(self, render):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
+            env = self.create_environment(self._render)
             for algorithm in self.cases:
-                env = self.create_environment(self._render)
                 self.run_i(case=algorithm, env=env)
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
+
 
     def table_results(self, results):
         # --- create and plot table --- #
         rows = []
-        title_row = [' ', "Success rate [\%]", "Time-to-Success [s]", "Computation time[s]", "Collision-rate"] #'Success-Rate', 'Time-to-Success [s]',
+        title_row = [' ', "Success rate [\%]", "Time-to-Success [s]", "Computation time[s]"]#,"Collision-rate" #'Success-Rate', 'Time-to-Success [s]',
         nr_column = len(title_row)
         rows.append(title_row)
         for case in self.cases:
@@ -152,7 +155,7 @@ class ComparisonDinovas():
                          str(np.round(np.nanmean(results[case]["time_to_goal"]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(results[case]["time_to_goal"]), decimals=4)),
                          # str(np.round(np.nanmean(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)),
                          str(np.round(np.nanmean(np.concatenate(results[case]["computation_time"], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["computation_time"], axis=0)), decimals=6)),
-                         str(np.round(np.sum(results[case]["collision"]) / self.n_runs, decimals=1)),
+                        #  str(np.round(np.sum(results[case]["collision"]) / self.n_runs, decimals=1)),
                          ])
         table = Texttable()
         table.set_cols_align(["c"] * nr_column)
@@ -188,8 +191,8 @@ if __name__ == "__main__":
     np.random.seed(0)
     start_time = time.perf_counter()
     # with suppress_stdout():
-    comparison_dinovas = ComparisonDinovas(n_runs=4, n_steps_per_run=5000)
-    comparison_dinovas.run_comparison(render = True)
+    comparison_dinovas = ComparisonDinovas(n_runs=4, n_steps_per_run=100)
+    comparison_dinovas.run_comparison(render = False)
     end_time = time.perf_counter()
     print("Computational time: ", end_time-start_time)
     comparison_dinovas.table_results(comparison_dinovas.results)

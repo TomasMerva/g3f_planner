@@ -51,7 +51,7 @@ class Environment():
             render=render,
             observation_checking=False,
         )
-        full_sensor = FullSensor(
+        self._full_sensor = FullSensor(
                 goal_mask=["position", "weight"],
                 obstacle_mask=['position', 'size'],
                 variance=0.0
@@ -63,13 +63,13 @@ class Environment():
         self.nr_obstacles = len(self.CONFIG_PROBLEM["environment"]["obstacle_definition"])
         
         self._obstacles_dict = {}
-        obstacles = []
+        self._obstacles = []
         for obst_name, obst_param in self.CONFIG_PROBLEM["environment"]["obstacle_definition"].items():
             static_obst_dict = {
                 "type": obst_param["type"],
                 "geometry": {"position": obst_param["position"], "radius": obst_param["radius"]},
             }
-            obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
+            self._obstacles.append(SphereObstacle(name="staticObst", content_dict=static_obst_dict))
             self._obstacles_dict[obst_name] = {
                 "position" : obst_param["position"], 
                 "radius": obst_param["radius"]
@@ -84,8 +84,8 @@ class Environment():
 
         pos0 = self.home_config[0:nr_robots]
         self.env.reset(pos=pos0)
-        self.env.add_sensor(full_sensor, [0])
-        for obst in obstacles:
+        self.env.add_sensor(self._full_sensor, [0])
+        for obst in self._obstacles:
             self.env.add_obstacle(obst)
         self.env.set_spaces()
 
@@ -130,7 +130,7 @@ class Environment():
                 #                        shape_type='sphere',
                 #                        size=[val["sphere"]["radius"]])
                 self.collision_links[link_name] = val["sphere"]["radius"]
-
+        
         pybullet.setGravity(0,0,0)
         self.load_scene()
         return (self.env, self.goal)
@@ -190,3 +190,12 @@ class Environment():
     def set_objects_pos_noise(self, pos):
         assert self._objects_pose_noise == None, "Objects positions have already been set"
         self._objects_pose_noise = pos
+
+    def reset(self):
+        pos0 = self.home_config[0:self.n_robots]
+        self.env.reset(pos=pos0)
+        self.env.add_sensor(self._full_sensor, [0])
+        for obst in self._obstacles:
+            self.env.add_obstacle(obst)
+        self.env.set_spaces()
+        pybullet.setGravity(0,0,0)

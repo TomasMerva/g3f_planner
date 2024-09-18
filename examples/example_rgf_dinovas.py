@@ -11,6 +11,7 @@ from dinovas_pybullet_env import Environment
 from rgf_planner import RGF_Planner
 from fabrics_planner import Fabrics
 from fabrics_rollouts import ReferenceTracker
+from tqdm import tqdm
 
 
 def transformation2dict(T : np.array) -> Dict:
@@ -84,7 +85,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False):
     # r_obsts = [0.0975, 0.2, 0.55, 0.2, 0.55, 0.2, 0.55, 0.2]
     r_obsts_fabrics = [obstacles[i]["radius"] for i in obstacles]
     # rollouts
-    r_obsts = [0.15, 0.2, 0.55, 0.3, 0.55, 0.3, 0.55, 0.3]
+    r_obsts = [0.0975, 0.1, 0.1, 0.1, 0.1, 0.1, 0.55, 0.2]
     r_coll_links = [0.65, 0.3, 0.3, 0.3, 0.1, 0.1]
     # x_obsts_robots = []
     # for robot_id in range(NUM_ROBOTS):
@@ -102,7 +103,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False):
     success_rate_per_robot = [0] * n_robots
     
     # Main loop
-    for timestep in range(NUM_TIMESTEPS):
+    for timestep in tqdm(range(NUM_TIMESTEPS)):
         robot_states = [[ob["robot_"+str(i)]["joint_state"]["position"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)],
                          ob["robot_"+str(i)]["joint_state"]["velocity"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)]]
                         for i in range(NUM_ROBOTS)]
@@ -112,7 +113,13 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False):
         T_W_chassis_robots = [fabrics.compute_fk(robot_states[i][0], "chassis_link") for i in range(NUM_ROBOTS)]
         T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_upper_wrist_link") for i in range(NUM_ROBOTS)]
 
-           
+        
+        for robot_id in range(NUM_ROBOTS):
+            success_rate_per_robot[robot_id] = (fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= 0.08)
+        if np.all(success_rate_per_robot):
+            results["goal_reached"] = 1.
+            results["time_to_goal"] = timestep * sim._dt
+            break
 
         # GOMP
         if timestep%PLANNER_PERIOD == 0:
@@ -136,40 +143,34 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False):
                 waypoint_list, solver_status_robots[robot_id] = planner.solve(joint_state=robot_states[robot_id], 
                                                                               T_W_Obj=T_W_Objects[robot_id],
                                                                               x_obsts=x_obsts,
-                                                                              r_obsts=r_obsts
+                                                                              
                                                                             )
                 end_time = time.perf_counter()
                 # Log data
                 results["computation_time"].append(end_time-start_time)
 
 
-                if solver_status_robots[robot_id] == True:
-                    waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
+                waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
                 if RENDER:
-                    if solver_status_robots[robot_id]:
-                        for i in range(len(waypoints_list_robots[robot_id])):
-                            pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
-                    (init_coll, init_free) = planner.get_initial_guesses()
-                    for q in init_free:
-                        T_W_EEE_init = planner.compute_fk(q)
-                        pybullet.addUserDebugPoints([T_W_EEE_init[:3, 3].tolist()], [[255,0,0]], 10, 1)
+                    for i in range(len(waypoints_list_robots[robot_id])):
+                        pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
+                    # (init_coll, init_free) = planner.get_initial_guesses()
+                    # for q in init_coll:
+                    #     T_W_EEE_init = planner.compute_fk(q)
+                    #     pybullet.addUserDebugPoints([T_W_EEE_init[:3, 3].tolist()], [[255,0,0]], 10, 1)
 
         if timestep%REFERENCE_TRACKER_PERIOD == 0:
             for robot_id in range(NUM_ROBOTS):
-                #TODO: SARAY
-                # Reference tracker
-                if np.linalg.norm(T_W_EEFs_current[robot_id][:3,3] - T_W_Objects[robot_id][:3,3]) <= 0.2:
-                    print("using final waypoint")
-                    T_W_Goals[robot_id] = waypoints_list_robots[robot_id][-1]
+                if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
+                    continue
                 else:
-                    if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
-                        continue
-                    else:
-                        current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
-                        waypoint_dict = [transformation2dict(waypoints_list_robots[robot_id][i]) for i in range(len(waypoints_list_robots[robot_id]))]
-                        current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
-                        if current_goal_dict is not None:
-                            T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
+                    current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
+                    waypoint_dict = [transformation2dict(waypoints_list_robots[robot_id][i]) for i in range(len(waypoints_list_robots[robot_id]))]
+                    current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
+                    waypoints_list_robots[robot_id] = [dict2transformation(waypoint_dict[i]) for i in range(len(waypoint_dict))]
+                    if current_goal_dict is not None:
+                        T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
+
      
         
         for robot_id in range(NUM_ROBOTS):
@@ -184,8 +185,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False):
                     wrist_idx = num_obst2replace + 2*counter + 1
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                    r_obsts[chassis_idx] = 0.55
-                    r_obsts[wrist_idx] = 0.2
+                    r_obsts[chassis_idx] = 0.4
+                    r_obsts[wrist_idx] = 0.1
                     counter += 1
 
             fabrics.update_arguments(joint_state= robot_states[robot_id],
@@ -196,6 +197,9 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False):
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
 
         ob, *_ = sim.step(action)
+
+
+
     sim.close()
 
     print("The success-rate of the scenario is: ", results["goal_reached"], ", with a time-to-goal of: ", results["time_to_goal"], " sec.")

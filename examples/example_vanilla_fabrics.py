@@ -6,6 +6,7 @@ import os
 from scipy.spatial.transform import Rotation as R
 import pybullet
 from typing import Dict
+from tqdm import tqdm
 
 from dinovas_pybullet_env import Environment
 from fabrics_planner import Fabrics
@@ -61,7 +62,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
     success_rate_per_robot = [0] * n_robots
 
     # Main loop
-    for timestep in range(NUM_TIMESTEPS):
+    for timestep in tqdm(range(NUM_TIMESTEPS)):
         robot_states = [[ob["robot_"+str(i)]["joint_state"]["position"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)],
                          ob["robot_"+str(i)]["joint_state"]["velocity"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)]]
                         for i in range(NUM_ROBOTS)]
