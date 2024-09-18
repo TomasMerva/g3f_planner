@@ -137,7 +137,7 @@ class Environment():
     
     def load_scene(self) -> tuple:
         # Table
-        URDF_table = self.URDF_FOLDER + "/table_30x30/table_square.urdf"
+        URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
 
         table_pos = [0., 0.0, 0.0]
         z_table = 0.3

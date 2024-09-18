@@ -23,7 +23,7 @@ def compute_static_grasp(T_W_Obj, theta_preference):
     return T_W_Grasp @ T_Grasp_Offset
 
 
-def run_dinova_example(n_steps, dof, n_robots, env:Environment):
+def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_tolerance = 0.05):
     NUM_ROBOTS = n_robots
     NUM_DOF = dof
     NUM_GRIPPER_FINGERS = 2
@@ -112,20 +112,24 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment):
         ob, *_ = sim.step(action)
 
         for robot_id in range(NUM_ROBOTS):
-            success_rate_per_robot[robot_id] = (fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= 0.08)
+            success_rate_per_robot[robot_id] = (fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance)
         if np.all(success_rate_per_robot):
             results["goal_reached"] = 1.
             results["time_to_goal"] = timestep * sim._dt
+            print(timestep)
+            time.sleep(5)
             break
 
         results["collision"] = fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.)
 
     sim.close()
-
     print("The success-rate of the scenario is: ", results["goal_reached"], ", with a time-to-goal of: ", results["time_to_goal"], " sec.")
     print("The success-rate per robot is: ", success_rate_per_robot)
     print("Has a collision occurred?: ", results["collision"])
 
+
+    print(results)
+    time.sleep(10)
     return results
 
 
@@ -146,53 +150,4 @@ if __name__=="__main__":
                        env=env
                        )
 
-    # CONFIG_FILE_PATH = env.get_config_file_path()
-    # action = np.zeros(NUM_ROBOTS*NUM_DOF)
-    # ob, *_ = sim.step(action)
-    # obstacles = env.get_obstacles()
-
-    # # Fabrics
-    # fabrics = Fabrics(robot_urdf_path=env.ROBOT_URDF_FILE,
-    #                   config_file_path=CONFIG_FILE_PATH,
-    #                   degrees_of_freedom=NUM_DOF-NUM_GRIPPER_FINGERS)
-    
-    # T_W_RedCup, T_W_GrenCup = np.eye(4), np.eye(4)
-
-    # # Static obstacles
-    # x_obsts = [obstacles[i]["position"] for i in obstacles]
-    # r_obsts = [obstacles[i]["radius"] for i in obstacles]
-    # x_obsts_robots = [copy.deepcopy(x_obsts), copy.deepcopy(x_obsts)]
-
-    # # Main loop
-    # for timestep in range(NUM_TIMESTEPS):
-    #     robot_states = [[ob["robot_"+str(i)]["joint_state"]["position"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)],
-    #                      ob["robot_"+str(i)]["joint_state"]["velocity"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)]]
-    #                     for i in range(NUM_ROBOTS)]
-
-    #     T_W_RedCup[:3,3], redcup_quat = env.get_redcup_pose()
-    #     T_W_GrenCup[:3,3], greencup_quat = env.get_greencup_pose()
-    #     T_W_Grasp_robots = [compute_static_grasp(T_W_RedCup), 
-    #                         compute_static_grasp(T_W_GrenCup)]
-
-        
-    #     # Compute robots' position for collision avoidance
-    #     T_W_chassis_robots = [fabrics.compute_fk(robot_states[i][0], "chassis_link") for i in range(NUM_ROBOTS)]
-    #     T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_upper_wrist_link") for i in range(NUM_ROBOTS)]
-
-    #     x_obsts_robots[0][-2] =  T_W_chassis_robots[1][:3,3].tolist()
-    #     x_obsts_robots[0][-1] =  T_W_wrist_robots[1][:3,3].tolist()
-    #     x_obsts_robots[1][-2] =  T_W_chassis_robots[0][:3,3].tolist()
-    #     x_obsts_robots[1][-1] =  T_W_wrist_robots[0][:3,3].tolist()
-     
-     
-    #     for robot_id in range(NUM_ROBOTS):
-    #         fabrics.update_arguments(joint_state= robot_states[robot_id],
-    #                                  T_W_Goal=T_W_Grasp_robots[robot_id],
-    #                                  obst_pos=x_obsts_robots[robot_id],
-    #                                  obst_radius=r_obsts)
-            
-    #         action_unclipped = fabrics.compute_action()
-    #         action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
-
-    #     ob, *_ = sim.step(action)
-    # sim.close()
+   

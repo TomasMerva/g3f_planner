@@ -94,7 +94,7 @@ class ComparisonDinovas():
 
     def randomize_objects_pos(self):
         x_range = [-0.3, 0.3]
-        y_range = [-0.1, 0.1]
+        y_range = [-0.3, 0.3]
 
         points = []
 
@@ -104,7 +104,7 @@ class ComparisonDinovas():
             new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
                          round(random.uniform(y_range[0], y_range[1]), 5))
             
-            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.2 for p in points):
+            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
                 points.append(new_point)
             
             safety_counter += 1
@@ -118,18 +118,34 @@ class ComparisonDinovas():
     def run_i(self, case="test", env=None):
         # --- run example dinovas --- #
         #["RGF" ,"GF", "RF", "MPC"]
+        stopping_tolerance = 0.05
         if case == "RGF":
-            results_i = gomp_dinova_example(n_steps=self.n_steps_per_run, dof=self.dof, n_robots=self.nr_robots, env=env, render=self._render)
+            results_i = gomp_dinova_example(n_steps=self.n_steps_per_run, 
+                                            dof=self.dof, 
+                                            n_robots=self.nr_robots, 
+                                            env=env, 
+                                            render=self._render,
+                                            stopping_tolerance=stopping_tolerance)
             for key in results_i.keys():
                 self.results[case][key].append(results_i[key])        
+
         elif case == "GF":
-            results_i = fabrics_dinova_example(n_steps=self.n_steps_per_run, dof=self.dof, n_robots=self.nr_robots, env=env)
+            results_i = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
+                                               dof=self.dof, 
+                                               n_robots=self.nr_robots, 
+                                               env=env,
+                                               stopping_tolerance=stopping_tolerance)
             for key in results_i.keys():
                 self.results[case][key].append(results_i[key])
+
         elif case == "RF":
-            results_i = deadlock_dinova_example(n_steps=self.n_steps_per_run, dof=self.dof, n_robots=self.nr_robots, env=env)
+            results_i = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
+                                                dof=self.dof, 
+                                                n_robots=self.nr_robots, 
+                                                env=env)
             for key in results_i.keys():
                 self.results[case][key].append(results_i[key])
+                
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
       

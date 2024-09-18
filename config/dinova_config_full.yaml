@@ -10,36 +10,36 @@ problem:
     obstacle_definition:
       obstacle1:
         type: sphere
-        position: [0.0, 0.0, 0.04]
+        position: [0.0, 0.0, 0.0]
         radius: 0.25
       obstacle2:
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.2
+        radius: 0.1
       obstacle3:
         type: sphere
         position: [10.5, 1.3, 0.3]
-        radius: 0.2
+        radius: 0.1
       obstacle4:
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.2
+        radius: 0.1
       obstacle5:
         type: sphere
         position: [10.5, 1.3, 0.3]
-        radius: 0.2
+        radius: 0.1
       obstacle6:
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.2
+        radius: 0.1
       obstacle7:
         type: sphere
         position: [10.5, 1.3, 0.3]
-        radius: 0.55
+        radius: 0.4
       obstacle8:
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.2
+        radius: 0.1
   goal:
     goal_definition:
       subgoal0:
@@ -141,11 +141,11 @@ gomp:
   n_obstacles : 8 #0975
   obstacle_radius : [0.2, 0.2, 0.1, 0.2, 0.1, 0.2, 0.55, 0.2] # I do not like that we have to specify this at multiple places
   collision_links : ["chassis_link", "arm_upper_wrist_link"]
-  collision_link_radius : [0.65, 0.2]
-  rollout_dt : 0.05
+  collision_link_radius : [0.6, 0.2]
+  rollout_dt : 0.1
   rollout_timesteps : 1000
   rollout_tolerance : 0.1
   alpha_filter: 0.7
   initial_grasp_roll_deg : 90
-  verbose: True
+  verbose: False
   n_optim_steps : 1

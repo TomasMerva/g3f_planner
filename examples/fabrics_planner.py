@@ -86,7 +86,7 @@ class Fabrics():
         return float(theta_preference)
     
     def error(self, goal_pos:np.ndarray, q_current:np.ndarray) -> float:
-        fk_current = self.compute_fk(q_current)[:3,3]
+        fk_current = self.compute_fk(q_current, self._end_link)[:3,3]
         return np.linalg.norm(goal_pos-fk_current)
 
 

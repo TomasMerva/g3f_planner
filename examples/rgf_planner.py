@@ -21,7 +21,7 @@ class RGF_Planner():
 
         self._dinova_vel_limits = np.asarray(self._CONFIG["problem"]["joint_limits"]["velocity"], dtype=np.float32)
         self._T_W_Obj, self._T_W_StaticGrasp = np.eye(4), np.eye(4)
-        self.z_offset_grasping = 0.02
+        self.z_offset_grasping = 0.05
         self._roll_obj_grasp =  np.deg2rad(self._CONFIG["gomp"]["initial_grasp_roll_deg"])
         self.theta_preference = 0.0
         
@@ -38,6 +38,8 @@ class RGF_Planner():
         self.establish_planner()
 
         self._q_coll_init, self._q_free_init = None, None
+        self._prev_solution = None
+        self._position_error = 0.0
 
     def establish_rollouts(self) -> None:
         _current_script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -130,9 +132,9 @@ class RGF_Planner():
         p_orient_rot_x = self._T_W_StaticGrasp[:3,:3] @ x_goal_1_x
         p_orient_rot_z = self._T_W_StaticGrasp[:3,:3] @ x_goal_2_z
 
-        position_error = self.error(goal_pos=self._T_W_StaticGrasp[:3,3],
+        self._position_error = self.error(goal_pos=self._T_W_StaticGrasp[:3,3],
                                     q_current=joint_state[0])
-        weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = self.set_runtime_weights(position_error)
+        weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = self.set_runtime_weights(self._position_error)
 
         self._rollouts_args_dict["q"] = joint_state[0]
         self._rollouts_args_dict["qdot"] = joint_state[1]
@@ -291,6 +293,7 @@ class RGF_Planner():
       
         _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
         _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)
+
         f_q_coll += 1.0
         q_results = {
             f_q_coll: _q_result_coll,
@@ -305,7 +308,7 @@ class RGF_Planner():
             best_f = np.nanmin(f_results)
             solver_flag = True
             joint_waypoints = q_results[best_f] 
-
+        
         return self._return_solution(joint_waypoints, solver_flag)
     
     def _return_solution(self, joint_waypoints, solver_flag):
