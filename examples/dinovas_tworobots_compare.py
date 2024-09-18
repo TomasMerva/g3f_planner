@@ -43,7 +43,7 @@ class ComparisonDinovas():
 
         env.set_objects_pos_noise(objects_pos_noise)
         # env = self.randomize_obstacle_config(env)
-        env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
+        # env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
@@ -139,8 +139,10 @@ class ComparisonDinovas():
         for i_run in tqdm(range(self.n_runs)):
             env = self.create_environment(self._render)
             for algorithm in self.cases:
-                self.run_i(case=algorithm, env=env)
                 env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
+                self.run_i(case=algorithm, env=env)
+                
+
 
 
     def table_results(self, results):
@@ -191,8 +193,8 @@ if __name__ == "__main__":
     np.random.seed(0)
     start_time = time.perf_counter()
     # with suppress_stdout():
-    comparison_dinovas = ComparisonDinovas(n_runs=4, n_steps_per_run=100)
-    comparison_dinovas.run_comparison(render = False)
+    comparison_dinovas = ComparisonDinovas(n_runs=4, n_steps_per_run=7500)
+    comparison_dinovas.run_comparison(render = True)
     end_time = time.perf_counter()
     print("Computational time: ", end_time-start_time)
     comparison_dinovas.table_results(comparison_dinovas.results)

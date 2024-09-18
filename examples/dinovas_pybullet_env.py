@@ -137,24 +137,24 @@ class Environment():
     
     def load_scene(self) -> tuple:
         # Table
-        URDF_table = self.URDF_FOLDER + "/table/table.urdf"
+        URDF_table = self.URDF_FOLDER + "/table_30x30/table_square.urdf"
 
         table_pos = [0., 0.0, 0.0]
-        z_table = 0.65*0.3
+        z_table = 0.3
         
         if self._objects_pose_noise is None:
             objects_pos = [
-                [table_pos[0]-0.05, table_pos[1]+0.1, z_table - 0.01],
-                [table_pos[0]+0.05, table_pos[1]+0.1, z_table - 0.01],
-                [table_pos[0]-0.05, table_pos[1]-0.1, z_table - 0.01],
-                [table_pos[0]+0.05, table_pos[1]-0.1, z_table - 0.01],
+                [table_pos[0]-0.05, table_pos[1]+0.1, z_table],
+                [table_pos[0]+0.05, table_pos[1]+0.1, z_table],
+                [table_pos[0]-0.05, table_pos[1]-0.1, z_table],
+                [table_pos[0]+0.05, table_pos[1]-0.1, z_table],
             ]
         else:
             objects_pos = [
-                [table_pos[0]+self._objects_pose_noise[0][0], table_pos[1]-self._objects_pose_noise[0][1], z_table - 0.01],
-                [table_pos[0]+self._objects_pose_noise[1][0], table_pos[1]-self._objects_pose_noise[1][1], z_table - 0.01],
-                [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table - 0.01],
-                [table_pos[0]+self._objects_pose_noise[3][0], table_pos[1]-self._objects_pose_noise[3][1], z_table - 0.01],
+                [table_pos[0]+self._objects_pose_noise[0][0], table_pos[1]-self._objects_pose_noise[0][1], z_table],
+                [table_pos[0]+self._objects_pose_noise[1][0], table_pos[1]-self._objects_pose_noise[1][1], z_table],
+                [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table],
+                [table_pos[0]+self._objects_pose_noise[3][0], table_pos[1]-self._objects_pose_noise[3][1], z_table],
             ]
 
         self.scene_id = {}
@@ -162,7 +162,7 @@ class Environment():
             urdf_file = self.URDF_FOLDER + "/cup/cup_" + str(object_id+1) +".urdf"
             object_pybulletID = pybullet.loadURDF(urdf_file, basePosition=objects_pos[object_id])
             self.scene_id["cup_"+str(object_id)] = object_pybulletID
-        self.scene_id["table"] = pybullet.loadURDF(URDF_table, basePosition=table_pos,  globalScaling=0.3)
+        self.scene_id["table"] = pybullet.loadURDF(URDF_table, basePosition=table_pos,  globalScaling=1)
 
     def get_config_file_path(self):
         return self.CONFIG_FILE
@@ -194,8 +194,9 @@ class Environment():
     def reset(self):
         pos0 = self.home_config[0:self.n_robots]
         self.env.reset(pos=pos0)
-        self.env.add_sensor(self._full_sensor, [0])
+        # self.env.add_sensor(self._full_sensor, [0])
         for obst in self._obstacles:
             self.env.add_obstacle(obst)
         self.env.set_spaces()
         pybullet.setGravity(0,0,0)
+        self.load_scene()

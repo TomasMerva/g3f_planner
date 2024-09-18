@@ -10,8 +10,8 @@ problem:
     obstacle_definition:
       obstacle1:
         type: sphere
-        position: [0.0, 0.0, 0.0975]
-        radius: 0.0975
+        position: [0.0, 0.0, 0.04]
+        radius: 0.25
       obstacle2:
         type: sphere
         position: [-10.3, -0.3, 0.3]
@@ -139,7 +139,7 @@ fabrics:
 gomp:
   n_waypoints : 5
   n_obstacles : 8 #0975
-  obstacle_radius : [0.0975, 0.2, 0.1, 0.2, 0.1, 0.2, 0.55, 0.2] # I do not like that we have to specify this at multiple places
+  obstacle_radius : [0.2, 0.2, 0.1, 0.2, 0.1, 0.2, 0.55, 0.2] # I do not like that we have to specify this at multiple places
   collision_links : ["chassis_link", "arm_upper_wrist_link"]
   collision_link_radius : [0.65, 0.2]
   rollout_dt : 0.05
@@ -147,5 +147,5 @@ gomp:
   rollout_tolerance : 0.1
   alpha_filter: 0.7
   initial_grasp_roll_deg : 90
-  verbose: False
+  verbose: True
   n_optim_steps : 1
