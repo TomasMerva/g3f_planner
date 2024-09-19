@@ -11,16 +11,8 @@ from tqdm import tqdm
 from dinovas_pybullet_env import Environment
 from fabrics_planner import Fabrics
 
-def compute_static_grasp(T_W_Obj, theta_preference):
-    T_Obj_Grasp = np.eye(4)
-    T_Obj_Grasp[:3,:3] = R.from_euler('xyz', [0, 90, 0], degrees=True).as_matrix()
-    T_Grasp_Theta = np.eye(4)
-    T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [-theta_preference, 0, 0], degrees=False).as_matrix()
-    T_W_Grasp = T_W_Obj @ T_Obj_Grasp @ T_Grasp_Theta
+from evaluation.record_data import RecordData
 
-    T_Grasp_Offset = np.eye(4)
-    T_Grasp_Offset[:3, 3] = [-0, 0, -0.05]
-    return T_W_Grasp @ T_Grasp_Offset
 
 
 def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_tolerance = 0.05):
@@ -28,7 +20,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
     NUM_DOF = dof
     NUM_GRIPPER_FINGERS = 2
     NUM_TIMESTEPS = n_steps
-
     sim = env.get_sim_handler()
     CONFIG_FILE_PATH = env.get_config_file_path()
     action = np.zeros(NUM_ROBOTS*NUM_DOF)
@@ -40,13 +31,13 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                       config_file_path=CONFIG_FILE_PATH,
                       degrees_of_freedom=NUM_DOF-NUM_GRIPPER_FINGERS)
     
-    T_W_Goals = []
+    T_W_Goals, T_W_Objects = [], []
     for robot_id in range(NUM_ROBOTS):
         T_W_Object = np.eye(4)
         T_W_Object[:3,3], quat = env.get_cup(robot_id)
         T_W_Goals.append(T_W_Object)
+        T_W_Objects.append(T_W_Object)
 
-    # Static obstacles #TODO: change to num_robots
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
     x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(n_robots)}
@@ -54,14 +45,11 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
     """
     Results metrics:
     """
-    results = {"collision": 0.,
-               "goal_reached": 0.,
-               "time_to_goal":np.nan,
-               "computation_time":[], 
-               }
+    evaluation_data = RecordData()
     success_rate_per_robot = [0] * n_robots
 
     # Main loop
+    print("Starting GF env")
     for timestep in tqdm(range(NUM_TIMESTEPS)):
         robot_states = [[ob["robot_"+str(i)]["joint_state"]["position"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)],
                          ob["robot_"+str(i)]["joint_state"]["velocity"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)]]
@@ -76,7 +64,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             for robot_id in range(NUM_ROBOTS):
                 theta = fabrics.get_theta_preference(q=robot_states[robot_id][0], 
                                                      goal_position=T_W_Goals[robot_id][:3,3])
-                T_W_Goals[robot_id] = compute_static_grasp(T_W_Goals[robot_id], theta)
+                T_W_Goals[robot_id] = fabrics.compute_static_grasp(T_W_Goals[robot_id], theta)
 
         for robot_id in range(NUM_ROBOTS):
             # other robots as dynamic obstacles
@@ -105,32 +93,25 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             end_time = time.perf_counter()
 
             # Log data
-            results["computation_time"].append(end_time-start_time)
+            evaluation_data.record_computational_time(end_time-start_time)
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
             x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
-            
+            if fabrics.error(goal_pos=T_W_Objects[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
+                success_rate_per_robot[robot_id] = 1
+
         ob, *_ = sim.step(action)
 
-        for robot_id in range(NUM_ROBOTS):
-            success_rate_per_robot[robot_id] = (fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance)
         if np.all(success_rate_per_robot):
-            results["goal_reached"] = 1.
-            results["time_to_goal"] = timestep * sim._dt
-            print(timestep)
-            time.sleep(5)
+            evaluation_data.record_success_rate(success=100.0)
+            evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
 
-        results["collision"] = fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.)
+        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
 
     sim.close()
-    print("The success-rate of the scenario is: ", results["goal_reached"], ", with a time-to-goal of: ", results["time_to_goal"], " sec.")
-    print("The success-rate per robot is: ", success_rate_per_robot)
-    print("Has a collision occurred?: ", results["collision"])
 
 
-    print(results)
-    time.sleep(10)
-    return results
+    return evaluation_data.get_result()
 
 
 if __name__=="__main__":

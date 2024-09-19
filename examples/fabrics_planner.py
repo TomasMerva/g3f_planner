@@ -10,6 +10,7 @@ from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
 import yaml
+from scipy.spatial.transform import Rotation as R
 
 
 class Fabrics():
@@ -178,3 +179,14 @@ class Fabrics():
                         return True
         return False
 
+
+    def compute_static_grasp(self, T_W_Obj, theta_preference):
+        T_Obj_Grasp = np.eye(4)
+        T_Obj_Grasp[:3,:3] = R.from_euler('xyz', [0, 90, 0], degrees=True).as_matrix()
+        T_Grasp_Theta = np.eye(4)
+        T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [-theta_preference, 0, 0], degrees=False).as_matrix()
+        T_W_Grasp = T_W_Obj @ T_Obj_Grasp @ T_Grasp_Theta
+
+        T_Grasp_Offset = np.eye(4)
+        T_Grasp_Offset[:3, 3] = [-0.05, 0, -0.05]
+        return T_W_Grasp @ T_Grasp_Offset

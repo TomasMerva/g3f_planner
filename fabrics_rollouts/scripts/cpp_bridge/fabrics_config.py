@@ -18,7 +18,7 @@ class FabricsConfig():
         self.config = self.read_config_file(config_file)
         self.input_args_fabrics = self._init_input_fabrics()
         self._n_dof = self.config["num_dofs"]
-        self.print_input_args()
+        # self.print_input_args()
 
     def read_config_file(self, config_file) -> dict:
         """

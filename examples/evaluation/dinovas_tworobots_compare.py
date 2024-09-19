@@ -14,11 +14,15 @@ import time
 from tqdm import tqdm
 import contextlib
 
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dinovas_pybullet_env import Environment
 from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
 from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
 from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
-
+from evaluation.record_data import RecordData, EvaluationDataStructure
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, n_steps_per_run=1000):
@@ -29,9 +33,16 @@ class ComparisonDinovas():
         self.n_steps_per_run = n_steps_per_run
         self.cases = ["RGF", "GF"] #["RGF" ,"GF", "RF", "MPC"]
         # self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time_Rollouts":[], "computation time_GOMP":[]}
-        self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[],"computation_time":[]} #
-        self.results = {self.cases[0]: copy.deepcopy(self.results_struct),
-                        self.cases[1]: copy.deepcopy(self.results_struct)} #, self.cases[1]: self.results_struct, self.cases[2]: self.results_struct}
+        
+        self.results = {
+            case : EvaluationDataStructure() for case in self.cases
+        }
+        
+        # print(self.results)
+        # sys.exit()
+        # self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[],"computation_time":[]} #
+        # self.results = {self.cases[0]: copy.deepcopy(self.results_struct),
+        #                 self.cases[1]: copy.deepcopy(self.results_struct)} #, self.cases[1]: self.results_struct, self.cases[2]: self.results_struct}
         self._render = False
 
     def create_environment(self, render=False):
@@ -55,8 +66,8 @@ class ComparisonDinovas():
 
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        x_range = [-3, 3]
-        y_range = [1.0, 3.0]
+        x_range = [-1, 1]
+        y_range = [2.0, 4.0]
         z_range = [-3.12, 3.12]
 
         xyz_random = []
@@ -66,7 +77,7 @@ class ComparisonDinovas():
                          round(random.uniform(y_range[0], y_range[1]), 5), 
                          round(random.uniform(z_range[0], z_range[1]), 5))
 
-            if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 2 for p in xyz_random):
+            if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.35 for p in xyz_random):
                 xyz_random.append(new_point)
             safety_counter += 1
             if safety_counter >= 50:
@@ -117,33 +128,26 @@ class ComparisonDinovas():
     def run_i(self, case="test", env=None):
         # --- run example dinovas --- #
         #["RGF" ,"GF", "RF", "MPC"]
-        stopping_tolerance = 0.05
+        stopping_tolerance = 0.07
         if case == "RGF":
-            results_i = gomp_dinova_example(n_steps=self.n_steps_per_run, 
+            self.results[case] = gomp_dinova_example(n_steps=self.n_steps_per_run, 
                                             dof=self.dof, 
                                             n_robots=self.nr_robots, 
                                             env=env, 
                                             render=self._render,
-                                            stopping_tolerance=stopping_tolerance)
-            for key in results_i.keys():
-                self.results[case][key].append(results_i[key])               
-
+                                            stopping_tolerance=stopping_tolerance)         
         elif case == "GF":
-            results_i = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
+            self.results[case] = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
                                                dof=self.dof, 
                                                n_robots=self.nr_robots, 
                                                env=env,
                                                stopping_tolerance=stopping_tolerance)
-            for key in results_i.keys():
-                self.results[case][key].append(results_i[key])
-
         elif case == "RF":
-            results_i = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
+            self.results[case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
                                                 dof=self.dof, 
                                                 n_robots=self.nr_robots, 
-                                                env=env)
-            for key in results_i.keys():
-                self.results[case][key].append(results_i[key])
+                                                env=env,
+                                                stopping_tolerance=stopping_tolerance)
                 
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
@@ -160,28 +164,35 @@ class ComparisonDinovas():
 
 
 
-    def table_results(self, results):
+    def table_results(self):
         # --- create and plot table --- #
         rows = []
         title_row = [' ', "Success rate [\%]", "Time-to-Success [s]", "Computation time[s]"]#,"Collision-rate" #'Success-Rate', 'Time-to-Success [s]',
         nr_column = len(title_row)
         rows.append(title_row)
-
         for case in self.cases:
             rows.append([case,
-                         str(np.round(np.sum(results[case]["goal_reached"]) / self.n_runs, decimals=1)), # + "+-" + str(np.round(np.nanstd(results[case]["goal_reached"]), decimals=4)),
-                         str(np.round(np.nanmean(results[case]["time_to_goal"]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(results[case]["time_to_goal"]), decimals=4)),
-                         # str(np.round(np.nanmean(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)),
-                         str(np.round(np.nanmean(np.concatenate(results[case]["computation_time"], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["computation_time"], axis=0)), decimals=6)),
-                        #  str(np.round(np.sum(results[case]["collision"]) / self.n_runs, decimals=1)),
+                         str(np.round(np.sum(self.results[case].goal_reached) / self.n_runs, decimals=1)) + " $\%$ ", 
+                         str(np.round(np.nanmean(self.results[case].time_to_goal), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(self.results[case].time_to_goal), decimals=4)),
+                        #  str(np.round(np.nanmean(np.concatenate(self.results[case].computation_time, axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(self.results[case].computation_time, axis=0)), decimals=6)),
+                         str(np.round(np.sum(self.results[case].collision) / self.n_runs, decimals=1)),
                          ])
+        # for case in self.cases:
+        #     rows.append([case,
+        #                  str(np.round(np.sum(results[case]["goal_reached"]) / self.n_runs, decimals=1)), # + "+-" + str(np.round(np.nanstd(results[case]["goal_reached"]), decimals=4)),
+        #                  str(np.round(np.nanmean(results[case]["time_to_goal"]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(results[case]["time_to_goal"]), decimals=4)),
+        #                  # str(np.round(np.nanmean(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)),
+        #                  str(np.round(np.nanmean(np.concatenate(results[case]["computation_time"], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["computation_time"], axis=0)), decimals=6)),
+        #                 #  str(np.round(np.sum(results[case]["collision"]) / self.n_runs, decimals=1)),
+        #                  ])
         table = Texttable()
         table.set_cols_align(["c"] * nr_column)
         table.set_deco(Texttable.HEADER | Texttable.VLINES)
         table.add_rows(rows)
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
-
+        with open('dinovas_tworobots_result.pickle', 'wb') as handle:
+            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 import sys
 import os
@@ -209,11 +220,11 @@ if __name__ == "__main__":
     np.random.seed(0)
     start_time = time.perf_counter()
     # with suppress_stdout():
-    comparison_dinovas = ComparisonDinovas(n_runs=4, n_steps_per_run=2500)
-    comparison_dinovas.run_comparison(render = False)
+    comparison_dinovas = ComparisonDinovas(n_runs=3, n_steps_per_run=5000)
+    comparison_dinovas.run_comparison(render = True)
     end_time = time.perf_counter()
     print("Computational time: ", end_time-start_time)
-    comparison_dinovas.table_results(comparison_dinovas.results)
+    comparison_dinovas.table_results()
 
 
 

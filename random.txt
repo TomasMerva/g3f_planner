@@ -10,3 +10,6 @@ Algorithm:
     2. Vanilla fabrics
     3. MPC
     4. Deadlock-resolution Fabrics
+
+50 runs
+[ ] Save results to pickle file
