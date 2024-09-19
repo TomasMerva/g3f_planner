@@ -81,12 +81,11 @@ class GompSQP():
         
     
         if np.isnan(result).any():
-            print("enne")
-            print("auch enne")
+            # print("Enne? Auch enne")
             return (result.reshape((self._num_waypoints, self._num_dim)), "failed")
         else:
-            print("no limburgs")
-        return (result.reshape((self._num_waypoints, self._num_dim)), res.info.status)
+            # print("no limburgs")
+            return (result.reshape((self._num_waypoints, self._num_dim)), res.info.status)
 
    
     def _create_quadratic_objective_term(self, num_waypoints, num_dof):
@@ -155,7 +154,7 @@ class GompSQP():
 
 
 
-    def add_grasp_pos_constraint(self, name, waypoint_ID, tolerance=0.0) -> None:
+    def add_grasp_pos_constraint(self, name, waypoint_ID, tolerance=np.zeros(3)) -> None:
         self.param_dict[name] =  {
             "waypoint_ID" : waypoint_ID,
             "sym_param" : ca.SX.sym(name, 4, 4),
@@ -210,3 +209,6 @@ class GompSQP():
                                                           r_obst= r_obst,
                                                           tolerance=0.0)
                                                     ))
+
+    def compute_fk(self, q, end_link=None):
+        return self._robot_model.compute_fk(q, end_link)

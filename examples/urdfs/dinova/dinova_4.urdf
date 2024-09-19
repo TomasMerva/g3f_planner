@@ -270,9 +270,7 @@
       <geometry>
         <mesh filename="/meshes/kinova/base_link.STL" />
       </geometry>
-      <material name="">
-        <color rgba="0.803 0.824 0.820 1"/>
-      </material>
+      <material name="arm"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -298,9 +296,7 @@
       <geometry>
         <mesh filename="/meshes/kinova/shoulder_link.STL"/>
       </geometry>
-      <material name="">
-        <color rgba="0.803 0.824 0.820 1"/>
-      </material>
+        <material name="arm"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -321,9 +317,7 @@
       <geometry>
         <mesh filename="/meshes/kinova/arm_link.STL"/>
       </geometry>
-      <material name="">
-        <color rgba="0.803 0.824 0.820 1"/>
-      </material>
+      <material name="arm"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -344,9 +338,7 @@
       <geometry>
         <mesh filename="/meshes/kinova/forearm_link.STL"/>
       </geometry>
-      <material name="">
-        <color rgba="0.803 0.824 0.820 1"/>
-      </material>
+      <material name="arm"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -367,9 +359,7 @@
       <geometry>
         <mesh filename="/meshes/kinova/lower_wrist_link.STL"/>
       </geometry>
-      <material name="">
-        <color rgba="0.803 0.824 0.820 1"/>
-      </material>
+      <material name="arm"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -390,9 +380,7 @@
       <geometry>
         <mesh filename="/meshes/kinova/upper_wrist_link.STL"/>
       </geometry>
-      <material name="">
-        <color rgba="0.803 0.824 0.820 1"/>
-      </material>
+      <material name="arm"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -470,7 +458,7 @@
   </joint>
   <!-- Tool frame used by the arm -->
   <joint name="arm_tool_frame_joint" type="fixed">
-    <origin rpy="0 0 0" xyz="0 0 0.08"/>
+    <origin rpy="0 0 0" xyz="0 0 0.13"/>
     <parent link="arm_dummy_link"/>
     <child link="arm_tool_frame"/>
     <axis xyz="0 0 0"/>
@@ -506,9 +494,7 @@
       <geometry>
         <mesh filename="/meshes/kinova/gripper_base_link.STL"/>
       </geometry>
-      <material name="">
-        <color rgba="0.803 0.824 0.820 1"/>
-      </material>
+      <material name="arm"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -529,9 +515,7 @@
       <geometry>
         <mesh filename="/meshes/kinova/right_finger_prox_link.STL"/>
       </geometry>
-      <material name="">
-        <color rgba="0.803 0.824 0.820 1"/>
-      </material>
+      <material name="arm"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -575,9 +559,7 @@
       <geometry>
         <mesh filename="/meshes/kinova/left_finger_prox_link.STL"/>
       </geometry>
-      <material name="">
-        <color rgba="0.803 0.824 0.820 1"/>
-      </material>
+      <material name="arm"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -668,5 +650,8 @@
     <color rgba="0.1 0.1 0.1 1"/>
   </material>
  
-
+   <material name="arm">
+    <color rgba="1 1 0 1"/>
+  </material>
+ 
 </robot>

@@ -17,6 +17,7 @@ grasp_planning =">=0.6"
 osqp = ">=0.6.5"
 texttable = "^1.7.0"
 latextable = "^1.0.1"
+tqdm = "^4.66.5"
 
 [build-system]
 requires = ["poetry-core"]
