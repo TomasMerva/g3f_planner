@@ -31,7 +31,7 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF", "GF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["GF"] #["RGF" ,"GF", "RF", "MPC"]
         
         self.results = {
             case : EvaluationDataStructure() for case in self.cases
@@ -43,9 +43,10 @@ class ComparisonDinovas():
         env = Environment()
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
-
+        obsts_pos = self.randomize_obstacle_config()
         env.set_objects_pos_noise(objects_pos_noise)
-        # env = self.randomize_obstacle_config(env)
+        env.set_obsts_pos(obsts_pos)
+        # env = self.randomize_obstacle_config()
         # env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
         return env
 
@@ -59,9 +60,10 @@ class ComparisonDinovas():
 
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        x_range = [-1, 1]
-        y_range = [2.0, 4.0]
-        z_range = [-3.12, 3.12]
+        x_range = [-1.5, 1.5]
+        y_range = [5.0, 8.0]
+        # z_range = [-3.12, 3.12]
+        z_range = [-2, 2]
 
         xyz_random = []
         safety_counter = 0
@@ -82,18 +84,36 @@ class ComparisonDinovas():
             configs[robot] = copy.deepcopy(home_config)
         return configs
 
-    def randomize_obstacle_config(self, env):
-        # todo: make working for more than 2 obstacles!
-        obst_struct = env.CONFIG_PROBLEM["environment"]["obstacle_definition"]
-        xyz_random = [[random.uniform(-2, 2), random.uniform(-0.5, 1), random.uniform(0, 0.3)] for _ in
-                      range(self.nr_robots)]
-        while self.euclidean_distance(np.array(xyz_random[0][0:1]), np.array(xyz_random[1][0:1])) < 0.8:
-            xyz_random = [[random.uniform(-2, 2), random.uniform(-0.5, 1), random.uniform(0, 0.3)] for _ in
-                          range(self.nr_robots)]
-            #todo: add check if obstacle is colliding with object position (or check placing better)
-        for i, obstacle_name in enumerate(obst_struct.keys()):
-            env.CONFIG_PROBLEM["environment"]["obstacle_definition"][obstacle_name]["position"] = xyz_random[i]
-        return env
+    def randomize_obstacle_config(self):
+        x_range = [-4, 4]
+        y_range = [2,  3]
+
+        points = []
+        #  8 obstacles in total
+        #  1 obstacle is the table
+        #  2 obstacle spheres for other agents
+        max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
+        for i in range(max_number_of_obsts):
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+                         round(random.uniform(y_range[0], y_range[1]), 5),
+                         0.3)
+            points.append(new_point)
+        return points
+
+
+
+
+        # # todo: make working for more than 2 obstacles!
+        # obst_struct = env.CONFIG_PROBLEM["environment"]["obstacle_definition"]
+        # xyz_random = [[random.uniform(-2, 2), random.uniform(-0.5, 1), random.uniform(0, 0.3)] for _ in
+        #               range(self.nr_robots)]
+        # while self.euclidean_distance(np.array(xyz_random[0][0:1]), np.array(xyz_random[1][0:1])) < 0.8:
+        #     xyz_random = [[random.uniform(-2, 2), random.uniform(-0.5, 1), random.uniform(0, 0.3)] for _ in
+        #                   range(self.nr_robots)]
+        #     #todo: add check if obstacle is colliding with object position (or check placing better)
+        # for i, obstacle_name in enumerate(obst_struct.keys()):
+        #     env.CONFIG_PROBLEM["environment"]["obstacle_definition"][obstacle_name]["position"] = xyz_random[i]
+        # return env
 
     def randomize_objects_pos(self):
         x_range = [-0.3, 0.3]
@@ -101,7 +121,7 @@ class ComparisonDinovas():
 
         points = []
 
-        max_number_of_objects = 2
+        max_number_of_objects = self.nr_robots
         safety_counter = 0
         while len(points) < max_number_of_objects:
             new_point = (round(random.uniform(x_range[0], x_range[1]), 5),

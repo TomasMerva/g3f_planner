@@ -101,13 +101,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
         T_W_chassis_robots = [fabrics.compute_fk(robot_states[i][0], "chassis_link") for i in range(NUM_ROBOTS)]
         T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_upper_wrist_link") for i in range(NUM_ROBOTS)]
 
-        # Compute static grasps at the beginning
-        # if timestep == 0:
-        #     for robot_id in range(NUM_ROBOTS):
-        #         theta = fabrics.get_theta_preference(q=robot_states[robot_id][0], 
-        #                                             goal_position=T_W_Goals[robot_id][:3,3])
-        #         T_W_StaticGrasps[robot_id] = fabrics.compute_static_grasp(T_W_Goals[robot_id], theta)
-        #         print(T_W_StaticGrasps)
 
         # GOMP
         for robot_id in range(NUM_ROBOTS):

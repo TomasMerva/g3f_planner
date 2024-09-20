@@ -83,6 +83,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                     counter += 1
             # Planner computes new action
             start_time = time.perf_counter()
+            
             fabrics.update_arguments(joint_state= robot_states[robot_id],
                                     T_W_Goal=T_W_Goals[robot_id],
                                     obst_pos=x_obsts,
