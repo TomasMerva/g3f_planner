@@ -32,17 +32,10 @@ class ComparisonDinovas():
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
         self.cases = ["RGF", "GF"] #["RGF" ,"GF", "RF", "MPC"]
-        # self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[], "computation_time_Rollouts":[], "computation time_GOMP":[]}
         
         self.results = {
             case : EvaluationDataStructure() for case in self.cases
         }
-        
-        # print(self.results)
-        # sys.exit()
-        # self.results_struct = {"collision":[], "goal_reached":[], "time_to_goal":[],"computation_time":[]} #
-        # self.results = {self.cases[0]: copy.deepcopy(self.results_struct),
-        #                 self.cases[1]: copy.deepcopy(self.results_struct)} #, self.cases[1]: self.results_struct, self.cases[2]: self.results_struct}
         self._render = False
 
     def create_environment(self, render=False):
