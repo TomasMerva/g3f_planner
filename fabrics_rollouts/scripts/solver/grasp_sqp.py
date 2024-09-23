@@ -56,19 +56,28 @@ class GompSQP():
 
 
     def change_fixed_point(self, x0):
-        
         (A, l, u) = self._get_joint_limits()
         self._set_starting_boundary_con(l, u)
-
+        A_list = [A]
+        l_list = [np.asarray(l)]
+        u_list = [np.asarray(u)]
+  
+ 
         for g_name, g_term in self._g_list:
             w_ID = self.param_dict[g_name]["waypoint_ID"]
             (A_g, l_g, u_g) = self._linearize_constraint(g_term, x0[w_ID,:], self.param_dict[g_name])
-            A = sparse.vstack([A, A_g], format='csc')
-            l = np.concatenate((l, l_g))
-            u = np.concatenate((u, u_g))
-
-        # self._solver.update(q=self._q_obj, Ax=A.data, l=l ,u=u)
-        self._solver.update(Ax=A.data, l=l ,u=u)
+            A_list.append(A_g)
+            l_list.append(np.array(l_g))
+            u_list.append(np.array(u_g))
+ 
+        A_new = sparse.vstack(A_list, format='csc')
+        # self._solver.update(q=-self._ref_guess_weight*x0.reshape(-1,1),
+        #                     Ax=A_new.data, 
+        #                     l=np.concatenate(l_list), 
+        #                     u=np.concatenate(u_list))
+        self._solver.update(Ax=A_new.data, 
+                            l=np.concatenate(l_list), 
+                            u=np.concatenate(u_list))
 
     def solve(self, x_init=None):
         if x_init is not None:
@@ -109,7 +118,7 @@ class GompSQP():
 
     def compute_cost(self, x):
         quadratic_term = np.dot(np.dot(x.T, self._P_obj.toarray()), x)
-        linear_term = np.dot(self._q_obj.T, x)
+        linear_term = np.dot(-self._ref_guess_weight*self._q_obj.T, x)
         return quadratic_term + linear_term 
         # return quadratic_term 
     
