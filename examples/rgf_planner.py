@@ -12,7 +12,7 @@ from fabrics_rollouts import ReferenceTracker
 
 
 class RGF_Planner():
-    def __init__(self, fk_args, config_file_path) -> None:
+    def __init__(self, fk_args, config_file_path, r_obsts) -> None:
         self._fk_args = fk_args
 
         self._CONFIG_FILE_PATH = config_file_path
@@ -33,6 +33,7 @@ class RGF_Planner():
         self.num_waypoints = self._CONFIG["gomp"]["n_waypoints"]
         self.num_obstacles = self._CONFIG["gomp"]["n_obstacles"]
         self.num_optim_steps = self._CONFIG["gomp"]["n_optim_steps"]
+        self.r_obsts = r_obsts
 
         self.establish_rollouts()
         self.establish_planner()
@@ -52,7 +53,7 @@ class RGF_Planner():
                                                 vel_limits=self._dinova_vel_limits,
                                                 dt=self._CONFIG["gomp"]["rollout_dt"],
                                                 alpha_filter=self._CONFIG["gomp"]["alpha_filter"])
-
+   
     def establish_planner(self):
         gomp_args = dict(
             urdf_file = self._fk_args["urdf_file"],
@@ -79,9 +80,8 @@ class RGF_Planner():
 
     def _establish_obstacles(self):
         self.obstacles = {}
-        obstacle_radius = self._CONFIG["gomp"]["obstacle_radius"]
         for id_obst in range(self.num_obstacles):
-            self.obstacles["obst_"+str(id_obst)] = obstacle_radius[id_obst]
+            self.obstacles["obst_"+str(id_obst)] = self.r_obsts[id_obst]
 
     def _establish_collision_constraint(self):
         self.collision_links = {}
@@ -181,11 +181,7 @@ class RGF_Planner():
             x_obsts=[np.array([20., 20., 20.]) for _ in range(self.num_obstacles)],
             radius_obsts=[0.1]*self.num_obstacles, #TODO: this could be read from yaml file
             radius_body_chassis_link=0.4,
-            radius_body_arm_shoulder_link=0.1,
-            radius_body_arm_end_effector_link=0.1,
             radius_body_arm_upper_wrist_link=0.1,
-            radius_body_arm_lower_wrist_link=0.1,
-            radius_body_arm_forearm_link=0.1,
         )
         # self._rollouts_args_dict  = dict(
         #         q=np.zeros(self.num_dofs),
@@ -282,7 +278,31 @@ class RGF_Planner():
             return None, np.nan
 
 
+    def _compute_collision_init_guess(self):
+        q_rollout = self._rollouts_planner.compute_rollout(
+                                            timesteps=self._CONFIG["gomp"]["rollout_timesteps"],
+                                            arg_dict=self._rollouts_args_dict,
+                                            tolerance=self._CONFIG["gomp"]["rollout_tolerance"]
+                                            )
+        if len(q_rollout) <= 2: 
+            q_rollout = np.linspace(q_rollout[0], q_rollout[-1], self.num_waypoints, axis=0)
+        self._q_coll_init  = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
+                                                                rollout=q_rollout)
 
+    def _compute_obstfree_init_guess(self):
+        arguments_dicts_free = copy.deepcopy(self._rollouts_args_dict)
+        arguments_dicts_free["x_obsts"] = [np.array([2000., 2000., 2000.]) for _ in range(self.num_obstacles)]
+        q_rollout = self._rollouts_planner.compute_rollout(
+                                                timesteps=self._CONFIG["gomp"]["rollout_timesteps"],
+                                                arg_dict=arguments_dicts_free,
+                                                tolerance=self._CONFIG["gomp"]["rollout_tolerance"]
+                                                )
+        if len(q_rollout) <= 2: 
+            q_rollout = np.linspace(q_rollout[0], q_rollout[-1], self.num_waypoints, axis=0)
+        self._q_free_init = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
+                                                                rollout=q_rollout)
+        
+    
     def solve(self, joint_state, T_W_Obj, x_obsts=None, r_obsts=None):
         self._gomp_planner.set_starting_state(q_start=joint_state[0])
 
@@ -290,7 +310,16 @@ class RGF_Planner():
         self.update_rollouts_parameters(joint_state, T_W_Obj, x_obsts, r_obsts)
 
         (self._q_coll_init, self._q_free_init) = self._compute_initial_guesses()
-      
+
+        # thread_coll_init = threading.Thread(target=self._compute_collision_init_guess)
+        # thread_free_init = threading.Thread(target=self._compute_obstfree_init_guess)
+
+        # thread_coll_init.start()
+        # thread_free_init.start()
+
+        # thread_coll_init.join()
+        # thread_free_init.join()
+
         _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
         _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)
 

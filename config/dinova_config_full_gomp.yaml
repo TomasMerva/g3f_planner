@@ -15,31 +15,31 @@ problem:
       obstacle2:
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.15
+        radius: 0.2
       obstacle3:
         type: sphere
         position: [10.5, 1.3, 0.3]
-        radius: 0.15
+        radius: 0.2
       obstacle4:
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.15
+        radius: 0.2
       obstacle5:
         type: sphere
         position: [10.5, 1.3, 0.3]
-        radius: 0.15
+        radius: 0.2
       obstacle6:
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.15
+        radius: 0.2
       obstacle7:
         type: sphere
         position: [10.5, 1.3, 0.3]
-        radius: 0.15
+        radius: 0.2
       obstacle8:
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.15
+        radius: 0.2
   goal:
     goal_definition:
       subgoal0:
@@ -111,22 +111,10 @@ problem:
     collision_links:
       chassis_link:
         sphere:
-          radius: 0.5
-      arm_shoulder_link:
-        sphere:
-          radius: 0.1
-      arm_forearm_link:
-        sphere:
-          radius: 0.1
-      arm_lower_wrist_link:
-        sphere:
-          radius: 0.1
+          radius: 0.45
       arm_upper_wrist_link:
         sphere:
-          radius: 0.1
-      arm_end_effector_link:
-        sphere:
-          radius: 0.1
+          radius: 0.2
     self_collision_pairs: {}
 fabrics:
   limit_geometry: -0.1 / (x ** 1) * xdot ** 2 #-1.0 / (x ** 1) * xdot ** 2
@@ -135,10 +123,9 @@ fabrics:
   collision_finsler:  0.1/(x**2) * xdot**2 #0.2/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
   geometry_plane_constraint: -0.2 / (x ** 1) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
   finsler_plane_constraint: 0.2/(x**2) * xdot**2
-  # base_energy: # TODO: should this be empty
 gomp:
-  n_waypoints : 5
-  n_obstacles : 8
+  n_waypoints : 10
+  n_obstacles : 8 #0975
   collision_links : ["chassis_link", "arm_upper_wrist_link"]
   collision_link_radius : [0.6, 0.2]
   rollout_dt : 0.1
@@ -147,4 +134,4 @@ gomp:
   alpha_filter: 0.7
   initial_grasp_roll_deg : 90
   verbose: False
-  n_optim_steps : 2
+  n_optim_steps : 5

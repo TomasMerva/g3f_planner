@@ -13,21 +13,21 @@ from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from mpscenes.goals.static_sub_goal import StaticSubGoal
 
 class Environment():
-    def __init__(self) -> None:
-        self._define_files_path()
+    def __init__(self, config_file="dinova_config_full.yaml") -> None:
+        self._define_files_path(config_file)
         self.home_config = np.array([np.array([-0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]),
                                      np.array([0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9])
                                      ])
         
         self._objects_pose_noise = None
 
-    def _define_files_path(self) -> None:
+    def _define_files_path(self, env_config_file) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
         
         self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, 'urdfs'))
         self.ROBOT_URDF_FILE = self.URDF_FOLDER + "/dinova/dinova.urdf"
 
-        config_path = os.path.join(current_script_dir, '..', 'config/dinova_config_full.yaml')
+        config_path = os.path.join(current_script_dir, '../config', env_config_file)
         self.CONFIG_FILE = os.path.normpath(config_path)
 
         with open(self.CONFIG_FILE, 'r') as config_file:
@@ -137,25 +137,45 @@ class Environment():
     
     def load_scene(self) -> tuple:
         # Table
-        URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
-
-        table_pos = [0., 0.0, 0.0]
-        z_table = 0.3
-        
-        if self._objects_pose_noise is None:
-            objects_pos = [
-                [table_pos[0]-0.05, table_pos[1]+0.1, z_table],
-                [table_pos[0]+0.05, table_pos[1]+0.1, z_table],
-                [table_pos[0]-0.05, table_pos[1]-0.1, z_table],
-                [table_pos[0]+0.05, table_pos[1]-0.1, z_table],
-            ]
+        if self.n_robots == 3:
+            URDF_table = self.URDF_FOLDER + "/table_100x100/table_square.urdf"
+            table_pos = [0., 0.0, 0.0]
+            z_table = 0.3
+            
+            if self._objects_pose_noise is None:
+                objects_pos = [
+                    [table_pos[0]-0.45, table_pos[1]+0.4, z_table],
+                    [table_pos[0]+0.45, table_pos[1]+0.4, z_table],
+                    [table_pos[0]-0.45, table_pos[1]-0.4, z_table],
+                    [table_pos[0]+0.45, table_pos[1]-0.4, z_table],
+                ]
+            else:
+                objects_pos = [
+                    [table_pos[0]+self._objects_pose_noise[0][0], table_pos[1]-self._objects_pose_noise[0][1], z_table],
+                    [table_pos[0]+self._objects_pose_noise[1][0], table_pos[1]-self._objects_pose_noise[1][1], z_table],
+                    [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table],
+                    [table_pos[0]+self._objects_pose_noise[3][0], table_pos[1]-self._objects_pose_noise[3][1], z_table],
+                ]
         else:
-            objects_pos = [
-                [table_pos[0]+self._objects_pose_noise[0][0], table_pos[1]-self._objects_pose_noise[0][1], z_table],
-                [table_pos[0]+self._objects_pose_noise[1][0], table_pos[1]-self._objects_pose_noise[1][1], z_table],
-                [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table],
-                [table_pos[0]+self._objects_pose_noise[3][0], table_pos[1]-self._objects_pose_noise[3][1], z_table],
-            ]
+            URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
+
+            table_pos = [0., 0.0, 0.0]
+            z_table = 0.3
+            
+            if self._objects_pose_noise is None:
+                objects_pos = [
+                    [table_pos[0]-0.05, table_pos[1]+0.1, z_table],
+                    [table_pos[0]+0.05, table_pos[1]+0.1, z_table],
+                    [table_pos[0]-0.05, table_pos[1]-0.1, z_table],
+                    [table_pos[0]+0.05, table_pos[1]-0.1, z_table],
+                ]
+            else:
+                objects_pos = [
+                    [table_pos[0]+self._objects_pose_noise[0][0], table_pos[1]-self._objects_pose_noise[0][1], z_table],
+                    [table_pos[0]+self._objects_pose_noise[1][0], table_pos[1]-self._objects_pose_noise[1][1], z_table],
+                    [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table],
+                    [table_pos[0]+self._objects_pose_noise[3][0], table_pos[1]-self._objects_pose_noise[3][1], z_table],
+                ]
 
         self.scene_id = {}
         for object_id in range(self.n_robots):
@@ -171,11 +191,7 @@ class Environment():
         name = "cup_" + str(cup_id)
         return pybullet.getBasePositionAndOrientation(self.scene_id[name])
 
-    def get_redcup_pose(self):
-        return pybullet.getBasePositionAndOrientation(self.scene_id["cup_1"])
-    
-    def get_greencup_pose(self):
-        return pybullet.getBasePositionAndOrientation(self.scene_id["cup_2"])
+
     
     def get_table_pose(self):
         return pybullet.getBasePositionAndOrientation(self.scene_id["table"])
