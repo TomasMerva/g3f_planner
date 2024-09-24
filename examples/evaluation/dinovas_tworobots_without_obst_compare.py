@@ -12,7 +12,6 @@ import pybullet
 import random
 import time
 from tqdm import tqdm
-import contextlib
 
 
 import sys
@@ -31,11 +30,12 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF", "GF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF","GF"] #["RGF" ,"GF", "RF", "MPC"]
         
-        self.results = {
-            case : EvaluationDataStructure() for case in self.cases
-        }
+        self.results = [{
+            case: EvaluationDataStructure() for case in self.cases
+        } for _ in range(self.n_runs)]
+
         self._render = False
 
     def create_environment(self, render=False):
@@ -43,10 +43,8 @@ class ComparisonDinovas():
         env = Environment()
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
-
+        obsts_pos = self.randomize_obstacle_config()
         env.set_objects_pos_noise(objects_pos_noise)
-        # env = self.randomize_obstacle_config(env)
-        # env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
@@ -59,9 +57,10 @@ class ComparisonDinovas():
 
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        x_range = [-1, 1]
-        y_range = [2.0, 4.0]
-        z_range = [-3.12, 3.12]
+        x_range = [-3, 3]
+        y_range = [2.0, 5.0]
+        # z_range = [-3.12, 3.12]
+        z_range = [-2, 2]
 
         xyz_random = []
         safety_counter = 0
@@ -70,7 +69,7 @@ class ComparisonDinovas():
                          round(random.uniform(y_range[0], y_range[1]), 5), 
                          round(random.uniform(z_range[0], z_range[1]), 5))
 
-            if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.35 for p in xyz_random):
+            if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.5 for p in xyz_random):
                 xyz_random.append(new_point)
             safety_counter += 1
             if safety_counter >= 50:
@@ -82,18 +81,21 @@ class ComparisonDinovas():
             configs[robot] = copy.deepcopy(home_config)
         return configs
 
-    def randomize_obstacle_config(self, env):
-        # todo: make working for more than 2 obstacles!
-        obst_struct = env.CONFIG_PROBLEM["environment"]["obstacle_definition"]
-        xyz_random = [[random.uniform(-2, 2), random.uniform(-0.5, 1), random.uniform(0, 0.3)] for _ in
-                      range(self.nr_robots)]
-        while self.euclidean_distance(np.array(xyz_random[0][0:1]), np.array(xyz_random[1][0:1])) < 0.8:
-            xyz_random = [[random.uniform(-2, 2), random.uniform(-0.5, 1), random.uniform(0, 0.3)] for _ in
-                          range(self.nr_robots)]
-            #todo: add check if obstacle is colliding with object position (or check placing better)
-        for i, obstacle_name in enumerate(obst_struct.keys()):
-            env.CONFIG_PROBLEM["environment"]["obstacle_definition"][obstacle_name]["position"] = xyz_random[i]
-        return env
+    def randomize_obstacle_config(self):
+        x_range = [-2, 2]
+        y_range = [1, 2]
+
+        points = []
+        #  8 obstacles in total
+        #  1 obstacle is the table
+        #  2 obstacle spheres for other agents
+        max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
+        for i in range(max_number_of_obsts):
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+                         round(random.uniform(y_range[0], y_range[1]), 5),
+                         0.15)
+            points.append(new_point)
+        return points
 
     def randomize_objects_pos(self):
         x_range = [-0.3, 0.3]
@@ -101,7 +103,7 @@ class ComparisonDinovas():
 
         points = []
 
-        max_number_of_objects = 2
+        max_number_of_objects = self.nr_robots
         safety_counter = 0
         while len(points) < max_number_of_objects:
             new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
@@ -118,25 +120,25 @@ class ComparisonDinovas():
         return np.asarray(points)
 
 
-    def run_i(self, case="test", env=None):
+    def run_i(self, run_id, case="test", env=None):
         # --- run example dinovas --- #
         #["RGF" ,"GF", "RF", "MPC"]
         stopping_tolerance = 0.07
         if case == "RGF":
-            self.results[case] = gomp_dinova_example(n_steps=self.n_steps_per_run, 
+            self.results[run_id][case]  = gomp_dinova_example(n_steps=self.n_steps_per_run, 
                                             dof=self.dof, 
                                             n_robots=self.nr_robots, 
                                             env=env, 
                                             render=self._render,
-                                            stopping_tolerance=stopping_tolerance)         
+                                            stopping_tolerance=stopping_tolerance)     
         elif case == "GF":
-            self.results[case] = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
+            self.results[run_id][case] = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
                                                dof=self.dof, 
                                                n_robots=self.nr_robots, 
                                                env=env,
                                                stopping_tolerance=stopping_tolerance)
         elif case == "RF":
-            self.results[case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
+            self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
                                                 dof=self.dof, 
                                                 n_robots=self.nr_robots, 
                                                 env=env,
@@ -152,71 +154,46 @@ class ComparisonDinovas():
             env = self.create_environment(self._render)
             for algorithm in self.cases:
                 env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
-                self.run_i(case=algorithm, env=env)
+                self.run_i(case=algorithm, env=env, run_id = i_run)
+         
                 
 
 
 
     def table_results(self):
+        # Save data
+        with open('results/dinovas_tworobots_without_obst_results.pickle', 'wb') as handle:
+            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []
-        title_row = [' ', "Success rate [\%]", "Time-to-Success [s]", "Computation time[s]"]#,"Collision-rate" #'Success-Rate', 'Time-to-Success [s]',
+        title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "Collision-rate"]
         nr_column = len(title_row)
         rows.append(title_row)
         for case in self.cases:
-            rows.append([case,
-                         str(np.round(np.sum(self.results[case].goal_reached) / self.n_runs, decimals=1)) + " $\%$ ", 
-                         str(np.round(np.nanmean(self.results[case].time_to_goal), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(self.results[case].time_to_goal), decimals=4)),
-                        #  str(np.round(np.nanmean(np.concatenate(self.results[case].computation_time, axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(self.results[case].computation_time, axis=0)), decimals=6)),
-                         str(np.round(np.sum(self.results[case].collision) / self.n_runs, decimals=1)),
+            rows.append([case,  
+                         str(np.round(np.sum([entry[case].goal_reached for entry in self.results]) / self.n_runs, decimals=1)) + " $\%$ ", 
+                         str(np.round(np.nanmean([entry[case].time_to_goal for entry in self.results]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd([entry[case].time_to_goal for entry in self.results]), decimals=4)),
+                         str(np.round(np.nanmean(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)), decimals=6)),
+                         str(np.round(np.sum([entry[case].collision for entry in self.results]) / self.n_runs, decimals=1)),
                          ])
-        # for case in self.cases:
-        #     rows.append([case,
-        #                  str(np.round(np.sum(results[case]["goal_reached"]) / self.n_runs, decimals=1)), # + "+-" + str(np.round(np.nanstd(results[case]["goal_reached"]), decimals=4)),
-        #                  str(np.round(np.nanmean(results[case]["time_to_goal"]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd(results[case]["time_to_goal"]), decimals=4)),
-        #                  # str(np.round(np.nanmean(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["solver_times"], axis=0)), decimals=6)),
-        #                  str(np.round(np.nanmean(np.concatenate(results[case]["computation_time"], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate(results[case]["computation_time"], axis=0)), decimals=6)),
-        #                 #  str(np.round(np.sum(results[case]["collision"]) / self.n_runs, decimals=1)),
-        #                  ])
+            
         table = Texttable()
         table.set_cols_align(["c"] * nr_column)
         table.set_deco(Texttable.HEADER | Texttable.VLINES)
         table.add_rows(rows)
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
-        with open('dinovas_tworobots_result.pickle', 'wb') as handle:
-            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+      
 
-import sys
-import os
-@contextlib.contextmanager
-def suppress_stdout():
-    fd = sys.stdout.fileno()
-
-    def _redirect_stdout(to):
-        sys.stdout.close()  # + implicit flush()
-        os.dup2(to.fileno(), fd)  # fd writes to 'to' file
-        sys.stdout = os.fdopen(fd, "w")  # Python writes to fd
-
-    with os.fdopen(os.dup(fd), "w") as old_stdout:
-        with open(os.devnull, "w") as file:
-            _redirect_stdout(to=file)
-        try:
-            yield  # allow code to be run with the redirected stdout
-        finally:
-            _redirect_stdout(to=old_stdout)  # restore stdout.
-            # buffering and flags such as
-            # CLOEXEC may be different
 
 if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    # with suppress_stdout():
-    comparison_dinovas = ComparisonDinovas(n_runs=3, n_steps_per_run=5000)
-    comparison_dinovas.run_comparison(render = True)
+    comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=5000)
+    comparison_dinovas.run_comparison(render = False)
     end_time = time.perf_counter()
-    print("Computational time: ", end_time-start_time)
+    print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()
 
 

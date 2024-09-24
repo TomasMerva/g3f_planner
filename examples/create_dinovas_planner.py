@@ -26,10 +26,10 @@ class Environment():
     def define_files_path(self) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, '..', 'urdfs'))
+        self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, 'urdfs'))
         self.ROBOT_URDF_FILE = self.URDF_FOLDER + "/dinova/dinova.urdf"
 
-        config_path = os.path.join(current_script_dir, '..', '..', 'config', 'dinova_config_full.yaml')
+        config_path = os.path.join(current_script_dir, '..', 'config', 'dinova_config_full_gomp.yaml')
         self.CONFIG_FILE = os.path.normpath(config_path)
 
         with open(self.CONFIG_FILE, 'r') as config_file:
@@ -218,7 +218,8 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     
     # Move to src folder
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    CONTROLLER_FOLDER_NEW = os.path.normpath(os.path.join(current_script_dir, "../../fabrics_rollouts/src/", controller_file))
+    CONTROLLER_FOLDER_NEW = os.path.normpath(os.path.join(current_script_dir, "../fabrics_rollouts/src/", controller_file))
+    print("Controller exported to:", CONTROLLER_FOLDER_NEW)
     shutil.move(controller_file, CONTROLLER_FOLDER_NEW)
     return planner
 

@@ -1,0 +1,229 @@
+"""
+This file generates a table of the results of several simulated experiments with varying
+initial position, goal positions and obstacle positions
+"""
+
+import numpy as np
+from texttable import Texttable
+import latextable
+import copy
+import pickle
+import pybullet
+import random
+import time
+from tqdm import tqdm
+
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from dinovas_pybullet_env import Environment
+from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
+from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
+from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
+from evaluation.record_data import RecordData, EvaluationDataStructure
+
+class ComparisonDinovas():
+    def __init__(self, n_runs=2, n_steps_per_run=1000):
+        self.nr_robots = 3
+        assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
+        self.dof = 11
+        self.n_runs = n_runs
+        self.n_steps_per_run = n_steps_per_run
+        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
+        
+        self.results = [{
+            case: EvaluationDataStructure() for case in self.cases
+        } for _ in range(self.n_runs)]
+
+        self._render = False
+
+    def create_environment(self, render=False):
+        # --- create environment ---#
+        env = Environment(config_file="dinovas_threerobots_onetable.yaml")
+        self._home_config = self.randomize_default_home_config()
+        objects_pos_noise = self.randomize_objects_pos()
+        # env.set_objects_pos_noise(objects_pos_noise)
+        return env
+
+    def euclidean_distance(self, pos_0, pos_1):
+        return np.linalg.norm(pos_0 - pos_1)
+
+
+    def _is_within_annular_region(self, point, outer_radius, inner_radius):
+        distance_from_center = self.euclidean_distance(np.zeros(2), point)
+        return inner_radius < distance_from_center <= outer_radius
+
+    def randomize_default_home_config(self):
+        home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
+        x_range = [-5, 5]
+        y_range = [2.0, 7.0]
+        # z_range = [-3.12, 3.12]
+        z_range = [-2, 2]
+
+        xyz_random = []
+        safety_counter = 0
+        while len(xyz_random) < self.nr_robots:
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5), 
+                         round(random.uniform(y_range[0], y_range[1]), 5), 
+                         round(random.uniform(z_range[0], z_range[1]), 5))
+
+            if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.5 for p in xyz_random):
+                xyz_random.append(new_point)
+            safety_counter += 1
+            if safety_counter >= 50:
+                raise ValueError("Cannot find valid home configurations for so many robots")
+        
+        configs = np.zeros((self.nr_robots, self.dof))
+        for robot in range(self.nr_robots):
+            home_config[0:3] = xyz_random[robot][0:3]
+            configs[robot] = copy.deepcopy(home_config)
+        return configs
+
+    # def randomize_default_home_config(self):
+    #     home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
+    #     inner_radius = 2.0
+    #     outer_radius = 5.0
+    #     z_range = [-3.12, 3.12]
+
+    #     xyz_random = []
+    #     safety_counter = 0
+    #     while len(xyz_random) < self.nr_robots:
+    #         angle = random.uniform(0, 2 * np.pi)
+    #         radius = random.uniform(inner_radius, outer_radius)
+
+    #          # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
+    #         x = round(radius * np.cos(angle), 5)
+    #         y = round(radius * np.sin(angle), 5)
+    #         new_point = (x, y, round(random.uniform(z_range[0], z_range[1]), 5))
+
+    #         if self._is_within_annular_region(new_point[0:2], outer_radius, inner_radius):
+    #             if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.2 for p in xyz_random):
+    #                 xyz_random.append(new_point)
+    #         safety_counter += 1
+    #         if safety_counter >= 20:
+    #             raise ValueError("Cannot find valid home configurations for so many robots")
+        
+        configs = np.zeros((self.nr_robots, self.dof))
+        for robot in range(self.nr_robots):
+            home_config[0:3] = xyz_random[robot][0:3]
+            configs[robot] = copy.deepcopy(home_config)
+        return configs
+
+    def randomize_obstacle_config(self):
+        x_range = [-2, 2]
+        y_range = [1, 2]
+
+        points = []
+        #  8 obstacles in total
+        #  1 obstacle is the table
+        #  2 obstacle spheres for other agents
+        max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
+        for i in range(max_number_of_obsts):
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+                         round(random.uniform(y_range[0], y_range[1]), 5),
+                         0.15)
+            points.append(new_point)
+        return points
+
+    def randomize_objects_pos(self):
+        x_range = [-0.3, 0.3]
+        y_range = [-0.3, 0.3]
+
+        points = []
+
+        max_number_of_objects = self.nr_robots
+        safety_counter = 0
+        while len(points) < max_number_of_objects:
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+                         round(random.uniform(y_range[0], y_range[1]), 5))
+            
+            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
+                points.append(new_point)
+            
+            safety_counter += 1
+            if safety_counter >= 2000:
+                raise ValueError("Cannot find valid points for so many objects")
+        points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+        points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+        return np.asarray(points)
+
+
+    def run_i(self, run_id, case="test", env=None):
+        # --- run example dinovas --- #
+        #["RGF" ,"GF", "RF", "MPC"]
+        stopping_tolerance = 0.07
+        if case == "RGF":
+            self.results[run_id][case]  = gomp_dinova_example(n_steps=self.n_steps_per_run, 
+                                            dof=self.dof, 
+                                            n_robots=self.nr_robots, 
+                                            env=env, 
+                                            render=self._render,
+                                            stopping_tolerance=stopping_tolerance)     
+        elif case == "GF":
+            self.results[run_id][case] = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
+                                               dof=self.dof, 
+                                               n_robots=self.nr_robots, 
+                                               env=env,
+                                               stopping_tolerance=stopping_tolerance)
+        elif case == "RF":
+            self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
+                                                dof=self.dof, 
+                                                n_robots=self.nr_robots, 
+                                                env=env,
+                                                stopping_tolerance=stopping_tolerance)
+                
+        elif case == "MPC":
+            raise ValueError("MPC is not implemented.")
+      
+
+    def run_comparison(self, render):
+        self._render = render
+        for i_run in tqdm(range(self.n_runs)):
+            env = self.create_environment(self._render)
+            for algorithm in self.cases:
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
+                self.run_i(case=algorithm, env=env, run_id = i_run)
+         
+                
+
+
+
+    def table_results(self):
+        # Save data
+        with open('dinovas_tworobots_without_obst_results.pickle', 'wb') as handle:
+            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # --- create and plot table --- #
+        rows = []
+        title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "Collision-rate"]
+        nr_column = len(title_row)
+        rows.append(title_row)
+        for case in self.cases:
+            rows.append([case,  
+                         str(np.round(np.sum([entry[case].goal_reached for entry in self.results]) / self.n_runs, decimals=1)) + " $\%$ ", 
+                         str(np.round(np.nanmean([entry[case].time_to_goal for entry in self.results]), decimals=4)) + " $\pm$ " + str(np.round(np.nanstd([entry[case].time_to_goal for entry in self.results]), decimals=4)),
+                         str(np.round(np.nanmean(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)), decimals=6)),
+                         str(np.round(np.sum([entry[case].collision for entry in self.results]) / self.n_runs, decimals=1)),
+                         ])
+            
+        table = Texttable()
+        table.set_cols_align(["c"] * nr_column)
+        table.set_deco(Texttable.HEADER | Texttable.VLINES)
+        table.add_rows(rows)
+        print('\nTexttable Latex:')
+        print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
+      
+
+
+if __name__ == "__main__":
+    random.seed(0)
+    np.random.seed(0)
+    start_time = time.perf_counter()
+    comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=5000)
+    comparison_dinovas.run_comparison(render = True)
+    end_time = time.perf_counter()
+    print("Total computational time: ", end_time-start_time)
+    comparison_dinovas.table_results()
+
+
+
