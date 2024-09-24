@@ -30,7 +30,7 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF","GF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
         
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
@@ -54,55 +54,55 @@ class ComparisonDinovas():
         distance_from_center = self.euclidean_distance(np.zeros(2), point)
         return inner_radius < distance_from_center <= outer_radius
 
-    # def randomize_default_home_config(self):
-    #     home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-    #     x_range = [-5, 5]
-    #     y_range = [2.0, 7.0]
-    #     # z_range = [-3.12, 3.12]
-    #     z_range = [-2, 2]
-
-    #     xyz_random = []
-    #     safety_counter = 0
-    #     while len(xyz_random) < self.nr_robots:
-    #         new_point = (round(random.uniform(x_range[0], x_range[1]), 5), 
-    #                      round(random.uniform(y_range[0], y_range[1]), 5), 
-    #                      round(random.uniform(z_range[0], z_range[1]), 5))
-
-    #         if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.5 for p in xyz_random):
-    #             xyz_random.append(new_point)
-    #         safety_counter += 1
-    #         if safety_counter >= 50:
-    #             raise ValueError("Cannot find valid home configurations for so many robots")
-        
-    #     configs = np.zeros((self.nr_robots, self.dof))
-    #     for robot in range(self.nr_robots):
-    #         home_config[0:3] = xyz_random[robot][0:3]
-    #         configs[robot] = copy.deepcopy(home_config)
-    #     return configs
-    
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        inner_radius = 2.0
-        outer_radius = 5.0
-        z_range = [-3.12, 3.12]
+        x_range = [-5, 5]
+        y_range = [2.0, 7.0]
+        # z_range = [-3.12, 3.12]
+        z_range = [-2, 2]
 
         xyz_random = []
         safety_counter = 0
         while len(xyz_random) < self.nr_robots:
-            angle = random.uniform(0, 2 * np.pi)
-            radius = random.uniform(inner_radius, outer_radius)
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5), 
+                         round(random.uniform(y_range[0], y_range[1]), 5), 
+                         round(random.uniform(z_range[0], z_range[1]), 5))
 
-             # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
-            x = round(radius * np.cos(angle), 5)
-            y = round(radius * np.sin(angle), 5)
-            new_point = (x, y, round(random.uniform(z_range[0], z_range[1]), 5))
-
-            if self._is_within_annular_region(new_point[0:2], outer_radius, inner_radius):
-                if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.2 for p in xyz_random):
-                    xyz_random.append(new_point)
+            if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.5 for p in xyz_random):
+                xyz_random.append(new_point)
             safety_counter += 1
-            if safety_counter >= 20:
+            if safety_counter >= 50:
                 raise ValueError("Cannot find valid home configurations for so many robots")
+        
+        configs = np.zeros((self.nr_robots, self.dof))
+        for robot in range(self.nr_robots):
+            home_config[0:3] = xyz_random[robot][0:3]
+            configs[robot] = copy.deepcopy(home_config)
+        return configs
+
+    # def randomize_default_home_config(self):
+    #     home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
+    #     inner_radius = 2.0
+    #     outer_radius = 5.0
+    #     z_range = [-3.12, 3.12]
+
+    #     xyz_random = []
+    #     safety_counter = 0
+    #     while len(xyz_random) < self.nr_robots:
+    #         angle = random.uniform(0, 2 * np.pi)
+    #         radius = random.uniform(inner_radius, outer_radius)
+
+    #          # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
+    #         x = round(radius * np.cos(angle), 5)
+    #         y = round(radius * np.sin(angle), 5)
+    #         new_point = (x, y, round(random.uniform(z_range[0], z_range[1]), 5))
+
+    #         if self._is_within_annular_region(new_point[0:2], outer_radius, inner_radius):
+    #             if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.2 for p in xyz_random):
+    #                 xyz_random.append(new_point)
+    #         safety_counter += 1
+    #         if safety_counter >= 20:
+    #             raise ValueError("Cannot find valid home configurations for so many robots")
         
         configs = np.zeros((self.nr_robots, self.dof))
         for robot in range(self.nr_robots):

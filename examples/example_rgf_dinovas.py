@@ -72,7 +72,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
         num_dofs = NUM_DOF-NUM_GRIPPER_FINGERS,
     )
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(current_script_dir, '..', 'config/dinova_config_full_gomp.yaml')
+    config_path = os.path.join(current_script_dir, '..', 'config/dinova_config_create_planner.yaml')
     CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
     planner = RGF_Planner(fk_args=fk_args,
                           config_file_path=CONFIG_FILE_PATH_GOMP,
@@ -146,7 +146,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                     # Log data
                     evaluation_data.record_computational_time(end_time-start_time)
 
-                    # if solver_status_robots[robot_id]:
                     if timestep == 0:
                         waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
                     elif solver_status_robots[robot_id]:
@@ -194,9 +193,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
 
                     
-            # for robot_id in range(NUM_ROBOTS):
-            # error = fabrics.error(goal_pos=T_W_Objects[robot_id][:3, 3], q_current=robot_states[robot_id][0])
-            #goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]
             if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
@@ -205,8 +201,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
         if np.all(success_rate_per_robot):
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
-            print("Success")
-            time.sleep(2)
             break
 
         evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))

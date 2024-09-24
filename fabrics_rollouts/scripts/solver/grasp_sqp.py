@@ -71,13 +71,13 @@ class GompSQP():
             u_list.append(np.array(u_g))
  
         A_new = sparse.vstack(A_list, format='csc')
-        # self._solver.update(q=-self._ref_guess_weight*x0.reshape(-1,1),
-        #                     Ax=A_new.data, 
-        #                     l=np.concatenate(l_list), 
-        #                     u=np.concatenate(u_list))
-        self._solver.update(Ax=A_new.data, 
+        self._solver.update(q=-self._ref_guess_weight*x0.reshape(-1,1),
+                            Ax=A_new.data, 
                             l=np.concatenate(l_list), 
                             u=np.concatenate(u_list))
+        # self._solver.update(Ax=A_new.data, 
+        #                     l=np.concatenate(l_list), 
+        #                     u=np.concatenate(u_list))
 
     def solve(self, x_init=None):
         if x_init is not None:
