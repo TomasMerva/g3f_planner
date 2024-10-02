@@ -1,5 +1,9 @@
 # grasp_fabrics
 
+## ToDo list
+- [ ] remove pytorch_kinematics module but check the computational time
+- [ ] change name of the repo/method
+
 
 ## Requirements
 ```bash
