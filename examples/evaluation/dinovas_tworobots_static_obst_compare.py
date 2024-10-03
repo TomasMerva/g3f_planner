@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """
 This file generates a table of the results of several simulated experiments with varying
 initial position, goal positions and obstacle positions
@@ -12,7 +13,7 @@ import pybullet
 import random
 import time
 from tqdm import tqdm
-
+import math
 
 import sys
 import os
@@ -30,7 +31,7 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF","GF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
         
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
@@ -58,8 +59,8 @@ class ComparisonDinovas():
 
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        x_range = [-3, 3]
-        y_range = [2.0, 5.0]
+        x_range = [-4, 4]
+        y_range = [2.5, 5.0]
         # z_range = [-3.12, 3.12]
         z_range = [-2, 2]
 
@@ -83,19 +84,40 @@ class ComparisonDinovas():
         return configs
 
     def randomize_obstacle_config(self):
-        x_range = [-2, 2]
-        y_range = [1, 2]
+        # x_range = [-1, 1]
+        # y_range = [2, 3]
 
-        points = []
-        #  8 obstacles in total
-        #  1 obstacle is the table
-        #  2 obstacle spheres for other agents
+        # points = []
+        # #  8 obstacles in total
+        # #  1 obstacle is the table
+        # #  2 obstacle spheres for other agents
+        # max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
+        # for i in range(max_number_of_obsts):
+        #     new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+        #                  round(random.uniform(y_range[0], y_range[1]), 5),
+        #                  0.15)
+        #     points.append(new_point)
+        # print(points)
+
+        # return points
         max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
+        outer_radius = 2.5  # Outer radius of the circle
+        inner_radius = 1.5
+        points = []
+    
         for i in range(max_number_of_obsts):
-            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
-                         round(random.uniform(y_range[0], y_range[1]), 5),
-                         0.15)
-            points.append(new_point)
+            # Generate random angle and radius
+            angle = random.uniform(0, 2 * math.pi)
+            radius = random.uniform(inner_radius, outer_radius)
+            
+            # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
+            x = round(radius * math.cos(angle), 5)
+            y = round(radius * math.sin(angle), 5)
+            new_point = (x, y, 0.15)
+            
+            # Check if the new point is far enough from all existing points and within the annular region
+            if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius):
+                points.append(new_point)
         return points
 
     def randomize_objects_pos(self):
@@ -191,8 +213,8 @@ if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=5000)
-    comparison_dinovas.run_comparison(render = False)
+    comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=100)
+    comparison_dinovas.run_comparison(render = True)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()
