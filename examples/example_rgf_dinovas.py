@@ -136,7 +136,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                             r_obsts[chassis_idx] = 0.7
                             r_obsts[wrist_idx] = 0.3
                             counter += 1
-            
+               
                     start_time = time.perf_counter()
                     waypoint_list, solver_status_robots[robot_id] = planner.solve(joint_state=robot_states[robot_id], 
                                                                                 T_W_Obj=T_W_Objects[robot_id],
@@ -167,16 +167,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                     if current_goal_dict is not None:
                         T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
 
-            if timestep%100 == 0:
-                position = T_W_Goals[robot_id][:3, 3]  
-                rotation_matrix = T_W_Goals[robot_id][:3, :3]
-                axis_length = 0.2
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 0] * axis_length, [1, 0, 0], lineWidth=3, lifeTime=1.0)
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
-
-     
-        
+            
             num_obst2replace = -2*(n_robots-1)
             counter = 0
             for i in range(n_robots):
@@ -207,6 +198,13 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
             x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
 
+            if timestep%100 == 0:
+                position = T_W_Goals[robot_id][:3, 3]  
+                rotation_matrix = T_W_Goals[robot_id][:3, :3]
+                axis_length = 0.2
+                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 0] * axis_length, [1, 0, 0], lineWidth=3, lifeTime=1.0)
+                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
+                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
  
 

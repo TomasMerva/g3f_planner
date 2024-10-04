@@ -33,7 +33,8 @@ class RGF_Planner():
         self.num_waypoints = self._CONFIG["gomp"]["n_waypoints"]
         self.num_obstacles = self._CONFIG["problem"]["environment"]["number_spheres"]["static"]
         self.num_optim_steps = self._CONFIG["gomp"]["n_optim_steps"]
-        self.r_obsts = r_obsts
+        # self.r_obsts = r_obsts
+        self.r_obsts = [0.3, 0.7, 0.2]
 
         self.establish_rollouts()
         self.establish_planner()
@@ -99,8 +100,9 @@ class RGF_Planner():
                                                                 r_obst = self.obstacles["obst_"+str(id_obst)]
                                                                 )
                     self.collision_constraint_names.append(name)
+                    # print(f"{name} = {self.obstacles['obst_'+str(id_obst)]}")
                     self._gomp_planner.param_dict[name]["num_param"] = np.array([100, 100, 100])
-        
+           
     def update_gomp_parameters(self, q_current, T_W_Obj, obst_pos=None):
         self._T_W_Obj[:3,3] = T_W_Obj[:3,3]
         self.theta_preference = self.compute_theta_preference(q_current, self._T_W_Obj)
