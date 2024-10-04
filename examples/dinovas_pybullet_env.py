@@ -3,7 +3,7 @@ import numpy as np
 import os
 import yaml
 import random
-
+import copy
 from forwardkinematics.urdfFks.generic_urdf_fk import GenericURDFFk
 from urdfenvs.urdf_common.urdf_env import UrdfEnv
 from urdfenvs.robots.generic_urdf import GenericUrdfReacher
@@ -20,6 +20,8 @@ class Environment():
                                      ])
         
         self._objects_pose_noise = None
+        self.table_pos = [0., 0.0, 0.0]
+        self.z_table = 0.3
 
     def _define_files_path(self, env_config_file) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -35,11 +37,29 @@ class Environment():
             self.CONFIG_PROBLEM = self.CONFIG['problem']
             self.CONFIG_FABRICS = self.CONFIG['fabrics']
 
+    def store_randomized_settings(self):
+        obstacles = list(self._obstacles_dict.values())
+        positions_obsts = [obstacles[i_obst]["position"] for i_obst in range(len(obstacles))]
+        radii_obsts = [obstacles[i_obst]["radius"] for i_obst in range(len(obstacles))]
+        q_home = [list(self.home_config[i_robot]) for i_robot in range(self.n_robots)]
+        goal_positions = [list(self.get_cup(i_robot)[0]) for i_robot in range(self.n_robots)]
+        scenario = {
+            "goal_positions":goal_positions,
+            "q_home":q_home,
+            "positions_obsts":positions_obsts,
+            "radii_obsts":radii_obsts,
+        }
+        return scenario
+
+    def return_randomized_settings(self):
+        return self.scenarios
     
     def initialize(self, render : bool = True, 
                    nr_robots: int=1, 
-                   home_config=None) -> tuple:
+                   home_config=None,
+                   nr_tables: int=1) -> tuple:
         self.n_robots = nr_robots
+        self.nr_tables = nr_tables
         robots_urdf = []
         for robot_id in range(self.n_robots):
             robots_urdf.append(self.URDF_FOLDER + "/dinova/dinova_" + str(robot_id+1) +".urdf")
@@ -133,14 +153,43 @@ class Environment():
         
         pybullet.setGravity(0,0,0)
         self.load_scene()
+        self.scenario = self.store_randomized_settings()
         return (self.env, self.goal)
+
+    def return_scenario_information(self):
+        return self.scenario
     
     def load_scene(self) -> tuple:
         # Table
-        if self.n_robots == 3:
+        if self.n_robots == 2 and self.nr_tables > 1:
+            URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
+            table_poses = [copy.deepcopy(self.table_pos) for _ in range(self.nr_tables)]
+            for i_table in range(self.nr_tables):
+                table_poses[1] = self._obstacles_dict["obstacle"+str(i_table+1)]["position"]
+            z_table = self.z_table
+
+            if self._objects_pose_noise is None:
+                objects_pos = [
+                    [table_poses[0][0] - 0.05, table_poses[0][1] + 0.1, z_table],
+                    [table_poses[1][0] + 0.05, table_poses[1][1] + 0.1, z_table],
+                    [table_poses[0][0] - 0.05, table_poses[0][1] - 0.1, z_table],
+                    [table_poses[1][0] + 0.05, table_poses[1][1] - 0.1, z_table],
+                ]
+            else:
+                objects_pos = [
+                    [table_poses[0][0] + self._objects_pose_noise[0][0], table_poses[0][1] - self._objects_pose_noise[0][1],
+                     z_table],
+                    [table_poses[1][0] + self._objects_pose_noise[1][0], table_poses[1][1] - self._objects_pose_noise[1][1],
+                     z_table],
+                    [table_poses[0][0] + self._objects_pose_noise[2][0], table_poses[0][1] - self._objects_pose_noise[2][1],
+                     z_table],
+                    [table_poses[1][0] + self._objects_pose_noise[3][0], table_poses[1][1] - self._objects_pose_noise[3][1],
+                     z_table],
+                ]
+        elif self.n_robots == 3:
             URDF_table = self.URDF_FOLDER + "/table_100x100/table_square.urdf"
-            table_pos = [0., 0.0, 0.0]
-            z_table = 0.3
+            table_pos = self.table_pos
+            z_table = self.z_table
             
             if self._objects_pose_noise is None:
                 objects_pos = [
@@ -159,8 +208,8 @@ class Environment():
         else:
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
 
-            table_pos = [0., 0.0, 0.0]
-            z_table = 0.3
+            table_pos = self.table_pos
+            z_table = self.z_table
             
             if self._objects_pose_noise is None:
                 objects_pos = [
@@ -182,7 +231,11 @@ class Environment():
             urdf_file = self.URDF_FOLDER + "/cup/cup_" + str(object_id+1) +".urdf"
             object_pybulletID = pybullet.loadURDF(urdf_file, basePosition=objects_pos[object_id])
             self.scene_id["cup_"+str(object_id)] = object_pybulletID
-        self.scene_id["table"] = pybullet.loadURDF(URDF_table, basePosition=table_pos,  globalScaling=1)
+        if self.nr_tables <= 1:
+            self.scene_id["table"] = pybullet.loadURDF(URDF_table, basePosition=table_pos,  globalScaling=1)
+        else:
+            for i_table in range(self.nr_tables):
+                self.scene_id["table"] = pybullet.loadURDF(URDF_table, basePosition=table_poses[i_table], globalScaling=1)
 
     def get_config_file_path(self):
         return self.CONFIG_FILE
