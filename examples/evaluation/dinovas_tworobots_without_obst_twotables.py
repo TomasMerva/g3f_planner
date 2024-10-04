@@ -30,7 +30,7 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["GF", "RGF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -45,6 +45,17 @@ class ComparisonDinovas():
         objects_pos_noise = self.randomize_objects_pos()
         obsts_pos = self.randomize_obstacle_config()
         env.set_objects_pos_noise(objects_pos_noise)
+        return env
+
+    def load_environment(self, run_id=0):
+        env = Environment()
+        pickle_file_path = 'results/dinovas_tworobots_without_obst_results.pickle'
+        # Step 3: Open the pickle file in binary read mode
+        with open(pickle_file_path, 'rb') as file:
+            # Step 4: Use pickle.load() to load the data from the file
+            data = pickle.load(file)
+        environment_settings = data["environment_settings"]
+        self._home_config = np.array(environment_settings[run_id]["q_home"])
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
@@ -147,10 +158,13 @@ class ComparisonDinovas():
             raise ValueError("MPC is not implemented.")
       
 
-    def run_comparison(self, render):
+    def run_comparison(self, render, LOAD_SCENARIO=False):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
-            env = self.create_environment(self._render)
+            if LOAD_SCENARIO:
+                env = self.load_environment(run_id=1)
+            else:
+                env = self.create_environment(self._render)
             for algorithm in self.cases:
                 env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
                 self.run_i(case=algorithm, env=env, run_id = i_run)
@@ -191,8 +205,8 @@ if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=2, n_steps_per_run=3000)
-    comparison_dinovas.run_comparison(render = False)
+    comparison_dinovas = ComparisonDinovas(n_runs=10, n_steps_per_run=5000)
+    comparison_dinovas.run_comparison(render =False, LOAD_SCENARIO=False)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()
