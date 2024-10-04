@@ -20,9 +20,17 @@
           <box size="1 1 0.02"/>
       </geometry>
 	    <material name="framemat0">
-      <color rgba="0.8 0.66 0.49 1" />
+        <color rgba="0.8 0.66 0.49 1" />
       </material>
     </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0.29"/>
+      <geometry>
+          <box size="1 1 0.02"/>
+      </geometry>
+    </collision>   
+
+
     <visual>
       <origin rpy="0 0 0" xyz="-0.40 -0.40 0.15"/>
       <geometry>
@@ -50,12 +58,7 @@
         <box size="0.025 0.025 0.30"/>
       </geometry>
     </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0.6"/>
-      <geometry>
-      <box size="0.6 0.6 0.08"/>
-      </geometry>
-    </collision>    
+   
   </link>
 </robot>
 

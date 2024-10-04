@@ -118,25 +118,31 @@ class Fabrics():
             radius_body_arm_end_effector_link = self._collision_links[5],
         )
 
+
+    def compute_dynamic_weights(self, q, T_W_Goal):
+        position_error = self.error(goal_pos=T_W_Goal[:3,3],
+                                    q_current=q)
+        self.weight_goal_0, self.weight_goal_1, self.weight_goal_2, self.weight_goal_3 = self.set_runtime_weights(position_error)
+
     def update_arguments(self, joint_state, T_W_Goal, obst_pos=None, obst_radius=None):
         p_orient_rot_x = T_W_Goal[:3,:3] @ self._x_goal_1_x
         p_orient_rot_z = T_W_Goal[:3,:3] @ self._x_goal_2_z
 
-        position_error = self.error(goal_pos=T_W_Goal[:3,3],
-                                    q_current=joint_state[0])
-        weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = self.set_runtime_weights(position_error)
+        # position_error = self.error(goal_pos=T_W_Goal[:3,3],
+        #                             q_current=joint_state[0])
+        # weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = self.set_runtime_weights(position_error)
         theta_preference = self.get_theta_preference(q = joint_state[0], \
                                                      goal_position=T_W_Goal[:3,3])
         self._arguments_dict["q"] = joint_state[0]
         self._arguments_dict["qdot"] = joint_state[1]
         self._arguments_dict["x_goal_0"] = T_W_Goal[:3,3]
-        self._arguments_dict["weight_goal_0"] = weight_goal_0
+        self._arguments_dict["weight_goal_0"] = self.weight_goal_0
         self._arguments_dict["x_goal_1"] = p_orient_rot_x
-        self._arguments_dict["weight_goal_1"] = weight_goal_1
+        self._arguments_dict["weight_goal_1"] = self.weight_goal_1
         self._arguments_dict["x_goal_2"] = p_orient_rot_z
-        self._arguments_dict["weight_goal_2"] = weight_goal_2
+        self._arguments_dict["weight_goal_2"] = self.weight_goal_2
         self._arguments_dict["x_goal_3"] = [theta_preference]
-        self._arguments_dict["weight_goal_3"] = weight_goal_3
+        self._arguments_dict["weight_goal_3"] = self.weight_goal_3
         if obst_pos is not None:
             self._arguments_dict["x_obsts"] = obst_pos
         if obst_radius is not None:

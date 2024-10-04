@@ -6,12 +6,12 @@ problem:
     number_planes: 0
     number_spheres:
       dynamic: 0
-      static: 8
+      static: 3
     obstacle_definition:
       obstacle1:
         type: sphere
         position: [0.0, 0.0, 0.0]
-        radius: 0.25
+        radius: 0.3
       obstacle2:
         type: sphere
         position: [-10.3, -0.3, 0.3]
@@ -19,26 +19,6 @@ problem:
       obstacle3:
         type: sphere
         position: [10.5, 1.3, 0.3]
-        radius: 0.2
-      obstacle4:
-        type: sphere
-        position: [-10.3, -0.3, 0.3]
-        radius: 0.2
-      obstacle5:
-        type: sphere
-        position: [10.5, 1.3, 0.3]
-        radius: 0.2
-      obstacle6:
-        type: sphere
-        position: [-10.3, -0.3, 0.3]
-        radius: 0.2
-      obstacle7:
-        type: sphere
-        position: [10.5, 1.3, 0.3]
-        radius: 0.2
-      obstacle8:
-        type: sphere
-        position: [-10.3, -0.3, 0.3]
         radius: 0.2
   goal:
     goal_definition:
@@ -125,13 +105,13 @@ fabrics:
   finsler_plane_constraint: 0.2/(x**2) * xdot**2
 gomp:
   n_waypoints : 10
-  n_obstacles : 8 #0975
   collision_links : ["chassis_link", "arm_upper_wrist_link"]
   collision_link_radius : [0.6, 0.2]
-  rollout_dt : 0.1
+  rollout_dt : 0.05
   rollout_timesteps : 500
   rollout_tolerance : 0.1
   alpha_filter: 0.7
   initial_grasp_roll_deg : 90
   verbose: False
-  n_optim_steps : 5
+  n_optim_steps : 2
+  fabrics_lib : "libfabrics_controller_3obst.so"

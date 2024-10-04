@@ -84,40 +84,41 @@ class ComparisonDinovas():
         return configs
 
     def randomize_obstacle_config(self):
-        # x_range = [-1, 1]
-        # y_range = [2, 3]
+        x_range = [-1, 1]
+        y_range = [2, 3]
 
-        # points = []
-        # #  8 obstacles in total
-        # #  1 obstacle is the table
-        # #  2 obstacle spheres for other agents
+        points = []
+        #  8 obstacles in total
+        #  1 obstacle is the table
+        #  2 obstacle spheres for other agents
         # max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
-        # for i in range(max_number_of_obsts):
-        #     new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
-        #                  round(random.uniform(y_range[0], y_range[1]), 5),
-        #                  0.15)
-        #     points.append(new_point)
-        # print(points)
+        max_number_of_obsts = 2
+        for i in range(max_number_of_obsts):
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+                         round(random.uniform(y_range[0], y_range[1]), 5),
+                         0.15)
+            points.append(new_point)
 
         # return points
-        max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
-        outer_radius = 2.5  # Outer radius of the circle
-        inner_radius = 1.5
-        points = []
+        # # max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
+        # max_number_of_obsts = 2
+        # outer_radius = 2.5  # Outer radius of the circle
+        # inner_radius = 1.5
+        # points = []
     
-        for i in range(max_number_of_obsts):
-            # Generate random angle and radius
-            angle = random.uniform(0, 2 * math.pi)
-            radius = random.uniform(inner_radius, outer_radius)
+        # for i in range(max_number_of_obsts):
+        #     # Generate random angle and radius
+        #     angle = random.uniform(0, 2 * math.pi)
+        #     radius = random.uniform(inner_radius, outer_radius)
             
-            # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
-            x = round(radius * math.cos(angle), 5)
-            y = round(radius * math.sin(angle), 5)
-            new_point = (x, y, 0.15)
+        #     # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
+        #     x = round(radius * math.cos(angle), 5)
+        #     y = round(radius * math.sin(angle), 5)
+        #     new_point = (x, y, 0.15)
             
-            # Check if the new point is far enough from all existing points and within the annular region
-            if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius):
-                points.append(new_point)
+        #     # Check if the new point is far enough from all existing points and within the annular region
+        #     if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius):
+        #         points.append(new_point)
         return points
 
     def randomize_objects_pos(self):
@@ -213,7 +214,7 @@ if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=100)
+    comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=10000)
     comparison_dinovas.run_comparison(render = True)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)

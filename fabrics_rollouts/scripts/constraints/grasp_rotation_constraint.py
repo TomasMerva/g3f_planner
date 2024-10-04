@@ -16,7 +16,7 @@ class GraspRotationConstraint(ConstraintTemplate):
 
         x_G = param_T_W_Grasp[:3,0] / ca.norm_2(param_T_W_Grasp[:3,0])
         x_EEF = T_W_EEF[:3,0] / ca.norm_2(T_W_EEF[:3,0])
-        self._g = x_G.T @ x_EEF
+        self._g = x_G.T @ np.eye(3)  @  x_EEF
         
         # self._g = ca.cross(x_G, x_EEF)
         self._gradient = ca.jacobian(self._g, x_robot)

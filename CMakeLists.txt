@@ -9,6 +9,15 @@ add_library(${PROJECT_NAME} SHARED
   ${SRC_PATH}/src/pure_controller.cpp
 )
 
+add_library(fabrics_controller_3obst SHARED
+  ${SRC_PATH}/src/fabrics_controller_3obst.cpp
+)
+
+add_library(fabrics_controller_5obst SHARED
+  ${SRC_PATH}/src/fabrics_controller_5obst.cpp
+)
+
+
 
 
 # cmake_minimum_required(VERSION 3.0.2)

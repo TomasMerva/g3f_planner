@@ -83,7 +83,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                     counter += 1
             # Planner computes new action
             start_time = time.perf_counter()
-            
+            fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
+                                            T_W_Goal=T_W_Goals[robot_id])
             fabrics.update_arguments(joint_state= robot_states[robot_id],
                                     T_W_Goal=T_W_Goals[robot_id],
                                     obst_pos=x_obsts,
@@ -97,8 +98,9 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             evaluation_data.record_computational_time(end_time-start_time)
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
             x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
-            if fabrics.error(goal_pos=T_W_Objects[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
+            if fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
+                print(f"Robot {robot_id} has finished")
 
         ob, *_ = sim.step(action)
 
