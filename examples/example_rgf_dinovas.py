@@ -36,7 +36,7 @@ def run_dinova_example(n_steps,
                        dof,
                        n_robots, 
                        env:Environment, 
-                       nr_obst = 8,
+                       nr_obst = 3,
                        render=False, 
                        stopping_tolerance=0.05):
     RENDER = render

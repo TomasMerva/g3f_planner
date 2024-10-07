@@ -27,7 +27,7 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF","GF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -194,16 +194,19 @@ class ComparisonDinovas():
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
 
-
-if __name__ == "__main__":
+def main(render=False, n_runs=1, timesteps=5000):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=10, n_steps_per_run=5000)
-    comparison_dinovas.run_comparison(render =False)
+    comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps)
+    comparison_dinovas.run_comparison(render =render)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()
+    return {}
+
+if __name__ == "__main__":
+    main()
 
 
 

@@ -236,17 +236,19 @@ class ComparisonDinovas():
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
-
-
-if __name__ == "__main__":
+def main(render=True, n_runs=20, timesteps=5000):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=20, n_steps_per_run=5000)
-    comparison_dinovas.run_comparison(render =True, LOAD_SCENARIO=False)
+    comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps)
+    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()
+    return {}
+
+if __name__ == "__main__":
+    main()
 
 
 
