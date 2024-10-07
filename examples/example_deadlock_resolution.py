@@ -241,15 +241,12 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
 
     return evaluation_data.get_result()
 
-
-
-if __name__=="__main__":
-    RENDER = True
+def main(render=True, timesteps=2000):
+    RENDER = render
     NUM_ROBOTS = 2
     NUM_DOF = 11
     NUM_GRIPPER_FINGERS = 2
-    NUM_TIMESTEPS = 2000
-
+    NUM_TIMESTEPS = timesteps
 
     # Environment
     env = Environment()
@@ -260,6 +257,9 @@ if __name__=="__main__":
                        env=env,
                        render=RENDER
                        )
-                       
+    return {}
+
+if __name__=="__main__":
+    main()
 
     
