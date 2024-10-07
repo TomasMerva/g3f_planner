@@ -168,6 +168,7 @@ class ComparisonDinovas():
                                             dof=self.dof, 
                                             n_robots=self.nr_robots, 
                                             env=env, 
+                                            nr_obst=3,
                                             render=self._render,
                                             stopping_tolerance=stopping_tolerance)     
         elif case == "GF":
