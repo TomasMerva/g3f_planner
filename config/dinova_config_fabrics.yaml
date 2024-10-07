@@ -14,7 +14,7 @@ problem:
         radius: 0.25
       obstacle2:
         type: sphere
-        position: [-10.3, -0.3, 0.3]
+        position: [2.0, 0.0, 0.0]
         radius: 0.15
       obstacle3:
         type: sphere
