@@ -174,6 +174,7 @@ class ComparisonDinovas():
                     obst_dict = env.get_obstacles()
                     self.scenarios[i_run] = {
                         "q_home" : env.get_home_configs(),
+                        "x_objects" : env.get_object_pose(),
                         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
                         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
                         }
@@ -181,7 +182,7 @@ class ComparisonDinovas():
          
                 
         with open('results/dinovas_tworobots_without_obst_env.pickle', 'wb') as handle:
-            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
@@ -213,7 +214,7 @@ if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=10, n_steps_per_run=5000)
+    comparison_dinovas = ComparisonDinovas(n_runs=20, n_steps_per_run=5000)
     comparison_dinovas.run_comparison(render =True, LOAD_SCENARIO=False)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)

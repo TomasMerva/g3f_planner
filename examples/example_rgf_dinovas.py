@@ -60,8 +60,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
     for i in range(n_robots-1):
         chassis_idx = num_obst2replace + 2*i
         wrist_idx = num_obst2replace + 2*i + 1
-        r_obsts[chassis_idx] = 0.6
-        r_obsts[wrist_idx] = 0.2
+        # r_obsts[chassis_idx] = 0.6
+        # r_obsts[wrist_idx] = 0.2
     x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(n_robots)}
 
     
@@ -76,8 +76,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
     config_path = os.path.join(current_script_dir, '..', 'config/dinova_config_rgf_3obst.yaml')
     CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
     planner = RGF_Planner(fk_args=fk_args,
-                          config_file_path=CONFIG_FILE_PATH_GOMP,
-                          r_obsts=r_obsts)
+                          config_file_path=CONFIG_FILE_PATH_GOMP
+                         )
     
     
     # Fabrics
@@ -86,7 +86,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                       degrees_of_freedom=NUM_DOF-NUM_GRIPPER_FINGERS)
     
     # Reference
-    reference_tracker = ReferenceTracker(tolerance_gripper=0.2, ub=1.0, lb=0.1)
+    reference_tracker = ReferenceTracker(tolerance_gripper=0.2, ub=1.0, lb=0.2)
     waypoints_list_robots = [None]* NUM_ROBOTS
     solver_status_robots = [None] * NUM_ROBOTS  
 
@@ -133,8 +133,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                             wrist_idx = num_obst2replace + 2*counter + 1
                             x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                             x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                            r_obsts[chassis_idx] = 0.7
-                            r_obsts[wrist_idx] = 0.3
                             counter += 1
                
                     start_time = time.perf_counter()
@@ -178,8 +176,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                     wrist_idx = num_obst2replace + 2*counter + 1
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                    r_obsts[chassis_idx] = 0.45
-                    r_obsts[wrist_idx] = 0.2
+                    # r_obsts[chassis_idx] = 0.45
+                    # r_obsts[wrist_idx] = 0.2
                     counter += 1
 
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
@@ -194,7 +192,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                     
             if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
-                print(f"Robot {robot_id} has finished")
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
             x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
 

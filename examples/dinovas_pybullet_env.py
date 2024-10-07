@@ -218,3 +218,9 @@ class Environment():
 
     def get_home_configs(self):
         return self.home_config
+    
+    def get_object_pose(self):
+        x = []
+        for i in range(self.n_robots):
+            x.append(self.get_cup(i))
+        return x
