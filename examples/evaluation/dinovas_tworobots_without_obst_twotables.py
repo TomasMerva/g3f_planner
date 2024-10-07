@@ -155,7 +155,7 @@ class ComparisonDinovas():
             raise ValueError("MPC is not implemented.")
       
 
-    def run_comparison(self, render):
+    def run_comparison(self, render, SAVE_DATA):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
             env = self.create_environment(self._render)
@@ -163,7 +163,8 @@ class ComparisonDinovas():
                 env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
                 self.run_i(case=algorithm, env=env, run_id = i_run)
                 self.scenarios[i_run] = env.return_scenario_information()
-         
+        #TODO: This has to be unified with my imlementation, either I will modify mine or you yours. 
+        #      We should compare and decide which one is better
                 
 
 
@@ -194,15 +195,15 @@ class ComparisonDinovas():
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
 
-def main(render=False, n_runs=1, timesteps=5000):
+def main(render=False, n_runs=1, timesteps=5000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps)
+    comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps, SAVE_DATA= save_data)
     comparison_dinovas.run_comparison(render =render)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
-    comparison_dinovas.table_results()
+    # comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
