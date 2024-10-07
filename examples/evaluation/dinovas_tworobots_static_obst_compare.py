@@ -38,6 +38,7 @@ class ComparisonDinovas():
         } for _ in range(self.n_runs)]
 
         self._render = False
+        self.scenarios = {}
 
     def create_environment(self, render=False):
         # --- create environment ---#
@@ -125,19 +126,47 @@ class ComparisonDinovas():
         x_range = [-0.3, 0.3]
         y_range = [-0.3, 0.3]
 
-        points = []
+        # points = []
 
-        max_number_of_objects = self.nr_robots
-        safety_counter = 0
-        while len(points) < max_number_of_objects:
-            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
-                         round(random.uniform(y_range[0], y_range[1]), 5))
+        # max_number_of_objects = self.nr_robots
+        # safety_counter = 0
+        # while len(points) < max_number_of_objects:
+        #     new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+        #                  round(random.uniform(y_range[0], y_range[1]), 5))
             
-            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
+        #     if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
+        #         points.append(new_point)
+            
+        #     safety_counter += 1
+        #     if safety_counter >= 2000:
+        #         raise ValueError("Cannot find valid points for so many objects")
+        # points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+        # points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+        # return np.asarray(points)
+        
+        outer_radius = 0.3  # Outer radius of the circle
+        inner_radius = 0.15
+        tolerance = 0.4
+        points = []
+        counter = 0
+        max_number_of_objects = self.nr_robots
+        while len(points) < max_number_of_objects:
+            # Generate random angle and radius
+            angle = random.uniform(0, 2 * math.pi)
+            radius = random.uniform(inner_radius, outer_radius)
+            
+            # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
+            x = round(radius * math.cos(angle), 5)
+            y = round(radius * math.sin(angle), 5)
+            new_point = (x, y)
+            
+            # Check if the new point is far enough from all existing points and within the annular region
+            if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius) \
+                and all(self.euclidean_distance(np.array(new_point), np.array(p)) > tolerance for p in points):
                 points.append(new_point)
             
-            safety_counter += 1
-            if safety_counter >= 2000:
+            counter += 1
+            if counter > 200:
                 raise ValueError("Cannot find valid points for so many objects")
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
@@ -172,15 +201,29 @@ class ComparisonDinovas():
             raise ValueError("MPC is not implemented.")
       
 
-    def run_comparison(self, render):
+    def run_comparison(self, render, LOAD_SCENARIO=False):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
-            env = self.create_environment(self._render)
-            for algorithm in self.cases:
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
+            if LOAD_SCENARIO:
+                env = self.load_environment(run_id=1)
+            else:
+                env = self.create_environment(self._render)
+                
+            for i, algorithm in enumerate(self.cases):
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)                    
+                if i == 0:
+                    obst_dict = env.get_obstacles()
+                    self.scenarios[i_run] = {
+                        "q_home" : env.get_home_configs(),
+                        "x_objects" : env.get_object_pose(),
+                        "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
+                        "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
+                        }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
          
                 
+        with open('results/dinovas_tworobots_without_obst_env.pickle', 'wb') as handle:
+            pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 
@@ -214,8 +257,8 @@ if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=10000)
-    comparison_dinovas.run_comparison(render = True)
+    comparison_dinovas = ComparisonDinovas(n_runs=20, n_steps_per_run=5000)
+    comparison_dinovas.run_comparison(render =True, LOAD_SCENARIO=False)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()

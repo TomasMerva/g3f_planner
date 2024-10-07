@@ -12,7 +12,7 @@ from fabrics_rollouts import ReferenceTracker
 
 
 class RGF_Planner():
-    def __init__(self, fk_args, config_file_path, r_obsts) -> None:
+    def __init__(self, fk_args, config_file_path) -> None:
         self._fk_args = fk_args
 
         self._CONFIG_FILE_PATH = config_file_path
@@ -33,9 +33,9 @@ class RGF_Planner():
         self.num_waypoints = self._CONFIG["gomp"]["n_waypoints"]
         self.num_obstacles = self._CONFIG["problem"]["environment"]["number_spheres"]["static"]
         self.num_optim_steps = self._CONFIG["gomp"]["n_optim_steps"]
-        # self.r_obsts = r_obsts
-        self.r_obsts = [0.3, 0.7, 0.2]
-
+        self._obst_definition = self._CONFIG["problem"]["environment"]["obstacle_definition"]
+        self.r_obsts = [self._obst_definition[obst]["radius"] for obst in self._obst_definition]
+        
         self.establish_rollouts()
         self.establish_planner()
 
