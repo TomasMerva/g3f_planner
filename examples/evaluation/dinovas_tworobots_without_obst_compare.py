@@ -188,7 +188,7 @@ class ComparisonDinovas():
             raise ValueError("MPC is not implemented.")
       
 
-    def run_comparison(self, render, LOAD_SCENARIO=False):
+    def run_comparison(self, render, LOAD_SCENARIO=False, SAVE_DATA=False):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
             if LOAD_SCENARIO:
@@ -208,9 +208,9 @@ class ComparisonDinovas():
                         }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
          
-                
-        with open('results/dinovas_tworobots_without_obst_env.pickle', 'wb') as handle:
-            pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        if SAVE_DATA:
+            with open('results/dinovas_tworobots_without_obst_env.pickle', 'wb') as handle:
+                pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
@@ -236,15 +236,15 @@ class ComparisonDinovas():
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
-def main(render=True, n_runs=20, timesteps=5000):
+def main(render=True, n_runs=20, timesteps=6000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps)
-    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False)
+    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False, SAVE_DATA=save_data)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
-    comparison_dinovas.table_results()
+    # comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":

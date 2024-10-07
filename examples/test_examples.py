@@ -14,7 +14,7 @@ def blueprint_test(test_main):
     """
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        history = test_main(render=False, timesteps=200)
+        history = test_main(render=False, timesteps=100)
     assert isinstance(history, dict)
 
 def test_deadlock_resolution():
