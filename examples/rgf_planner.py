@@ -366,3 +366,6 @@ class RGF_Planner():
     def get_initial_guesses(self):
         assert self._q_coll_init is not None and self._q_free_init is not None, "Initial guesses have not been computed"
         return (self._q_coll_init, self._q_free_init)
+
+    def get_velocity_average(self):
+        return self._rollouts_planner.get_rollout_velocity_avg()
