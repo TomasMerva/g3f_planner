@@ -242,7 +242,7 @@ if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=1, n_steps_per_run=5000)
+    comparison_dinovas = ComparisonDinovas(n_runs=20, n_steps_per_run=5000)
     comparison_dinovas.run_comparison(render =False, LOAD_SCENARIO=False)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
