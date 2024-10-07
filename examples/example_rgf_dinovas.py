@@ -86,7 +86,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                       degrees_of_freedom=NUM_DOF-NUM_GRIPPER_FINGERS)
     
     # Reference
-    reference_tracker = ReferenceTracker(tolerance_gripper=0.2, ub=1.0, lb=0.1)
+    reference_tracker = ReferenceTracker(tolerance_gripper=0.2, ub=1.0, lb=0.2)
     waypoints_list_robots = [None]* NUM_ROBOTS
     solver_status_robots = [None] * NUM_ROBOTS  
 
