@@ -66,5 +66,5 @@ jobs:
           PYTHONPATH=src/ poetry run python -m pytest test_examples.py
       - name: Test evaluation
         run: |
-          cd examples/evaluation
+          cd evaluation
           PYTHONPATH=src/ poetry run python -m pytest test_evaluation.py
