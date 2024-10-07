@@ -35,10 +35,10 @@ class Environment():
     def define_files_path(self) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, '..', 'urdfs'))
+        self.URDF_FOLDER = os.path.normpath(os.path.join(current_script_dir, '../..', 'urdfs'))
         self.ROBOT_URDF_FILE = self.URDF_FOLDER + "/dinova/dinova.urdf"
 
-        config_path = os.path.join(current_script_dir, '..', '..', 'config', 'dinova_config_full.yaml')
+        config_path = os.path.join(current_script_dir, '../..', '..', 'config', 'dinova_config_full.yaml')
         self.CONFIG_FILE = os.path.normpath(config_path)
 
         with open(self.CONFIG_FILE, 'r') as config_file:
@@ -239,7 +239,7 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
     2. Fabrics
     """
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    fabrics_lib = os.path.normpath(os.path.join(current_script_dir, '../..', 'build', 'libfabrics_controller.so'))
+    fabrics_lib = os.path.normpath(os.path.join(current_script_dir, '../../..', 'build', 'libfabrics_controller.so'))
     #TODO: remove
     subgoal0 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal0"]["desired_position"]
     subgoal1 = env.CONFIG_PROBLEM["goal"]["goal_definition"]["subgoal1"]["desired_position"]
