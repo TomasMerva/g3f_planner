@@ -13,13 +13,14 @@ from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from mpscenes.goals.static_sub_goal import StaticSubGoal
 
 class Environment():
-    def __init__(self, config_file="dinova_config_full.yaml") -> None:
+    def __init__(self, config_file="dinova_config_fabrics.yaml") -> None:
         self._define_files_path(config_file)
         self.home_config = np.array([np.array([-0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]),
                                      np.array([0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9])
                                      ])
         
         self._objects_pose_noise = None
+        self._obstacles_dict = {}
 
     def _define_files_path(self, env_config_file) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -61,7 +62,7 @@ class Environment():
         
         # Definition of the obstacle.
         self.nr_obstacles = len(self.CONFIG_PROBLEM["environment"]["obstacle_definition"])
-        
+
         self._obstacles_dict = {}
         self._obstacles = []
         for obst_name, obst_param in self.CONFIG_PROBLEM["environment"]["obstacle_definition"].items():
@@ -99,15 +100,7 @@ class Environment():
             'front_right_wheel_link': 5, 
             'rear_left_wheel_link': 6, 
             'rear_right_wheel_link': 7, 
-            'mid_mount': 8, 
-            'front_c_mount': 9, 
-            'front_b_mount': 10, 
-            'front_mount': 11, 
-            'arm_base_link': 12, 
-            'arm_shoulder_link': 13, 
-            'arm_arm_link': 14, 
-            'arm_forearm_link': 15, 
-            'arm_lower_wrist_link': 16, 
+            'mid_mount': 8,
             'arm_upper_wrist_link': 17, 
             'arm_end_effector_link': 18, 
             'arm_dummy_link': 19, 
@@ -190,14 +183,12 @@ class Environment():
     def get_cup(self, cup_id):
         name = "cup_" + str(cup_id)
         return pybullet.getBasePositionAndOrientation(self.scene_id[name])
-
-
     
     def get_table_pose(self):
         return pybullet.getBasePositionAndOrientation(self.scene_id["table"])
     
-
     def get_obstacles(self):
+        # if self._obstacles_dict is None:
         return self._obstacles_dict
     
     def get_sim_handler(self):
@@ -224,3 +215,6 @@ class Environment():
                 self.CONFIG_PROBLEM["environment"]["obstacle_definition"][obstacle_name]["position"] = pos[i-1]
             else:
                 continue
+
+    def get_home_configs(self):
+        return self.home_config

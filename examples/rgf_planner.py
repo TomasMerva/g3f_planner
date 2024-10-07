@@ -31,20 +31,20 @@ class RGF_Planner():
 
         self.num_dofs = self._fk_args["num_dofs"]
         self.num_waypoints = self._CONFIG["gomp"]["n_waypoints"]
-        self.num_obstacles = self._CONFIG["gomp"]["n_obstacles"]
+        self.num_obstacles = self._CONFIG["problem"]["environment"]["number_spheres"]["static"]
         self.num_optim_steps = self._CONFIG["gomp"]["n_optim_steps"]
-        self.r_obsts = r_obsts
+        # self.r_obsts = r_obsts
+        self.r_obsts = [0.3, 0.7, 0.2]
 
         self.establish_rollouts()
         self.establish_planner()
 
         self._q_coll_init, self._q_free_init = None, None
-        self._prev_solution = None
         self._position_error = 0.0
 
     def establish_rollouts(self) -> None:
         _current_script_dir = os.path.dirname(os.path.abspath(__file__))
-        _fabrics_lib = os.path.normpath(os.path.join(_current_script_dir,  '../build/libfabrics_controller.so'))
+        _fabrics_lib = os.path.normpath(os.path.join(_current_script_dir,  '../build/', self._CONFIG["gomp"]["fabrics_lib"]))
         
         self._init_rollouts_parameters()
         self._rollouts_planner = RolloutFabrics(fk_dict=self._fk_args,
@@ -100,8 +100,9 @@ class RGF_Planner():
                                                                 r_obst = self.obstacles["obst_"+str(id_obst)]
                                                                 )
                     self.collision_constraint_names.append(name)
+                    # print(f"{name} = {self.obstacles['obst_'+str(id_obst)]}")
                     self._gomp_planner.param_dict[name]["num_param"] = np.array([100, 100, 100])
-        
+           
     def update_gomp_parameters(self, q_current, T_W_Obj, obst_pos=None):
         self._T_W_Obj[:3,3] = T_W_Obj[:3,3]
         self.theta_preference = self.compute_theta_preference(q_current, self._T_W_Obj)
@@ -118,7 +119,7 @@ class RGF_Planner():
                     for link_name, _ in self.collision_links.items():
                         name = "g_col_" + "way" + str(id_way) + "_" + link_name + "_obst" + str(id_obst)
                         self._gomp_planner.param_dict[name]["num_param"] = x_obst
-            
+
 
     def error(self, goal_pos:np.ndarray, q_current:np.ndarray) -> float:
         fk_current = self.compute_fk(q_current)[:3,3]
@@ -127,8 +128,8 @@ class RGF_Planner():
     def update_rollouts_parameters(self, joint_state, T_W_Obj, obst_pos=None, obst_radius=None):
         x_goal_1_x = np.array([0.0, 0.0, 0.13])
         x_goal_2_z = np.array([0.0, 0.10, 0.00])
-        self._T_W_StaticGrasp = self.compute_static_grasp(T_W_Obj)
-        self.theta_preference = self.compute_theta_preference(joint_state[0], self._T_W_Obj)
+        # self.theta_preference = self.compute_theta_preference(joint_state[0], self._T_W_Obj)
+        # self._T_W_StaticGrasp = self.compute_static_grasp(T_W_Obj)
         p_orient_rot_x = self._T_W_StaticGrasp[:3,:3] @ x_goal_1_x
         p_orient_rot_z = self._T_W_StaticGrasp[:3,:3] @ x_goal_2_z
 
@@ -150,6 +151,9 @@ class RGF_Planner():
             self._rollouts_args_dict["x_obsts"] = obst_pos
         if obst_radius is not None:
             self._rollouts_args_dict["radius_obsts"] = obst_radius
+
+        self._rollouts_args_dict["T_W_Goal"] = self._T_W_StaticGrasp
+
 
 
     def set_runtime_weights(self, error):

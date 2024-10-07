@@ -1,8 +1,8 @@
+#!/usr/bin/python3
 """
 This file generates a table of the results of several simulated experiments with varying
 initial position, goal positions and obstacle positions
 """
-
 import numpy as np
 from texttable import Texttable
 import latextable
@@ -12,7 +12,7 @@ import pybullet
 import random
 import time
 from tqdm import tqdm
-
+import math
 
 import sys
 import os
@@ -44,6 +44,7 @@ class ComparisonDinovas():
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
         # env.set_objects_pos_noise(objects_pos_noise)
+        env.set_objects_pos_noise(objects_pos_noise)
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
@@ -127,26 +128,56 @@ class ComparisonDinovas():
         return points
 
     def randomize_objects_pos(self):
-        x_range = [-0.3, 0.3]
-        y_range = [-0.3, 0.3]
-
+        max_number_of_objects = 4
+        outer_radius = 0.5  # Outer radius of the circle
+        inner_radius = 0.35
+        tolerance = 0.25
         points = []
-
-        max_number_of_objects = self.nr_robots
-        safety_counter = 0
+    
         while len(points) < max_number_of_objects:
-            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
-                         round(random.uniform(y_range[0], y_range[1]), 5))
+            # Generate random angle and radius
+            angle = random.uniform(0, 2 * math.pi)
+            radius = random.uniform(inner_radius, outer_radius)
             
-            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
-                points.append(new_point)
+            # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
+            x = round(radius * math.cos(angle), 5)
+            y = round(radius * math.sin(angle), 5)
+            new_point = (x, y)
             
-            safety_counter += 1
-            if safety_counter >= 2000:
-                raise ValueError("Cannot find valid points for so many objects")
-        points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
-        points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+
+            if self._is_within_annular_region(new_point[0:2], outer_radius, inner_radius):
+                if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > tolerance for p in points):
+                    points.append(new_point)
+
+            # Check if the new point is far enough from all existing points and within the annular region
+            # if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius):
+
         return np.asarray(points)
+
+
+
+
+
+        # x_range = [-0.5, 0.5]
+        # y_range = [-0.3, 0.3]
+
+        # points = []
+
+        # max_number_of_objects = self.nr_robots
+        # safety_counter = 0
+        # while len(points) < max_number_of_objects:
+        #     new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+        #                  round(random.uniform(y_range[0], y_range[1]), 5))
+            
+        #     if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.2 for p in points):
+        #         points.append(new_point)
+            
+        #     safety_counter += 1
+        #     if safety_counter >= 2000:
+        #         raise ValueError("Cannot find valid points for so many objects")
+        # points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+        # # points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+        # return np.asarray(points)
 
 
     def run_i(self, run_id, case="test", env=None):
@@ -168,13 +199,8 @@ class ComparisonDinovas():
                                                stopping_tolerance=stopping_tolerance)
         elif case == "RF":
             self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
-                                                dof=self.dof, 
-                                                n_robots=self.nr_robots, 
-                                                env=env,
-                                                stopping_tolerance=stopping_tolerance)
-                
-        elif case == "MPC":
-            raise ValueError("MPC is not implemented.")
+                                                dof=self.dof, /bin/sh: 1: ./dinovas_threerobots_compare.py: Permission denied
+
       
 
     def run_comparison(self, render):
@@ -191,7 +217,7 @@ class ComparisonDinovas():
 
     def table_results(self):
         # Save data
-        with open('dinovas_tworobots_without_obst_results.pickle', 'wb') as handle:
+        with open('dinovas_threerobots_one_table_compare.pickle', 'wb') as handle:
             pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []

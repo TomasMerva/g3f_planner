@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """
 This file generates a table of the results of several simulated experiments with varying
 initial position, goal positions and obstacle positions
@@ -30,20 +31,20 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF","GF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
         
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
 
         self._render = False
+        self.scenarios = {}
 
     def create_environment(self, render=False):
         # --- create environment ---#
         env = Environment()
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
-        obsts_pos = self.randomize_obstacle_config()
         env.set_objects_pos_noise(objects_pos_noise)
         return env
 
@@ -54,7 +55,18 @@ class ComparisonDinovas():
     def _is_within_annular_region(self, point, outer_radius, inner_radius):
         distance_from_center = self.euclidean_distance(np.zeros(2), point)
         return inner_radius < distance_from_center <= outer_radius
-
+    
+    def load_environment(self, run_id=0):
+        env = Environment()
+        pickle_file_path = 'results/dinovas_tworobots_without_obst_results.pickle'
+        # Step 3: Open the pickle file in binary read mode
+        with open(pickle_file_path, 'rb') as file:
+            # Step 4: Use pickle.load() to load the data from the file
+            data = pickle.load(file)
+        environment_settings = data["environment_settings"]
+        self._home_config = np.array(environment_settings[run_id]["q_home"])
+        return env
+    
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
         x_range = [-3, 3]
@@ -148,17 +160,28 @@ class ComparisonDinovas():
             raise ValueError("MPC is not implemented.")
       
 
-    def run_comparison(self, render):
+    def run_comparison(self, render, LOAD_SCENARIO=False):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
-            env = self.create_environment(self._render)
-            for algorithm in self.cases:
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
+            if LOAD_SCENARIO:
+                env = self.load_environment(run_id=1)
+            else:
+                env = self.create_environment(self._render)
+                
+            for i, algorithm in enumerate(self.cases):
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)                    
+                if i == 0:
+                    obst_dict = env.get_obstacles()
+                    self.scenarios[i_run] = {
+                        "q_home" : env.get_home_configs(),
+                        "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
+                        "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
+                        }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
          
                 
-
-
+        with open('results/dinovas_tworobots_without_obst_env.pickle', 'wb') as handle:
+            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
@@ -190,8 +213,8 @@ if __name__ == "__main__":
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
-    comparison_dinovas = ComparisonDinovas(n_runs=50, n_steps_per_run=5000)
-    comparison_dinovas.run_comparison(render = False)
+    comparison_dinovas = ComparisonDinovas(n_runs=10, n_steps_per_run=5000)
+    comparison_dinovas.run_comparison(render =True, LOAD_SCENARIO=False)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()

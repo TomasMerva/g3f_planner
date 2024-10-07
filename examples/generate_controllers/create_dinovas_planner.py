@@ -9,11 +9,9 @@ from mpscenes.goals.static_sub_goal import StaticSubGoal
 from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from fabrics.planner.parameterized_planner import ParameterizedFabricPlanner
-import torch
 import copy
 import yaml
 import pybullet
-import pytorch_kinematics as pk
 import shutil
 
 HOME_JOINT_CONFIGS = np.array([np.array([0, 3, -np.pi/2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9]),
@@ -26,10 +24,10 @@ class Environment():
     def define_files_path(self) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, 'urdfs'))
+        self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, '..', 'urdfs'))
         self.ROBOT_URDF_FILE = self.URDF_FOLDER + "/dinova/dinova.urdf"
 
-        config_path = os.path.join(current_script_dir, '..', 'config', 'dinova_config_full_gomp.yaml')
+        config_path = os.path.join(current_script_dir, '../..', 'config', 'dinova_config_rgf_5obst.yaml')
         self.CONFIG_FILE = os.path.normpath(config_path)
 
         with open(self.CONFIG_FILE, 'r') as config_file:
@@ -201,6 +199,7 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     base_metric = np.eye(9) * 0.3
     base_metric[0, 0] = 2
     base_metric[1, 1] = 2
+
     base_metric[2, 2] = 2
     base_energy = f"ca.dot(ca.mtimes(np.array({base_metric.tolist()}), xdot), xdot)"
 
@@ -213,12 +212,12 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     planner.load_fabrics_configuration(config_dict['fabrics'])
     planner.load_problem_configuration(config_dict['problem'])
     planner.concretize()
-    controller_file = "pure_controller.cpp"
+    controller_file = "fabrics_controller_5obst.cpp"
     planner.export_as_c(controller_file)
     
     # Move to src folder
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    CONTROLLER_FOLDER_NEW = os.path.normpath(os.path.join(current_script_dir, "../fabrics_rollouts/src/", controller_file))
+    CONTROLLER_FOLDER_NEW = os.path.normpath(os.path.join(current_script_dir, "../../fabrics_rollouts/src/", controller_file))
     print("Controller exported to:", CONTROLLER_FOLDER_NEW)
     shutil.move(controller_file, CONTROLLER_FOLDER_NEW)
     return planner
@@ -230,6 +229,7 @@ def set_runtime_weights(error, goal_weights_offline=None):
     weight_goal_3 = 0.5 * (np.tanh(4 * error - 1.5) + 1.6) * goal_weights_offline[3]
     return weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3
 
+from forwardkinematics.urdfFks.generic_urdf_fk import GenericURDFFk
 
 def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
     nr_fingers = 2
@@ -280,88 +280,78 @@ def run_kinova_example(n_steps=5000, render=True, dof=9, nr_robots=2):
     goal_operations = goalOperations(goal_composition=goal, forward_kinematics=planner_dinova._forward_kinematics)
     goal_weights_offline = [goal._config["subgoal"+str(i)]["weight"] for i in range(len(goal._config))]
 
-    # max velocities:
-    dinova_vel_limits = np.asarray(env.CONFIG_PROBLEM["joint_limits"]["velocity"], dtype=np.float32)
 
-    """
-    3. Multi-robot example
-    """
-    q_dinovas = torch.zeros((nr_robots, dof), dtype=torch.float64)
-    chain = pk.build_serial_chain_from_urdf(open(env.ROBOT_URDF_FILE).read(), "arm_tool_frame")
-    chain = chain.to(dtype=torch.float64, device="cpu")
-    arguments_dicts = {"robot_0": {}, "robot_1": {}}
+    # for w in range(n_steps):
+    #     q_robots = []
+    #     for i_robot in range(nr_robots):
+    #         q_robots.append(ob["robot_"+str(i_robot)]["joint_state"]["position"][0:(dof-nr_fingers)])
+    #         q_dinovas[i_robot,:] = torch.as_tensor(ob["robot_"+str(i_robot)]["joint_state"]["position"])
 
-    for w in range(n_steps):
-        q_robots = []
-        for i_robot in range(nr_robots):
-            q_robots.append(ob["robot_"+str(i_robot)]["joint_state"]["position"][0:(dof-nr_fingers)])
-            q_dinovas[i_robot,:] = torch.as_tensor(ob["robot_"+str(i_robot)]["joint_state"]["position"])
+    #     # obstacle positions on other robot via FK
+    #     FK_W = chain.forward_kinematics(q_dinovas[:,:(dof-nr_fingers)], end_only=False)
+    #     obst_dinovas = {"robot_0": [], "robot_1":[]}
+    #     for col_link in collision_links:
+    #         for i_robot in range(nr_robots):
+    #             obst_dinovas["robot_"+str(i_robot)].append( FK_W[col_link].get_matrix().numpy()[i_robot,:3,3] )
 
-        # obstacle positions on other robot via FK
-        FK_W = chain.forward_kinematics(q_dinovas[:,:(dof-nr_fingers)], end_only=False)
-        obst_dinovas = {"robot_0": [], "robot_1":[]}
-        for col_link in collision_links:
-            for i_robot in range(nr_robots):
-                obst_dinovas["robot_"+str(i_robot)].append( FK_W[col_link].get_matrix().numpy()[i_robot,:3,3] )
+    #     # compute arguments for the fabrics action with environmental obstacles:
+    #     x_obsts_env = []
+    #     radius_obsts_env = []
+    #     for i_obst in range(nr_obst):
+    #         x_obsts_env.append(ob["robot_0"]['FullSensor']['obstacles'][nr_obst+nr_robots-1+i_obst]['position'])
+    #         radius_obsts_env.append(ob["robot_0"]['FullSensor']['obstacles'][nr_obst + nr_robots-1+i_obst]['size'])
 
-        # compute arguments for the fabrics action with environmental obstacles:
-        x_obsts_env = []
-        radius_obsts_env = []
-        for i_obst in range(nr_obst):
-            x_obsts_env.append(ob["robot_0"]['FullSensor']['obstacles'][nr_obst+nr_robots-1+i_obst]['position'])
-            radius_obsts_env.append(ob["robot_0"]['FullSensor']['obstacles'][nr_obst + nr_robots-1+i_obst]['size'])
+    #     for i_robot in range(nr_robots):
+    #         if i_robot == 0:
+    #             i_other_robot = 1
+    #         else:
+    #             i_other_robot = 0
 
-        for i_robot in range(nr_robots):
-            if i_robot == 0:
-                i_other_robot = 1
-            else:
-                i_other_robot = 0
+    #         # adapt goal weights online:
+    #         position_error = goal_operations.error(q_robots[i_robot])
+    #         weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = set_runtime_weights(position_error,
+    #                                                                                          goal_weights_offline)
+    #         theta_preference = goal_operations.get_theta_preference(q=q_robots[i_robot],
+    #                                                                 goal_position=[-0.24355761, -0.75252747, 0.5])
 
-            # adapt goal weights online:
-            position_error = goal_operations.error(q_robots[i_robot])
-            weight_goal_0, weight_goal_1, weight_goal_2, weight_goal_3 = set_runtime_weights(position_error,
-                                                                                             goal_weights_offline)
-            theta_preference = goal_operations.get_theta_preference(q=q_robots[i_robot],
-                                                                    goal_position=[-0.24355761, -0.75252747, 0.5])
+    #         arguments_dicts["robot_"+str(i_robot)] = dict(
+    #             q=ob["robot_"+str(i_robot)]["joint_state"]["position"][0:(dof-nr_fingers)],
+    #             qdot=ob["robot_"+str(i_robot)]["joint_state"]["velocity"][0:(dof-nr_fingers)],
+    #             x_goal_0= subgoal0,
+    #             weight_goal_0=weight_goal_0,
+    #             x_goal_1= subgoal1,
+    #             weight_goal_1=weight_goal_1,
+    #             x_goal_2= subgoal2,
+    #             weight_goal_2=weight_goal_2,
+    #             x_goal_3=[theta_preference],
+    #             weight_goal_3=weight_goal_3,
+    #             x_obsts=[*x_obsts_env, *obst_dinovas["robot_"+str(i_other_robot)]],
+    #             radius_obsts=[*radius_obsts_env, *collision_radius],
+    #             radius_chassis_link=collision_radius[0],
+    #             radius_arm_shoulder_link=collision_radius[1],
+    #             radius_arm_end_effector_link = collision_radius[2],
+    #             radius_arm_upper_wrist_link = collision_radius[3],
+    #             radius_arm_lower_wrist_link = collision_radius[4],
+    #             radius_arm_forearm_link=collision_radius[5],
+    #         )
 
-            arguments_dicts["robot_"+str(i_robot)] = dict(
-                q=ob["robot_"+str(i_robot)]["joint_state"]["position"][0:(dof-nr_fingers)],
-                qdot=ob["robot_"+str(i_robot)]["joint_state"]["velocity"][0:(dof-nr_fingers)],
-                x_goal_0= subgoal0,
-                weight_goal_0=weight_goal_0,
-                x_goal_1= subgoal1,
-                weight_goal_1=weight_goal_1,
-                x_goal_2= subgoal2,
-                weight_goal_2=weight_goal_2,
-                x_goal_3=[theta_preference],
-                weight_goal_3=weight_goal_3,
-                x_obsts=[*x_obsts_env, *obst_dinovas["robot_"+str(i_other_robot)]],
-                radius_obsts=[*radius_obsts_env, *collision_radius],
-                radius_chassis_link=collision_radius[0],
-                radius_arm_shoulder_link=collision_radius[1],
-                radius_arm_end_effector_link = collision_radius[2],
-                radius_arm_upper_wrist_link = collision_radius[3],
-                radius_arm_lower_wrist_link = collision_radius[4],
-                radius_arm_forearm_link=collision_radius[5],
-            )
+    #     # actions robot 0:
+    #     action[0:(dof-nr_fingers)] = planner_dinova.compute_action(**arguments_dicts["robot_0"])
+    #     if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
+    #         action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
+    #     action[2:(dof-nr_fingers)] = np.clip(action[2:(dof-nr_fingers)], -1*dinova_vel_limits[2:], dinova_vel_limits[2:])
 
-        # actions robot 0:
-        action[0:(dof-nr_fingers)] = planner_dinova.compute_action(**arguments_dicts["robot_0"])
-        if np.linalg.norm(action[0:2]) > dinova_vel_limits[0]:
-            action[0:2] = action[0:2] / np.linalg.norm(action[0:2]) * dinova_vel_limits[:2]
-        action[2:(dof-nr_fingers)] = np.clip(action[2:(dof-nr_fingers)], -1*dinova_vel_limits[2:], dinova_vel_limits[2:])
+    #     # actions robot 1:
+    #     if nr_robots>1:
+    #         action[dof:(dof*2-nr_fingers)] = planner_dinova.compute_action(**arguments_dicts["robot_1"])
+    #         action[dof+2:(dof*2 - nr_fingers)] = np.clip(action[dof+2:(dof*2 - nr_fingers)], -1 * dinova_vel_limits[2:],
+    #                                            dinova_vel_limits[2:])
+    #         if np.linalg.norm(action[dof:dof+2]) > dinova_vel_limits[0]:
+    #             action[dof:dof+2] = action[dof:dof+2] / np.linalg.norm(action[dof:dof+2]) * dinova_vel_limits[0:2]
 
-        # actions robot 1:
-        if nr_robots>1:
-            action[dof:(dof*2-nr_fingers)] = planner_dinova.compute_action(**arguments_dicts["robot_1"])
-            action[dof+2:(dof*2 - nr_fingers)] = np.clip(action[dof+2:(dof*2 - nr_fingers)], -1 * dinova_vel_limits[2:],
-                                               dinova_vel_limits[2:])
-            if np.linalg.norm(action[dof:dof+2]) > dinova_vel_limits[0]:
-                action[dof:dof+2] = action[dof:dof+2] / np.linalg.norm(action[dof:dof+2]) * dinova_vel_limits[0:2]
-
-        ob, *_ = sim.step(action)
-    sim.close()
-    return {}
+    #     ob, *_ = sim.step(action)
+    # sim.close()
+    # return {}
 
 
 if __name__ == "__main__":
