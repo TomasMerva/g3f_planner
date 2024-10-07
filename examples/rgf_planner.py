@@ -1,14 +1,10 @@
 import numpy as np
 import copy
 import yaml
-import time
 import os
 from scipy.spatial.transform import Rotation as R
-import threading
-
 from fabrics_rollouts import GompSQP
 from fabrics_rollouts import RolloutFabrics
-from fabrics_rollouts import ReferenceTracker
 
 
 class RGF_Planner():
@@ -33,7 +29,8 @@ class RGF_Planner():
         self.num_waypoints = self._CONFIG["gomp"]["n_waypoints"]
         self.num_obstacles = self._CONFIG["gomp"]["n_obstacles"]
         self.num_optim_steps = self._CONFIG["gomp"]["n_optim_steps"]
-        self.r_obsts = r_obsts
+        # self.r_obsts = r_obsts
+        self.r_obsts = [0.3, 0.7, 0.2]
 
         self.establish_rollouts()
         self.establish_planner()
