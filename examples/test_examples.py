@@ -17,14 +17,14 @@ def blueprint_test(test_main):
         history = test_main(render=False, timesteps=200)
     assert isinstance(history, dict)
 
-def test_kuka_fabrics():
+def test_deadlock_resolution():
     from examples.example_deadlock_resolution import main
     blueprint_test(main)
 
-def test_kuka_ModulationIK():
+def test_rgf():
     from examples.example_rgf_dinovas import main
     blueprint_test(main)
 
-def test_kuka_TamedPUMA():
+def test_vanilla_fabrics():
     from examples.example_vanilla_fabrics import main
     blueprint_test(main)

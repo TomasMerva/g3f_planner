@@ -209,6 +209,7 @@ def main(render=True, timesteps=2000):
     NUM_ROBOTS = 2
     NUM_DOF = 11
     NUM_GRIPPER_FINGERS = 2
+    NUM_OBST = 3
     NUM_TIMESTEPS = timesteps
 
 
@@ -219,7 +220,8 @@ def main(render=True, timesteps=2000):
                        dof=NUM_DOF,
                        n_robots=NUM_ROBOTS,
                        env=env,
-                       render=RENDER
+                       render=RENDER,
+                       nr_obst=NUM_OBST
                        )
     return {}
 
