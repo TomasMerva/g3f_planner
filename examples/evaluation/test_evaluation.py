@@ -15,13 +15,13 @@ def blueprint_test_evaluation(test_main):
     assert isinstance(history, dict)
 
 def test_evaluation_two_tables():
-    from evaluation.dinovas_tworobots_without_obst_twotables import main
+    from examples.evaluation.dinovas_tworobots_without_obst_twotables import main
     blueprint_test_evaluation(main)
 
 def test_evaluation_no_obst():
-    from evaluation.dinovas_tworobots_without_obst_compare import main
+    from examples.evaluation.dinovas_tworobots_without_obst_compare import main
     blueprint_test_evaluation(main)
 
 def test_evaluation_with_obst():
-    from evaluation.dinovas_tworobots_static_obst_compare import main
+    from examples.evaluation.dinovas_tworobots_static_obst_compare import main
     blueprint_test_evaluation(main)
