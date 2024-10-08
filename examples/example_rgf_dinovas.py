@@ -122,7 +122,7 @@ def run_dinova_example(n_steps,
 
         # GOMP
         for robot_id in range(NUM_ROBOTS):
-            counter = 1
+            counter = 0
             for i in range(NUM_ROBOTS):
                 if i == robot_id:
                     continue
@@ -132,7 +132,7 @@ def run_dinova_example(n_steps,
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
                     counter += 2
-
+        
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
                     start_time = time.perf_counter()

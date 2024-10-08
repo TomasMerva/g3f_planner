@@ -251,7 +251,7 @@ class ComparisonDinovas():
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
-def main(render=False, n_runs=20, timesteps=5000, save_data=True):
+def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
