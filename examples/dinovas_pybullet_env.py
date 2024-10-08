@@ -23,6 +23,7 @@ class Environment():
         self._objects_pose_noise = None
         self._obstacles_dict = {}
         self.table_pos = [0., 0.0, 0.0]
+        self.table_poses = [copy.deepcopy(self.table_pos), [2., 0., 0.]]
         self.z_table = 0.3
 
     def _define_files_path(self, env_config_file) -> None:
@@ -88,6 +89,9 @@ class Environment():
         self._obstacles_dict = {}
         self._obstacles = []
         for obst_name, obst_param in self.CONFIG_PROBLEM["environment"]["obstacle_definition"].items():
+            if obst_name == "obstacle4" and self.nr_tables == 2:
+                obst_param["position"] = self.table_poses[1]
+                obst_param["position"][2] = -0.05
             static_obst_dict = {
                 "type": obst_param["type"],
                 "geometry": {"position": obst_param["position"], "radius": obst_param["radius"]},
@@ -157,9 +161,7 @@ class Environment():
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
             table_pos = self.table_pos
             z_table = self.z_table
-            table_poses = [copy.deepcopy(self.table_pos) for _ in range(self.nr_tables)]
-            for i_table in range(self.nr_tables):
-                table_poses[i_table] = self._obstacles_dict["obstacle"+str(i_table+1)]["position"]
+            table_poses = self.table_poses
 
             if self._objects_pose_noise is None:
                 objects_pos = [
@@ -179,7 +181,10 @@ class Environment():
                     [table_poses[1][0] + self._objects_pose_noise[3][0], table_poses[1][1] - self._objects_pose_noise[3][1],
                      z_table],
                 ]
-        elif self.n_robots == 3: [
+        elif self.n_robots == 3:
+            table_pos = self.table_pos
+            z_table = self.z_table
+            objects_pos = [
                     [table_pos[0]+self._objects_pose_noise[0][0], table_pos[1]-self._objects_pose_noise[0][1], z_table],
                     [table_pos[0]+self._objects_pose_noise[1][0], table_pos[1]-self._objects_pose_noise[1][1], z_table],
                     [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table],
