@@ -163,17 +163,14 @@ class ComparisonDinovas():
                 env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
                 self.run_i(case=algorithm, env=env, run_id = i_run)
                 self.scenarios[i_run] = env.return_scenario_information()
-        #TODO: This has to be unified with my imlementation, either I will modify mine or you yours. 
-        #      We should compare and decide which one is better
-                
-
-
+        if SAVE_DATA:
+            with open('results/dinovas_tworobots_twotables_env.pickle', 'wb') as handle:
+                pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
-        self.data = {"results": self.results, "environment_settings": self.scenarios}
-        with open('results/dinovas_tworobots_without_obst_results_2tables.pickle', 'wb') as handle:
-            pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('results/dinovas_tworobots_twotables_results.pickle', 'wb') as handle:
+            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []
         title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "Collision-rate"]
@@ -195,7 +192,7 @@ class ComparisonDinovas():
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
 
-def main(render=False, n_runs=1, timesteps=5000, save_data=True):
+def main(render=False, n_runs=20, timesteps=10, save_data=True):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
@@ -203,7 +200,7 @@ def main(render=False, n_runs=1, timesteps=5000, save_data=True):
     comparison_dinovas.run_comparison(render =render, SAVE_DATA= save_data)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
-    # comparison_dinovas.table_results()
+    #comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
