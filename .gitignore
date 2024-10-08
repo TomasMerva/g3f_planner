@@ -5,7 +5,7 @@ build/CMakeFiles
 build/cmake_install.cmake
 build/CMakeCache.txt
 build/Makefile
-examples/evaluation/results/
+examples/evaluation/results/**
 
 *
-!.gitignore
+!.examples/evaluation/results/gitkeep
