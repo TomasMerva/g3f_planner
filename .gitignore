@@ -7,3 +7,5 @@ build/CMakeCache.txt
 build/Makefile
 examples/evaluation/results/
 
+*
+!.gitignore
