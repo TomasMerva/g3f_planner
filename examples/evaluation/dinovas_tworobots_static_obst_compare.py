@@ -215,14 +215,14 @@ class ComparisonDinovas():
                     obst_dict = env.get_obstacles()
                     self.scenarios[i_run] = {
                         "q_home" : env.get_home_configs(),
-                        "x_objects" : env.get_object_pose(),
+                        "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
                         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
                         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
                         }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
          
         if SAVE_DATA:
-            with open('results/dinovas_tworobots_without_obst_env.pickle', 'wb') as handle:
+            with open('results/dinovas_tworobots_static_obst_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -263,7 +263,7 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     return {}
 
 if __name__ == "__main__":
-    main()
+    main(render=False, timesteps=10)
 
 
 
