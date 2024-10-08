@@ -42,7 +42,8 @@ class Environment():
         obstacles = list(self._obstacles_dict.values())
         positions_obsts = [obstacles[i_obst]["position"] for i_obst in range(len(obstacles))]
         radii_obsts = [obstacles[i_obst]["radius"] for i_obst in range(len(obstacles))]
-        q_home = [list(self.home_config[i_robot]) for i_robot in range(self.n_robots)]
+        q_home2 = [list(self.home_config[i_robot]) for i_robot in range(self.n_robots)]
+        q_home = [[float(item) for item in q_home2[i_robot]][0:9] for i_robot in range(self.n_robots)]
         goal_positions = [list(self.get_cup(i_robot)[0]) for i_robot in range(self.n_robots)]
         scenario = {
             "goal_positions":goal_positions,
