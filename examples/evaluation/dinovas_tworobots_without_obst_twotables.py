@@ -163,17 +163,14 @@ class ComparisonDinovas():
                 env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
                 self.run_i(case=algorithm, env=env, run_id = i_run)
                 self.scenarios[i_run] = env.return_scenario_information()
-        #TODO: This has to be unified with my imlementation, either I will modify mine or you yours. 
-        #      We should compare and decide which one is better
-                
-
-
+        if SAVE_DATA:
+            with open('results/dinovas_tworobots_twotables_env.pickle', 'wb') as handle:
+                pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
-        self.data = {"results": self.results, "environment_settings": self.scenarios}
-        with open('results/dinovas_tworobots_without_obst_results_2tables.pickle', 'wb') as handle:
-            pickle.dump(self.data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('results/dinovas_tworobots_twotables_results.pickle', 'wb') as handle:
+            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []
         title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "Collision-rate"]
