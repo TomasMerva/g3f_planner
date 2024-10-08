@@ -11,6 +11,7 @@ from urdfenvs.sensors.full_sensor import FullSensor
 from mpscenes.goals.goal_composition import GoalComposition
 from mpscenes.obstacles.sphere_obstacle import SphereObstacle
 from mpscenes.goals.static_sub_goal import StaticSubGoal
+from scipy.spatial.transform import Rotation as R
 
 class Environment():
     def __init__(self, config_file="dinova_config_fabrics.yaml") -> None:
@@ -178,20 +179,7 @@ class Environment():
                     [table_poses[1][0] + self._objects_pose_noise[3][0], table_poses[1][1] - self._objects_pose_noise[3][1],
                      z_table],
                 ]
-        elif self.n_robots == 3:
-            URDF_table = self.URDF_FOLDER + "/table_100x100/table_square.urdf"
-            table_pos = [0., 0.0, 0.0]
-            z_table = 0.3
-            
-            if self._objects_pose_noise is None:
-                objects_pos = [
-                    [table_pos[0]-0.45, table_pos[1]+0.4, z_table],
-                    [table_pos[0]+0.45, table_pos[1]+0.4, z_table],
-                    [table_pos[0]-0.45, table_pos[1]-0.4, z_table],
-                    [table_pos[0]+0.45, table_pos[1]-0.4, z_table],
-                ]
-            else:
-                objects_pos = [
+        elif self.n_robots == 3: [
                     [table_pos[0]+self._objects_pose_noise[0][0], table_pos[1]-self._objects_pose_noise[0][1], z_table],
                     [table_pos[0]+self._objects_pose_noise[1][0], table_pos[1]-self._objects_pose_noise[1][1], z_table],
                     [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table],
@@ -270,10 +258,47 @@ class Environment():
                 continue
 
     def get_home_configs(self):
-        return self.home_config
+        return [q[0:9].tolist() for q in self.home_config ]
     
     def get_object_pose(self):
         x = []
         for i in range(self.n_robots):
             x.append(self.get_cup(i))
         return x
+    
+
+    def _get_theta_preference(self, robot_id, goal_position:np.ndarray):
+        position_diff = goal_position[0:2] - self.home_config[robot_id][0:2]
+        theta_preference = np.arctan2(position_diff[1], position_diff[0])
+        if theta_preference < -np.pi:
+            theta_preference += 2 * np.pi
+        if theta_preference > 1 * np.pi:
+            theta_preference -= 2 * np.pi
+        return float(theta_preference)
+
+    def compute_init_static_grasp(self, num_robots):
+        grasp_list = []
+        for robot_id in range(num_robots):
+            T_W_Obj = np.eye(4)
+            T_W_Obj[:3,3], quat = self.get_cup(cup_id=robot_id)
+            T_W_Obj[:3,:3] = R.from_quat(quat).as_matrix()
+            theta_preference = self._get_theta_preference(robot_id, T_W_Obj[:3,3])
+
+            T_Obj_Grasp = np.eye(4)
+            T_Obj_Grasp[:3,:3] = R.from_euler('xyz', [0, 90, 0], degrees=True).as_matrix()
+            T_Grasp_Theta = np.eye(4)
+            T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [-theta_preference, 0, 0], degrees=False).as_matrix()
+            T_W_Grasp = T_W_Obj @ T_Obj_Grasp @ T_Grasp_Theta
+
+            T_Grasp_Offset = np.eye(4)
+            T_Grasp_Offset[:3, 3] = [-0.05, 0, -0.05]
+
+            T_W_StaticGrasp = T_W_Grasp @ T_Grasp_Offset
+
+            grasp_list.append(
+                {
+                    "position" : T_W_StaticGrasp[:3,3].tolist(),
+                    "orientation" : R.from_matrix(T_W_StaticGrasp[:3,:3]).as_quat().tolist()
+                }
+            )
+        return grasp_list

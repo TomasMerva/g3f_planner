@@ -197,17 +197,19 @@ class ComparisonDinovas():
                 env = self.create_environment(self._render)
                 
             for i, algorithm in enumerate(self.cases):
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)                    
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)    
+
                 if i == 0:
                     obst_dict = env.get_obstacles()
                     self.scenarios[i_run] = {
                         "q_home" : env.get_home_configs(),
-                        "x_objects" : env.get_object_pose(),
+                        "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
                         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
                         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
                         }
+                    
                 self.run_i(case=algorithm, env=env, run_id = i_run)
-         
+        print(self.scenarios)
         if SAVE_DATA:
             with open('results/dinovas_tworobots_without_obst_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -236,7 +238,7 @@ class ComparisonDinovas():
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
-def main(render=True, n_runs=20, timesteps=6000, save_data=True):
+def main(render=False, n_runs=2, timesteps=1, save_data=True):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
