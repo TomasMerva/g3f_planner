@@ -92,6 +92,7 @@ class Environment():
             if obst_name == "obstacle4" and self.nr_tables == 2:
                 obst_param["position"] = self.table_poses[1]
                 obst_param["position"][2] = -0.05
+                #TODO: add radius for the second table
             static_obst_dict = {
                 "type": obst_param["type"],
                 "geometry": {"position": obst_param["position"], "radius": obst_param["radius"]},
@@ -182,6 +183,7 @@ class Environment():
                      z_table],
                 ]
         elif self.n_robots == 3:
+            URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
             table_pos = self.table_pos
             z_table = self.z_table
             objects_pos = [

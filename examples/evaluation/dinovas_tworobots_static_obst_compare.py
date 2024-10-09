@@ -182,8 +182,9 @@ class ComparisonDinovas():
                                             dof=self.dof, 
                                             n_robots=self.nr_robots, 
                                             env=env, 
+                                            nr_obst=5,
                                             render=self._render,
-                                            stopping_tolerance=stopping_tolerance)     
+                                            stopping_tolerance=stopping_tolerance)       
         elif case == "GF":
             self.results[run_id][case] = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
                                                dof=self.dof, 
@@ -263,7 +264,7 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     return {}
 
 if __name__ == "__main__":
-    main(render=False, timesteps=10)
+    main(render=True, timesteps=5000)
 
 
 
