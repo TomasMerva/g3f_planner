@@ -47,7 +47,9 @@ class ComparisonDinovas():
         objects_pos_noise = self.randomize_objects_pos()
         obsts_pos = self.randomize_obstacle_config()
         env.set_objects_pos_noise(objects_pos_noise)
-        env.set_obsts_pos(obsts_pos)
+        # first three obstacles are robot's links and table
+        # obst_pos has only 2 poses, so all included results in 5 obstacles in total
+        env.set_obsts_pos(pos=obsts_pos, start_idx=3) 
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
@@ -120,6 +122,7 @@ class ComparisonDinovas():
         #     # Check if the new point is far enough from all existing points and within the annular region
         #     if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius):
         #         points.append(new_point)
+
         return points
 
     def randomize_objects_pos(self):
@@ -260,11 +263,11 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False, SAVE_DATA=save_data)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
-    # comparison_dinovas.table_results()
+    comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
-    main(render=True, timesteps=5000)
+    main(render=True, timesteps=7000)
 
 
 

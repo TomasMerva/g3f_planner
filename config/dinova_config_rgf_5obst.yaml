@@ -11,22 +11,22 @@ problem:
       obstacle1: # robot2 chassislink
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.7
+        radius: 0.6
       obstacle2: # robot2 upper_wrist_link
         type: sphere
         position: [-10.3, -0.3, 0.3]
         radius: 0.2
-      obstacle3: # 
+      obstacle3: # table1
         type: sphere
-        position: [-10.3, -0.3, 0.3]
-        radius: 0.7
-      obstacle4:
+        position: [0.0, 0.0, -0.05]
+        radius: 0.25
+      obstacle4: # static obst1
         type: sphere
         position:  [-10.3, -0.3, 0.3]
-        radius: 0.2
-      obstacle5:
+        radius: 0.25
+      obstacle5: # static obst2
         type: sphere
-        position:  [0.0, 0.0, -0.05]
+        position:  [-10.3, -0.3, 0.3]
         radius: 0.25
   goal:
     goal_definition:
@@ -99,7 +99,7 @@ problem:
     collision_links:
       chassis_link:
         sphere:
-          radius: 0.45
+          radius: 0.55
       arm_upper_wrist_link:
         sphere:
           radius: 0.2
@@ -112,15 +112,14 @@ fabrics:
   geometry_plane_constraint: -0.2 / (x ** 1) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
   finsler_plane_constraint: 0.2/(x**2) * xdot**2
 gomp:
-  n_waypoints : 5
-  n_obstacles : 8 #0975
+  n_waypoints : 10
   collision_links : ["chassis_link", "arm_upper_wrist_link"]
-  collision_link_radius : [0.6, 0.2]
-  rollout_dt : 0.1
+  collision_link_radius : [0.65, 0.2]
+  rollout_dt : 0.05
   rollout_timesteps : 500
   rollout_tolerance : 0.1
   alpha_filter: 0.7
   initial_grasp_roll_deg : 90
   verbose: False
-  n_optim_steps : 5
+  n_optim_steps : 2
   fabrics_lib : "libfabrics_controller_5obst.so"
