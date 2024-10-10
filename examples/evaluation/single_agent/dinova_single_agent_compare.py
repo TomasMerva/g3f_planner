@@ -61,7 +61,7 @@ class ComparisonDinovas():
     
     def load_environment(self, run_id=0):
         env = Environment()
-        pickle_file_path = 'results/dinovas_tworobots_without_obst_results.pickle'
+        pickle_file_path = '../results/dinova_single_agent_results.pickle'
         # Step 3: Open the pickle file in binary read mode
         with open(pickle_file_path, 'rb') as file:
             # Step 4: Use pickle.load() to load the data from the file
@@ -119,8 +119,8 @@ class ComparisonDinovas():
         second_cup = [0.0, -0.25]
         
         outer_radius = 0.3  # Outer radius of the circle
-        inner_radius = 0.15
-        tolerance = 0.2
+        inner_radius = 0.2
+        tolerance = 0.35
         points = []
         points_other_cups = [[0.0, -0.25]]
         
@@ -202,12 +202,12 @@ class ComparisonDinovas():
                     
                 self.run_i(case=algorithm, env=env, run_id = i_run)
         if SAVE_DATA:
-            with open('results/dinovas_single_agent_env.pickle', 'wb') as handle:
+            with open('../results/dinova_single_agent_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
-        with open('results/dinovas_single_agent_results.pickle', 'wb') as handle:
+        with open('../results/dinova_single_agent_results.pickle', 'wb') as handle:
             pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []
@@ -237,11 +237,11 @@ def main(render=True, n_runs=2, timesteps=1000, save_data=True):
     comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False, SAVE_DATA=save_data)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
-    # comparison_dinovas.table_results()
+    comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=20, timesteps=200)
+    main(render=True, n_runs=2, timesteps=1)
 
 
 
