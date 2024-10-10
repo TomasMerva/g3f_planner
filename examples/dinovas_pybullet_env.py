@@ -92,6 +92,7 @@ class Environment():
             if obst_name == "obstacle4" and self.nr_tables == 2:
                 obst_param["position"] = self.table_poses[1]
                 obst_param["position"][2] = -0.05
+                #TODO: add radius for the second table
             static_obst_dict = {
                 "type": obst_param["type"],
                 "geometry": {"position": obst_param["position"], "radius": obst_param["radius"]},
@@ -182,6 +183,7 @@ class Environment():
                      z_table],
                 ]
         elif self.n_robots == 3:
+            URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
             table_pos = self.table_pos
             z_table = self.z_table
             objects_pos = [
@@ -254,13 +256,14 @@ class Environment():
         pybullet.setGravity(0,0,0)
         self.load_scene()
 
-    def set_obsts_pos(self, pos):
+    def set_obsts_pos(self, pos, start_idx):
         obst_struct = self.CONFIG_PROBLEM["environment"]["obstacle_definition"]
         for i, obstacle_name in enumerate(obst_struct.keys()):
-            if i > 0 and i <= len(pos):
-                self.CONFIG_PROBLEM["environment"]["obstacle_definition"][obstacle_name]["position"] = pos[i-1]
+            if i >= start_idx and i < len(pos)+start_idx:
+                self.CONFIG_PROBLEM["environment"]["obstacle_definition"][obstacle_name]["position"] = pos[i-start_idx]
             else:
                 continue
+  
 
     def get_home_configs(self):
         return [q[0:9].tolist() for q in self.home_config ]

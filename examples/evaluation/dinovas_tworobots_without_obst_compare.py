@@ -133,7 +133,7 @@ class ComparisonDinovas():
         
         outer_radius = 0.3  # Outer radius of the circle
         inner_radius = 0.15
-        tolerance = 0.4
+        tolerance = 0.3
         points = []
         counter = 0
         max_number_of_objects = self.nr_robots
@@ -209,7 +209,6 @@ class ComparisonDinovas():
                         }
                     
                 self.run_i(case=algorithm, env=env, run_id = i_run)
-        print(self.scenarios)
         if SAVE_DATA:
             with open('results/dinovas_tworobots_without_obst_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -238,7 +237,7 @@ class ComparisonDinovas():
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
-def main(render=True, n_runs=20, timesteps=5000, save_data=True):
+def main(render=True, n_runs=20, timesteps=1, save_data=True):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()

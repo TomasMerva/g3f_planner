@@ -35,7 +35,9 @@ class RGF_Planner():
         self.num_optim_steps = self._CONFIG["gomp"]["n_optim_steps"]
         self._obst_definition = self._CONFIG["problem"]["environment"]["obstacle_definition"]
         self.r_obsts = [self._obst_definition[obst]["radius"] for obst in self._obst_definition]
-        
+        _robot_collision_config = self._CONFIG["problem"]["robot_representation"]["collision_links"]
+        self._r_fabrics = [_robot_collision_config[link]["sphere"]["radius"] for link in _robot_collision_config] 
+
         self.establish_rollouts()
         self.establish_planner()
 
@@ -184,8 +186,8 @@ class RGF_Planner():
             weight_goal_3=self._goal_weights_offline[3],
             x_obsts=[np.array([20., 20., 20.]) for _ in range(self.num_obstacles)],
             radius_obsts=[0.1]*self.num_obstacles, #TODO: this could be read from yaml file
-            radius_body_chassis_link=0.4,
-            radius_body_arm_upper_wrist_link=0.1,
+            radius_body_chassis_link=self._r_fabrics[0],
+            radius_body_arm_upper_wrist_link=self._r_fabrics[1],
         )
         # self._rollouts_args_dict  = dict(
         #         q=np.zeros(self.num_dofs),
@@ -246,6 +248,7 @@ class RGF_Planner():
         q_coll_guess = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
                                                                 rollout=q_coll_rollout)
 
+
         # Obstacle-free
         arguments_dicts_free = copy.deepcopy(self._rollouts_args_dict)
         arguments_dicts_free["x_obsts"] = [np.array([2000., 2000., 2000.]) for _ in range(self.num_obstacles)]
@@ -254,6 +257,7 @@ class RGF_Planner():
                                                 arg_dict=arguments_dicts_free,
                                                 tolerance=self._CONFIG["gomp"]["rollout_tolerance"]
                                                 )
+   
         if len(q_free_rollout) <= 2: 
             q_free_rollout = np.linspace(q_free_rollout[0], q_free_rollout[-1], self.num_waypoints, axis=0)
         q_free_guess = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
@@ -282,29 +286,6 @@ class RGF_Planner():
             return None, np.nan
 
 
-    def _compute_collision_init_guess(self):
-        q_rollout = self._rollouts_planner.compute_rollout(
-                                            timesteps=self._CONFIG["gomp"]["rollout_timesteps"],
-                                            arg_dict=self._rollouts_args_dict,
-                                            tolerance=self._CONFIG["gomp"]["rollout_tolerance"]
-                                            )
-        if len(q_rollout) <= 2: 
-            q_rollout = np.linspace(q_rollout[0], q_rollout[-1], self.num_waypoints, axis=0)
-        self._q_coll_init  = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
-                                                                rollout=q_rollout)
-
-    def _compute_obstfree_init_guess(self):
-        arguments_dicts_free = copy.deepcopy(self._rollouts_args_dict)
-        arguments_dicts_free["x_obsts"] = [np.array([2000., 2000., 2000.]) for _ in range(self.num_obstacles)]
-        q_rollout = self._rollouts_planner.compute_rollout(
-                                                timesteps=self._CONFIG["gomp"]["rollout_timesteps"],
-                                                arg_dict=arguments_dicts_free,
-                                                tolerance=self._CONFIG["gomp"]["rollout_tolerance"]
-                                                )
-        if len(q_rollout) <= 2: 
-            q_rollout = np.linspace(q_rollout[0], q_rollout[-1], self.num_waypoints, axis=0)
-        self._q_free_init = self._rollouts_planner.get_initial_guess(num_waypoints=self.num_waypoints,
-                                                                rollout=q_rollout)
         
     
     def solve(self, joint_state, T_W_Obj, x_obsts=None, r_obsts=None):
@@ -314,15 +295,6 @@ class RGF_Planner():
         self.update_rollouts_parameters(joint_state, T_W_Obj, x_obsts, r_obsts)
 
         (self._q_coll_init, self._q_free_init) = self._compute_initial_guesses()
-
-        # thread_coll_init = threading.Thread(target=self._compute_collision_init_guess)
-        # thread_free_init = threading.Thread(target=self._compute_obstfree_init_guess)
-
-        # thread_coll_init.start()
-        # thread_free_init.start()
-
-        # thread_coll_init.join()
-        # thread_free_init.join()
 
         _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
         _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)

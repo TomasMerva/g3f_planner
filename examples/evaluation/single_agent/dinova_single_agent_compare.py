@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """
 This file generates a table of the results of several simulated experiments with varying
 initial position, goal positions and obstacle positions
@@ -8,17 +9,23 @@ from texttable import Texttable
 import latextable
 import copy
 import pickle
+import pybullet
 import random
 import time
 from tqdm import tqdm
+import math
+
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+sys.path.append(parent_dir)
+
 from dinovas_pybullet_env import Environment
-from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
-from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
-from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 from evaluation.record_data import RecordData, EvaluationDataStructure
+
+# from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
+from evaluation.single_agent.example_gf_dinova import run_dinova_example as fabrics_dinova_example
+from evaluation.single_agent.example_rgf_dinova import run_dinova_example as gomp_dinova_example
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, n_steps_per_run=1000):
@@ -27,23 +34,31 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF","GF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
+        
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
 
         self._render = False
-        self.scenarios = {run_id:{} for run_id in range(self.n_runs)}
+        self.scenarios = {}
 
     def create_environment(self, render=False):
         # --- create environment ---#
         env = Environment()
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
-        obsts_pos = self.randomize_obstacle_config()
         env.set_objects_pos_noise(objects_pos_noise)
         return env
 
+    def euclidean_distance(self, pos_0, pos_1):
+        return np.linalg.norm(pos_0 - pos_1)
+
+
+    def _is_within_annular_region(self, point, outer_radius, inner_radius):
+        distance_from_center = self.euclidean_distance(np.zeros(2), point)
+        return inner_radius < distance_from_center <= outer_radius
+    
     def load_environment(self, run_id=0):
         env = Environment()
         pickle_file_path = 'results/dinovas_tworobots_without_obst_results.pickle'
@@ -54,15 +69,7 @@ class ComparisonDinovas():
         environment_settings = data["environment_settings"]
         self._home_config = np.array(environment_settings[run_id]["q_home"])
         return env
-
-    def euclidean_distance(self, pos_0, pos_1):
-        return np.linalg.norm(pos_0 - pos_1)
-
-
-    def _is_within_annular_region(self, point, outer_radius, inner_radius):
-        distance_from_center = self.euclidean_distance(np.zeros(2), point)
-        return inner_radius < distance_from_center <= outer_radius
-
+    
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
         x_range = [-3, 3]
@@ -72,7 +79,7 @@ class ComparisonDinovas():
 
         xyz_random = []
         safety_counter = 0
-        while len(xyz_random) < self.nr_robots:
+        while len(xyz_random) < 1:
             new_point = (round(random.uniform(x_range[0], x_range[1]), 5), 
                          round(random.uniform(y_range[0], y_range[1]), 5), 
                          round(random.uniform(z_range[0], z_range[1]), 5))
@@ -84,9 +91,10 @@ class ComparisonDinovas():
                 raise ValueError("Cannot find valid home configurations for so many robots")
         
         configs = np.zeros((self.nr_robots, self.dof))
-        for robot in range(self.nr_robots):
+        for robot in range(1):
             home_config[0:3] = xyz_random[robot][0:3]
             configs[robot] = copy.deepcopy(home_config)
+        configs[1] =  np.array([0, 0.85, -np.pi / 2, 0, 0, 1.9, 0, 0, 0, 0.9, -0.9])
         return configs
 
     def randomize_obstacle_config(self):
@@ -108,21 +116,36 @@ class ComparisonDinovas():
     def randomize_objects_pos(self):
         x_range = [-0.3, 0.3]
         y_range = [-0.3, 0.3]
-
+        second_cup = [0.0, -0.25]
+        
+        outer_radius = 0.3  # Outer radius of the circle
+        inner_radius = 0.15
+        tolerance = 0.2
         points = []
-
-        max_number_of_objects = self.nr_robots
-        safety_counter = 0
+        points_other_cups = [[0.0, -0.25]]
+        
+        counter = 0
+        max_number_of_objects = 1
         while len(points) < max_number_of_objects:
-            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
-                         round(random.uniform(y_range[0], y_range[1]), 5))
+            # Generate random angle and radius
+            angle = random.uniform(0, 2 * math.pi)
+            radius = random.uniform(inner_radius, outer_radius)
             
-            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
+            # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
+            x = round(radius * math.cos(angle), 5)
+            y = round(radius * math.sin(angle), 5)
+            new_point = (x, y)
+            
+            # Check if the new point is far enough from all existing points and within the annular region
+            if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius) \
+                and all(self.euclidean_distance(np.array(new_point), np.array(p)) > tolerance for p in points_other_cups):
                 points.append(new_point)
             
-            safety_counter += 1
-            if safety_counter >= 2000:
+            counter += 1
+            if counter > 200:
                 raise ValueError("Cannot find valid points for so many objects")
+        
+        points.append(points_other_cups[0])
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         return np.asarray(points)
@@ -138,7 +161,7 @@ class ComparisonDinovas():
                                             env=env, 
                                             nr_obst=3,
                                             render=self._render,
-                                            stopping_tolerance=stopping_tolerance)     
+                                            stopping_tolerance=stopping_tolerance)      
         elif case == "GF":
             self.results[run_id][case] = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
                                                dof=self.dof, 
@@ -146,22 +169,28 @@ class ComparisonDinovas():
                                                env=env,
                                                stopping_tolerance=stopping_tolerance)
         elif case == "RF":
-            self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
-                                                dof=self.dof, 
-                                                n_robots=self.nr_robots, 
-                                                env=env,
-                                                stopping_tolerance=stopping_tolerance)
+            pass
+            # self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
+            #                                     dof=self.dof, 
+            #                                     n_robots=self.nr_robots, 
+            #                                     env=env,
+            #                                     stopping_tolerance=stopping_tolerance)
                 
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
       
 
-    def run_comparison(self, render, SAVE_DATA):
+    def run_comparison(self, render, LOAD_SCENARIO=False, SAVE_DATA=False):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
-            env = self.create_environment(self._render)
+            if LOAD_SCENARIO:
+                env = self.load_environment(run_id=1)
+            else:
+                env = self.create_environment(self._render)
+                
             for i, algorithm in enumerate(self.cases):
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)    
+
                 if i == 0:
                     obst_dict = env.get_obstacles()
                     self.scenarios[i_run] = {
@@ -170,14 +199,15 @@ class ComparisonDinovas():
                         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
                         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
                         }
+                    
                 self.run_i(case=algorithm, env=env, run_id = i_run)
         if SAVE_DATA:
-            with open('results/dinovas_tworobots_twotables_env.pickle', 'wb') as handle:
+            with open('results/dinovas_single_agent_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
-        with open('results/dinovas_tworobots_twotables_results.pickle', 'wb') as handle:
+        with open('results/dinovas_single_agent_results.pickle', 'wb') as handle:
             pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []
@@ -199,20 +229,19 @@ class ComparisonDinovas():
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
-
-def main(render=True, n_runs=20, timesteps=5000, save_data=True):
+def main(render=True, n_runs=2, timesteps=1000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps)
-    comparison_dinovas.run_comparison(render =render, SAVE_DATA= save_data)
+    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False, SAVE_DATA=save_data)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
-    #comparison_dinovas.table_results()
+    # comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=20, timesteps=5000)
+    main(render=True, n_runs=20, timesteps=200)
 
 
 
