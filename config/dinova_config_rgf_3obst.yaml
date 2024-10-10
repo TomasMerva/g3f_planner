@@ -15,11 +15,11 @@ problem:
       obstacle2: # robot2 upper_wrist_link
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.2
+        radius: 0.15
       obstacle3: # table1
         type: sphere
         position: [0.0, 0.0, -0.05]
-        radius: 0.25
+        radius: 0.3
   goal:
     goal_definition:
       subgoal0:
@@ -106,7 +106,7 @@ fabrics:
 gomp:
   n_waypoints : 10
   collision_links : ["chassis_link", "arm_upper_wrist_link"]
-  collision_link_radius : [0.6, 0.2]
+  collision_link_radius : [0.6, 0.15]
   rollout_dt : 0.05
   rollout_timesteps : 500
   rollout_tolerance : 0.1

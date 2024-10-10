@@ -79,9 +79,6 @@ def run_dinova_example(n_steps,
         config_path = os.path.join(current_script_dir, '../../..', 'config/dinova_config_rgf_3obst.yaml')
     elif NUM_OBST == 5:
         config_path = os.path.join(current_script_dir, '../../..', 'config/dinova_config_rgf_5obst.yaml')
-    else:
-        raise ValueError(f"Config file does not exist for {NUM_OBST} obstacles")
-    
     CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
     planner = RGF_Planner(fk_args=fk_args,
                           config_file_path=CONFIG_FILE_PATH_GOMP
@@ -110,7 +107,7 @@ def run_dinova_example(n_steps,
     Results metrics:
     """
     evaluation_data = RecordData()
-    success_rate_per_robot = [0]
+    success_rate_per_robot = [0] * NUM_ROBOTS
 
     
     # Main loop
@@ -139,13 +136,13 @@ def run_dinova_example(n_steps,
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
                     counter += 2
 
-       
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
                     start_time = time.perf_counter()
                     waypoint_list, solver_status_robots[robot_id] = planner.solve(joint_state=robot_states[robot_id], 
                                                                                 T_W_Obj=T_W_Objects[robot_id],
                                                                                 x_obsts=x_obsts[:NUM_OBST],
+                                                                                r_obsts=r_obsts[:NUM_OBST]
                                                                                 )
                     end_time = time.perf_counter()
                     # Log data
@@ -159,6 +156,10 @@ def run_dinova_example(n_steps,
                     if RENDER:
                         for i in range(len(waypoints_list_robots[robot_id])):
                             pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
+                        # q_init_coll, q_init_free = planner.get_initial_guesses()
+                        # FK_guess = [planner.compute_fk(q_init_free[i]) for i in range(len(q_init_free)) ]
+                        # for i in range(len(q_init_coll)):
+                        #     pybullet.addUserDebugPoints([FK_guess[i][:3, 3].tolist()], [[255,0,0]], 10, 2.0)
 
             if success_rate_per_robot[robot_id] == 0:
                 if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
@@ -172,8 +173,10 @@ def run_dinova_example(n_steps,
                         T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
 
             
+            # fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
+            #                                 T_W_Goal=T_W_Goals[robot_id])
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
-                                            T_W_Goal=T_W_Goals[robot_id])
+                                            T_W_Goal=waypoints_list_robots[robot_id][-1])
             fabrics.update_arguments(joint_state= robot_states[robot_id],
                                      T_W_Goal=T_W_Goals[robot_id],
                                      obst_pos=x_obsts,
@@ -181,11 +184,14 @@ def run_dinova_example(n_steps,
             action_unclipped = fabrics.compute_action()
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
 
-                    
             if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
+                
+
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
             x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
+
+            
 
             if timestep%100 == 0 and RENDER:
                 position = T_W_Goals[robot_id][:3, 3]  
@@ -195,13 +201,11 @@ def run_dinova_example(n_steps,
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
- 
-
-        if success_rate_per_robot[0]:
+        if success_rate_per_robot[0] == 1:
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
-            print("RGF: Success")
             break
+        
 
         evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
 

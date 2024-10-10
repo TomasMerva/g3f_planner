@@ -127,53 +127,53 @@ class ComparisonDinovas():
 
     def randomize_objects_pos(self):
         x_range = [-0.3, 0.3]
-        y_range = [-0.3, 0.3]
+        y_range = [-0.3, -0.15]
 
-        # points = []
-
-        # max_number_of_objects = self.nr_robots
-        # safety_counter = 0
-        # while len(points) < max_number_of_objects:
-        #     new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
-        #                  round(random.uniform(y_range[0], y_range[1]), 5))
-            
-        #     if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
-        #         points.append(new_point)
-            
-        #     safety_counter += 1
-        #     if safety_counter >= 2000:
-        #         raise ValueError("Cannot find valid points for so many objects")
-        # points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
-        # points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
-        # return np.asarray(points)
-        
-        outer_radius = 0.3  # Outer radius of the circle
-        inner_radius = 0.15
-        tolerance = 0.4
         points = []
-        counter = 0
+
         max_number_of_objects = self.nr_robots
+        safety_counter = 0
         while len(points) < max_number_of_objects:
-            # Generate random angle and radius
-            angle = random.uniform(0, 2 * math.pi)
-            radius = random.uniform(inner_radius, outer_radius)
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+                         round(random.uniform(y_range[0], y_range[1]), 5))
             
-            # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
-            x = round(radius * math.cos(angle), 5)
-            y = round(radius * math.sin(angle), 5)
-            new_point = (x, y)
-            
-            # Check if the new point is far enough from all existing points and within the annular region
-            if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius) \
-                and all(self.euclidean_distance(np.array(new_point), np.array(p)) > tolerance for p in points):
+            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.2 for p in points):
                 points.append(new_point)
             
-            counter += 1
-            if counter > 200:
+            safety_counter += 1
+            if safety_counter >= 2000:
                 raise ValueError("Cannot find valid points for so many objects")
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         return np.asarray(points)
+        
+        # outer_radius = 0.3  # Outer radius of the circle
+        # inner_radius = 0.15
+        # tolerance = 0.4
+        # points = []
+        # counter = 0
+        # max_number_of_objects = self.nr_robots
+        # while len(points) < max_number_of_objects:
+        #     # Generate random angle and radius
+        #     angle = random.uniform(0, 2 * math.pi)
+        #     radius = random.uniform(inner_radius, outer_radius)
+            
+        #     # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
+        #     x = round(radius * math.cos(angle), 5)
+        #     y = round(radius * math.sin(angle), 5)
+        #     new_point = (x, y)
+            
+        #     # Check if the new point is far enough from all existing points and within the annular region
+        #     if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius) \
+        #         and all(self.euclidean_distance(np.array(new_point), np.array(p)) > tolerance for p in points):
+        #         points.append(new_point)
+            
+        #     counter += 1
+        #     if counter > 200:
+        #         raise ValueError("Cannot find valid points for so many objects")
+        # points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+        # points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+        # return np.asarray(points)
 
 
     def run_i(self, run_id, case="test", env=None):
@@ -267,7 +267,7 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     return {}
 
 if __name__ == "__main__":
-    main(render=True, timesteps=7000)
+    main(render=True, n_runs=20, timesteps=200)
 
 
 

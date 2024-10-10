@@ -66,7 +66,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                                                      goal_position=T_W_Goals[robot_id][:3,3])
                 T_W_Goals[robot_id] = fabrics.compute_static_grasp(T_W_Goals[robot_id], theta)
 
-        for robot_id in range(NUM_ROBOTS):
+        for robot_id in range(1):
             # other robots as dynamic obstacles
             counter = 0
             for i in range(NUM_ROBOTS):
@@ -106,12 +106,14 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
-        ob, *_ = sim.step(action)
-
-        if np.all(success_rate_per_robot):
+        if success_rate_per_robot[robot_id] == 1:
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
+
+        ob, *_ = sim.step(action)
+
+        
 
         evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
 
