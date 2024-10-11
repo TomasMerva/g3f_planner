@@ -14,7 +14,7 @@ class DeadlockPrevention(object):
         # constants:
         self.i_leader = 0
         self.i_follower = 1
-        self.avg_vel_constant = 0.16
+        self.avg_vel_constant = 0.01
         self.dist_constant = 0
         self.goal_weight_follower = 1
         self.goal_weight_leader = 3
@@ -25,7 +25,7 @@ class DeadlockPrevention(object):
         self.i_robots_dead = [0, 1]
         self.time_in_deadlock = 1000
         self.time_wait = 300
-        self.threshold_dist_endeff = 0.8
+        self.threshold_dist_endeff = 0.4
         self.goal_robot0 = np.array([0, 0, 0])
         self.deadlock_robots = [0]*self.n_robots
         self.deadlock_combinations = [0]*(len(self.robot_combinations))
@@ -57,8 +57,10 @@ class DeadlockPrevention(object):
             dist_to_goal_sum = self.compute_distance_to_goal(x_robots[i_robots[0]], goals_final[i_robots[0]]) + self.compute_distance_to_goal(x_robots[i_robots[1]], goals_final[i_robots[1]])
             dist_endeff = np.linalg.norm(x_robots[i_robots[0]] - x_robots[i_robots[1]])
             check_dist_endeff = dist_endeff < self.threshold_dist_endeff
-
+            #print("avg_sum < self.avg_vel_constant: ", avg_sum < self.avg_vel_constant )
+            # print("avg_vel:", avg_sum, "avg_sum < self.avg_vel_constant: ", avg_sum < self.avg_vel_constant, "deadlock:", self.deadlock)
             if avg_sum < self.avg_vel_constant and dist_to_goal_sum>self.dist_constant and time_step>10 and check_dist_endeff:
+                print("Deadlock detected!")
                 for i_robot in i_robots:
                     self.deadlock_robots[i_robot] = self.deadlock_robots[i_robot] + 1
                     self.deadlock_combinations[z] = self.deadlock_combinations[z] + 1
@@ -92,7 +94,7 @@ class DeadlockPrevention(object):
             if self.goal_robot0[2] < 0:
                 # --- ensure goal in z direction is always positive ---#
                 self.goal_robot0[2] = 0.1
-            goal_robots[self.i_follower] = self.goal_robot0
+            #goal_robots[self.i_follower] = self.goal_robot0
 
             # --- adapt goal weights ---#
             goal_weights[self.i_leader] = self.goal_weight_leader

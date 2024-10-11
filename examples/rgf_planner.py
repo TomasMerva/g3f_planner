@@ -285,16 +285,16 @@ class RGF_Planner():
         else:
             return None, np.nan
 
-
-        
-    
-    def solve(self, joint_state, T_W_Obj, x_obsts=None, r_obsts=None):
+    def update_param_and_initial_guess(self, joint_state, T_W_Obj, x_obsts=None, r_obsts=None):
         self._gomp_planner.set_starting_state(q_start=joint_state[0])
 
         self.update_gomp_parameters(joint_state[0], T_W_Obj, x_obsts)
         self.update_rollouts_parameters(joint_state, T_W_Obj, x_obsts, r_obsts)
 
         (self._q_coll_init, self._q_free_init) = self._compute_initial_guesses()
+    
+    def solve(self, joint_state, T_W_Obj, x_obsts=None, r_obsts=None):
+        self.update_param_and_initial_guess(joint_state, T_W_Obj, x_obsts, r_obsts)
 
         _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
         _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)

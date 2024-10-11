@@ -27,7 +27,7 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF","GF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -159,6 +159,9 @@ class ComparisonDinovas():
     def run_comparison(self, render, SAVE_DATA):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
+            # if i_run == 0 or i_run == 1:
+            #     break
+            # else:
             env = self.create_environment(self._render)
             for i, algorithm in enumerate(self.cases):
                 env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
@@ -208,11 +211,11 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     comparison_dinovas.run_comparison(render =render, SAVE_DATA= save_data)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
-    #comparison_dinovas.table_results()
+    comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=20, timesteps=5000)
+    main(render=False, n_runs=20, timesteps=5000)
 
 
 
