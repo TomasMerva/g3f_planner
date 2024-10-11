@@ -14,7 +14,7 @@ class DeadlockPrevention(object):
         # constants:
         self.i_leader = 0
         self.i_follower = 1
-        self.avg_vel_constant = 0.16
+        self.avg_vel_constant = 0.001
         self.dist_constant = 0
         self.goal_weight_follower = 1
         self.goal_weight_leader = 3
@@ -57,7 +57,8 @@ class DeadlockPrevention(object):
             dist_to_goal_sum = self.compute_distance_to_goal(x_robots[i_robots[0]], goals_final[i_robots[0]]) + self.compute_distance_to_goal(x_robots[i_robots[1]], goals_final[i_robots[1]])
             dist_endeff = np.linalg.norm(x_robots[i_robots[0]] - x_robots[i_robots[1]])
             check_dist_endeff = dist_endeff < self.threshold_dist_endeff
-
+            #print("avg_sum < self.avg_vel_constant: ", avg_sum < self.avg_vel_constant )
+            print("avg_vel:", avg_sum, "avg_sum < self.avg_vel_constant: ", avg_sum < self.avg_vel_constant )
             if avg_sum < self.avg_vel_constant and dist_to_goal_sum>self.dist_constant and time_step>10 and check_dist_endeff:
                 for i_robot in i_robots:
                     self.deadlock_robots[i_robot] = self.deadlock_robots[i_robot] + 1
