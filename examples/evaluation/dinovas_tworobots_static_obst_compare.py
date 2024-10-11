@@ -31,8 +31,7 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
-        
+        self.cases = ["RF"] #["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -208,13 +207,10 @@ class ComparisonDinovas():
     def run_comparison(self, render, LOAD_SCENARIO=False, SAVE_DATA=False):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
-            if LOAD_SCENARIO:
-                env = self.load_environment(run_id=1)
-            else:
-                env = self.create_environment(self._render)
-                
+            env = self.create_environment(self._render)
+
             for i, algorithm in enumerate(self.cases):
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)                    
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
                 if i == 0:
                     obst_dict = env.get_obstacles()
                     self.scenarios[i_run] = {
@@ -223,7 +219,7 @@ class ComparisonDinovas():
                         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
                         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
                         }
-                self.run_i(case=algorithm, env=env, run_id = i_run)
+                self.run_i(case=algorithm, env=env, run_id=i_run)
          
         if SAVE_DATA:
             with open('results/dinovas_tworobots_static_obst_env.pickle', 'wb') as handle:
@@ -267,7 +263,7 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=20, timesteps=200)
+    main(render=False, n_runs=20, timesteps=5000)
 
 
 

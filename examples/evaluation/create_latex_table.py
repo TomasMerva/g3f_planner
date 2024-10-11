@@ -41,6 +41,6 @@ def table_results(file):
 
 
 if __name__=="__main__":
-       result_file = "results/dinovas_tworobots_twotable.pickle"
+       result_file = "results/dinovas_tworobots_with_obstacles_50env_result.pickle"
        table_results(result_file)
 
