@@ -100,7 +100,7 @@ class RolloutFabrics(FabricsDriver):
                 return q_rollout_record
         return q_rollout_record
 
-    def get_rollout_velocity_avg(self, horizon=10):
+    def get_rollout_velocity_avg(self, horizon=2):
         timesteps = len(self.qdot_rollout_record)
         if timesteps < horizon:
             horizon= timesteps
