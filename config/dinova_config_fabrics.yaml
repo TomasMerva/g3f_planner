@@ -108,6 +108,7 @@ problem:
     - 1.0
     - 1.0
   robot_representation:
+    urdf_file: /dinova_cup/dinova.urdf
     collision_links:
       chassis_link:
         sphere:
