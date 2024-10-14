@@ -654,7 +654,7 @@
       <geometry>
 				<mesh filename="textured-0008192.obj" scale="0.5 0.5 0.5"/>
       </geometry>
-      <material name="arm">
+      <material name="aluminum">
       </material>
     </visual>
   </link>
@@ -673,7 +673,7 @@
     <color rgba="0.15 0.15 0.15 1.0"/>
   </material>
   <material name="aluminum">
-    <color rgba="0.5 0.5 0.5 1"/>
+    <color rgba="0.7 0.7 0.7 1"/>
   </material>
   <material name="plastic">
     <color rgba="0.1 0.1 0.1 1"/>

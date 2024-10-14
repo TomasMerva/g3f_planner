@@ -18,9 +18,8 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.append(parent_dir)
 
 from evaluation.dinovas_crossover.dinovas_pybullet_env import Environment
-# from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
-# from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
-# from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
+from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
+from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
 from evaluation.dinovas_crossover.example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 from evaluation.record_data import RecordData, EvaluationDataStructure
 
@@ -29,10 +28,10 @@ class ComparisonDinovas():
         self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
-        self._stopping_tolerance = 0.25
+        self._stopping_tolerance = 0.3
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -45,7 +44,7 @@ class ComparisonDinovas():
         env = Environment()
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
-        obsts_pos = self.randomize_obstacle_config()
+        # obsts_pos = self.randomize_obstacle_config()
         env.set_objects_pos_noise(objects_pos_noise)
         return env
 
@@ -69,10 +68,9 @@ class ComparisonDinovas():
         return inner_radius < distance_from_center <= outer_radius
 
     def randomize_default_home_config(self):
-        home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
+        home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.35, -0.35])
         x_range = [-3, 3]
         y_range = [2.0, 5.0]
-        # z_range = [-3.12, 3.12]
         z_range = [-2, 2]
 
         xyz_random = []
@@ -179,12 +177,12 @@ class ComparisonDinovas():
                         }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
         if SAVE_DATA:
-            with open('results/dinovas_tworobots_twotables_env.pickle', 'wb') as handle:
+            with open('../results/dinovas_tworobots_twotables_place_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
-        with open('results/dinovas_tworobots_twotables_results.pickle', 'wb') as handle:
+        with open('../results/dinovas_tworobots_twotables_place_results.pickle', 'wb') as handle:
             pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []
@@ -215,11 +213,11 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     comparison_dinovas.run_comparison(render =render, SAVE_DATA= save_data)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
-    comparison_dinovas.table_results()
+    # comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=2, timesteps=5000)
+    main(render=True, n_runs=20, timesteps=200)
 
 
 

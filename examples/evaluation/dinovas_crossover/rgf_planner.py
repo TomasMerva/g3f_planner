@@ -68,7 +68,7 @@ class RGF_Planner():
 
         self._gomp_planner = GompSQP(gomp_args)
 
-        self._gomp_planner.add_grasp_pos_constraint("g_grasp_pos", self.num_waypoints-1, np.array([0.25, 0.25, 0.0]))
+        self._gomp_planner.add_grasp_pos_constraint("g_grasp_pos", self.num_waypoints-1, np.array([0.2, 0.2, 0.0]))
         self._gomp_planner.add_grasp_rot_constraint("g_grasp_rot", self.num_waypoints-1, 0.0)
         
         self._establish_obstacles()
@@ -231,7 +231,7 @@ class RGF_Planner():
         # Compute offset
         
         T_Grasp_Offset = np.eye(4)
-        T_Grasp_Offset[:3, 3] = [-self.z_offset_grasping, 0, -0.05 ]
+        T_Grasp_Offset[:3, 3] = [-self.z_offset_grasping, 0, 0]
         return T_W_Grasp @ T_Grasp_Offset
 
 

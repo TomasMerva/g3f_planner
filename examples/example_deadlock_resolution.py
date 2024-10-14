@@ -104,7 +104,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
 
     
     # Main loop
-    print("Starting RGF env")
+    print("Starting RF env")
     for timestep in tqdm(range(NUM_TIMESTEPS)):
         robot_states = [[ob["robot_"+str(i)]["joint_state"]["position"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)],
                          ob["robot_"+str(i)]["joint_state"]["velocity"][0:(NUM_DOF-NUM_GRIPPER_FINGERS)]]

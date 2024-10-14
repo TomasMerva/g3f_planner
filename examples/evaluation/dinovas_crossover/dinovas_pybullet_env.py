@@ -146,7 +146,7 @@ class Environment():
                                                     globalScaling=1)
             self.scene_id["cup_"+str(i_table)] = [table_poses[i_table][0],
                                                   table_poses[i_table][1],
-                                                  z_table+0.05]
+                                                  z_table]
 
     def get_config_file_path(self):
         return self.CONFIG_FILE
@@ -167,7 +167,6 @@ class Environment():
         self._objects_pose_noise = pos
 
     def get_cup(self, cup_id):
-        print(self.scene_id["cup_"+str(cup_id)])
         return (self.scene_id["cup_"+str(cup_id)], [0,0,0,1])
 
     def reset(self):
