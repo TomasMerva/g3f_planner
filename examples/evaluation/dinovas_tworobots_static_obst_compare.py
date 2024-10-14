@@ -31,7 +31,7 @@ class ComparisonDinovas():
         self.dof = 11
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -263,7 +263,7 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     return {}
 
 if __name__ == "__main__":
-    main(render=False, n_runs=20, timesteps=5000)
+    main(render=True, n_runs=20, timesteps=5000)
 
 
 

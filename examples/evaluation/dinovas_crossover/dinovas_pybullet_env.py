@@ -29,7 +29,7 @@ class Environment():
     def _define_files_path(self, env_config_file) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
     
-        config_path = os.path.join(current_script_dir, '../../../config', env_config_file)
+        config_path = os.path.join(current_script_dir, 'config', env_config_file)
         self.CONFIG_FILE = os.path.normpath(config_path)
 
         with open(self.CONFIG_FILE, 'r') as config_file:

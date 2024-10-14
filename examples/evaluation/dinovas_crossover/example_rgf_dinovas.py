@@ -75,9 +75,9 @@ def run_dinova_example(n_steps,
     )
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
     if NUM_OBST == 3:
-        config_path = os.path.join(current_script_dir, '../../..', 'config/dinova_config_rgf_3obst.yaml')
+        config_path = os.path.join(current_script_dir, 'config/dinova_config_rgf_3obst.yaml')
     elif NUM_OBST == 5:
-        config_path = os.path.join(current_script_dir, '../../..', 'config/dinova_config_rgf_5obst.yaml')
+        config_path = os.path.join(current_script_dir, 'config/dinova_config_rgf_5obst.yaml')
     CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
     planner = RGF_Planner(fk_args=fk_args,
                           config_file_path=CONFIG_FILE_PATH_GOMP
@@ -134,6 +134,7 @@ def run_dinova_example(n_steps,
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
                     counter += 2
+
 
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:

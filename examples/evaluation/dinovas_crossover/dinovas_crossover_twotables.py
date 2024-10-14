@@ -28,10 +28,11 @@ class ComparisonDinovas():
         self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
+        self._num_obst = 5
         self._stopping_tolerance = 0.3
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF" ,"GF", "RF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -45,12 +46,12 @@ class ComparisonDinovas():
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
         # obsts_pos = self.randomize_obstacle_config()
-        env.set_objects_pos_noise(objects_pos_noise)
+        # env.set_objects_pos_noise(objects_pos_noise)
         return env
 
     def load_environment(self, run_id=0):
         env = Environment()
-        pickle_file_path = 'results/dinovas_tworobots_without_obst_results.pickle'
+        pickle_file_path = '../results/dinovas_tworobots_without_obst_results.pickle'
         # Step 3: Open the pickle file in binary read mode
         with open(pickle_file_path, 'rb') as file:
             # Step 4: Use pickle.load() to load the data from the file
@@ -138,7 +139,7 @@ class ComparisonDinovas():
                                             dof=self.dof, 
                                             n_robots=self.nr_robots, 
                                             env=env, 
-                                            nr_obst=3,
+                                            nr_obst=self._num_obst,
                                             render=self._render,
                                             stopping_tolerance=self._stopping_tolerance)     
         elif case == "GF":
@@ -205,7 +206,7 @@ class ComparisonDinovas():
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
 
-def main(render=True, n_runs=20, timesteps=5000, save_data=True):
+def main(render=True, n_runs=20, timesteps=5000, save_data=False):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
@@ -213,11 +214,11 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     comparison_dinovas.run_comparison(render =render, SAVE_DATA= save_data)
     end_time = time.perf_counter()
     print("Total computational time: ", end_time-start_time)
-    # comparison_dinovas.table_results()
+    comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=20, timesteps=200)
+    main(render=False, n_runs=20, timesteps=5000)
 
 
 
