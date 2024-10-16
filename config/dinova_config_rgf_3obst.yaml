@@ -19,7 +19,7 @@ problem:
       obstacle3: # table1
         type: sphere
         position: [0.0, 0.0, -0.05]
-        radius: 0.3
+        radius: 0.25
   goal:
     goal_definition:
       subgoal0:

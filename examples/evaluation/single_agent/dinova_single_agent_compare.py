@@ -23,7 +23,7 @@ sys.path.append(parent_dir)
 from dinovas_pybullet_env import Environment
 from evaluation.record_data import RecordData, EvaluationDataStructure
 
-# from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
+from evaluation.single_agent.example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
 from evaluation.single_agent.example_gf_dinova import run_dinova_example as fabrics_dinova_example
 from evaluation.single_agent.example_rgf_dinova import run_dinova_example as gomp_dinova_example
 
@@ -32,9 +32,10 @@ class ComparisonDinovas():
         self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
+        self.nr_obsts = 5
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF","GF"] #["RGF" ,"GF", "RF", "MPC"]
         
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
@@ -103,15 +104,7 @@ class ComparisonDinovas():
 
         points = []
         #  8 obstacles in total
-        #  1 obstacle is the table
-        #  2 obstacle spheres for other agents
-        max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
-        for i in range(max_number_of_obsts):
-            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
-                         round(random.uniform(y_range[0], y_range[1]), 5),
-                         0.15)
-            points.append(new_point)
-        return points
+        #  1 obstacle is the tablee
 
     def randomize_objects_pos(self):
         x_range = [-0.3, 0.3]
@@ -159,7 +152,7 @@ class ComparisonDinovas():
                                             dof=self.dof, 
                                             n_robots=self.nr_robots, 
                                             env=env, 
-                                            nr_obst=3,
+                                            nr_obst=self.nr_obsts,
                                             render=self._render,
                                             stopping_tolerance=stopping_tolerance)      
         elif case == "GF":
@@ -169,12 +162,11 @@ class ComparisonDinovas():
                                                env=env,
                                                stopping_tolerance=stopping_tolerance)
         elif case == "RF":
-            pass
-            # self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
-            #                                     dof=self.dof, 
-            #                                     n_robots=self.nr_robots, 
-            #                                     env=env,
-            #                                     stopping_tolerance=stopping_tolerance)
+            self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
+                                                dof=self.dof, 
+                                                n_robots=self.nr_robots, 
+                                                env=env,
+                                                stopping_tolerance=stopping_tolerance)
                 
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
@@ -187,20 +179,22 @@ class ComparisonDinovas():
                 env = self.load_environment(run_id=1)
             else:
                 env = self.create_environment(self._render)
-                
-            for i, algorithm in enumerate(self.cases):
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)    
+            
+            if i_run > -1:
+                for i, algorithm in enumerate(self.cases):
+                    env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)    
 
-                if i == 0:
-                    obst_dict = env.get_obstacles()
-                    self.scenarios[i_run] = {
-                        "q_home" : env.get_home_configs(),
-                        "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
-                        "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
-                        "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
-                        }
-                    
-                self.run_i(case=algorithm, env=env, run_id = i_run)
+                    if i == 0:
+                        obst_dict = env.get_obstacles()
+                        self.scenarios[i_run] = {
+                            "q_home" : env.get_home_configs(),
+                            "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
+                            "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
+                            "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
+                            }
+                            
+                        
+                    self.run_i(case=algorithm, env=env, run_id = i_run)
         if SAVE_DATA:
             with open('../results/dinova_single_agent_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -241,7 +235,7 @@ def main(render=True, n_runs=2, timesteps=1000, save_data=True):
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=2, timesteps=1)
+    main(render=True, n_runs=20, timesteps=5000)
 
 
 
