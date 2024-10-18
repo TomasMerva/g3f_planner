@@ -201,7 +201,6 @@ def run_dinova_example(n_steps,
 
             if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
-                print(f"Robot {robot_id} has finished")
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
             x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
 
@@ -214,10 +213,10 @@ def run_dinova_example(n_steps,
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
 
-        if success_rate_per_robot[0]:
+        if success_rate_per_robot[0] == 1:
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
-            print("RGF: Success")
+            print("RF: Success")
             break
 
         evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))

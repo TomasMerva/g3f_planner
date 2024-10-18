@@ -15,14 +15,14 @@ problem:
       obstacle2: # robot2 upper_wrist_link
         type: sphere
         position: [-10.3, -0.3, 0.3]
-        radius: 0.2
+        radius: 0.3
       obstacle3: # table1
         type: sphere
-        position: [0.0, 0.0, -0.05]
+        position: [-1.5, 0.0, 0.0]
         radius: 0.25
       obstacle4: # static obst1
         type: sphere
-        position:  [-10.3, -0.3, 0.3]
+        position:  [1.5, 0.0, 0.0]
         radius: 0.25
       obstacle5: # static obst2
         type: sphere

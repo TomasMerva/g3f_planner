@@ -18,6 +18,9 @@ add_library(fabrics_controller_5obst SHARED
 )
 
 
+add_library(fabrics_controller_6obst SHARED
+  ${SRC_PATH}/src/fabrics_controller_6obst.cpp
+)
 
 
 # cmake_minimum_required(VERSION 3.0.2)

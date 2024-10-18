@@ -144,7 +144,7 @@ def run_dinova_example(n_steps,
                                                                                 )
                     end_time = time.perf_counter()
                     # Log data
-                    evaluation_data.record_computational_time(end_time-start_time)
+                    evaluation_data.record_computational_time_qp(end_time-start_time)
 
                     if timestep == 0:
                         waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
@@ -176,8 +176,7 @@ def run_dinova_example(n_steps,
                         T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
 
             
-            # fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
-            #                                 T_W_Goal=T_W_Goals[robot_id])
+            start_time = time.perf_counter()
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
                                             T_W_Goal=waypoints_list_robots[robot_id][-1])
             fabrics.update_arguments(joint_state= robot_states[robot_id],
@@ -186,6 +185,9 @@ def run_dinova_example(n_steps,
                                      obst_radius=r_obsts)
             action_unclipped = fabrics.compute_action()
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
+            end_time = time.perf_counter()
+            evaluation_data.record_computational_time(end_time-start_time)
+
 
             if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1

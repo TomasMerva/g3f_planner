@@ -35,7 +35,7 @@ class ComparisonDinovas():
         self.nr_obsts = 5
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF","GF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF"] #["RGF" ,"GF", "RF", "MPC"]
         
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
@@ -44,9 +44,9 @@ class ComparisonDinovas():
         self._render = False
         self.scenarios = {}
 
-    def create_environment(self, render=False):
+    def create_environment(self):
         # --- create environment ---#
-        env = Environment()
+        env = Environment(config_file="dinova_config_fabrics.yaml")
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
         env.set_objects_pos_noise(objects_pos_noise)
@@ -178,7 +178,7 @@ class ComparisonDinovas():
             if LOAD_SCENARIO:
                 env = self.load_environment(run_id=1)
             else:
-                env = self.create_environment(self._render)
+                env = self.create_environment()
             
             if i_run > -1:
                 for i, algorithm in enumerate(self.cases):
@@ -235,7 +235,7 @@ def main(render=True, n_runs=2, timesteps=1000, save_data=True):
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=20, timesteps=5000)
+    main(render=False, n_runs=20, timesteps=5000)
 
 
 
