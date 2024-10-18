@@ -33,7 +33,7 @@ class ComparisonDinovas():
         self._stopping_tolerance = 0.07
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["GF"] #["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -125,7 +125,7 @@ class ComparisonDinovas():
         points = []
         
         counter = 0
-        max_number_of_objects = 3 #todo
+        max_number_of_objects = 3 #todo, does this needs to be adapted???
         while len(points) < max_number_of_objects:
             angle = random.uniform(0, 2 * math.pi)
             radius = random.uniform(inner_radius, outer_radius)
@@ -157,17 +157,18 @@ class ComparisonDinovas():
                                             render=self._render,
                                             stopping_tolerance=self._stopping_tolerance)     
         elif case == "GF":
-            self.results[run_id][case] = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
-                                               dof=self.dof, 
-                                               n_robots=self.nr_robots, 
-                                               env=env,
-                                               stopping_tolerance=self._stopping_tolerance)
+            self.results[run_id][case] = fabrics_dinova_example(n_steps=self.n_steps_per_run,
+                                                                dof=self.dof,
+                                                                n_robots=self.nr_robots,
+                                                                env=env,
+                                                                stopping_tolerance=self._stopping_tolerance)
         elif case == "RF":
-            self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
-                                                dof=self.dof, 
-                                                n_robots=self.nr_robots, 
-                                                env=env,
-                                                stopping_tolerance=self._stopping_tolerance)
+            self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run,
+                                                                 dof=self.dof,
+                                                                 n_robots=self.nr_robots,
+                                                                 nr_obst=self._num_obst,
+                                                                 env=env,
+                                                                 stopping_tolerance=self._stopping_tolerance)
                 
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")

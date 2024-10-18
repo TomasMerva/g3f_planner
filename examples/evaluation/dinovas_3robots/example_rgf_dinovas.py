@@ -139,7 +139,9 @@ def run_dinova_example(n_steps,
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
                     counter += 2
-    
+            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
+            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
+
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
                     start_time = time.perf_counter()
@@ -189,9 +191,6 @@ def run_dinova_example(n_steps,
             if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
 
-            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
-            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
-
             if timestep%100 == 0 and RENDER:
                 position = T_W_Goals[robot_id][:3, 3]  
                 rotation_matrix = T_W_Goals[robot_id][:3, :3]
@@ -209,7 +208,7 @@ def run_dinova_example(n_steps,
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
 
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
+        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=0.))
 
         ob, *_ = sim.step(action)
 

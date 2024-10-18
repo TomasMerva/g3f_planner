@@ -17,7 +17,8 @@ class RecordData():
         self._result = EvaluationDataStructure()
     
     def record_collision_violation(self, collision_flag):
-        self._result.collision = collision_flag
+        if collision_flag:
+            self._result.collision = collision_flag
 
     def record_success_rate(self, success):
         self._result.goal_reached = success

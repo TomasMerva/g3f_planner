@@ -33,7 +33,7 @@ class ComparisonDinovas():
         self._stopping_tolerance = 0.07
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["GF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]

@@ -173,13 +173,15 @@ class Fabrics():
 
     def collision_check(self, x_r_obsts, robot_states, threshold=0.):
         collision_link_names = list(self._collision_dict.keys())
-        for i_robot in range(len(robot_states)):
+        for i_robot in range(len(robot_states[:][0])):
+            robot_joint_positions = robot_states[i_robot][0]
             x_obsts = x_r_obsts["robot_"+str(i_robot)]["x_obsts"]
             r_obsts = x_r_obsts["robot_"+str(i_robot)]["r_obsts"]
             for i_obst in range(len(x_obsts)):
                 for collision_link_name in collision_link_names:
-                    x_collision_robot = self.compute_fk(robot_states[i_robot], end_link=collision_link_name)[0:3, 3]
-                    error = np.linalg.norm(x_collision_robot - x_obsts[i_obst] - r_obsts[i_obst])
+                    x_collision_robot = self.compute_fk(robot_joint_positions, end_link=collision_link_name)[0:3, 3]
+                    r_collision_robot = self._collision_dict[collision_link_name]["sphere"]["radius"]
+                    error = np.linalg.norm(x_collision_robot - x_obsts[i_obst]) - r_obsts[i_obst] - r_collision_robot
                     if error <= threshold:
                         print("A collision has occurred for robot ", str(i_robot), " with collision sphere ", str(collision_link_name), ".")
                         return True
