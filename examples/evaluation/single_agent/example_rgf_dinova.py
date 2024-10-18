@@ -75,10 +75,8 @@ def run_dinova_example(n_steps,
         num_dofs = NUM_DOF-NUM_GRIPPER_FINGERS,
     )
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    if NUM_OBST == 3:
-        config_path = os.path.join(current_script_dir, '../../..', 'config/dinova_config_rgf_3obst.yaml')
-    elif NUM_OBST == 5:
-        config_path = os.path.join(current_script_dir, '../../..', 'config/dinova_config_rgf_5obst.yaml')
+    config_path = os.path.join(current_script_dir, 'dinova_config_rgf_5obst.yaml')
+
     CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
     planner = RGF_Planner(fk_args=fk_args,
                           config_file_path=CONFIG_FILE_PATH_GOMP
@@ -146,7 +144,7 @@ def run_dinova_example(n_steps,
                                                                                 )
                     end_time = time.perf_counter()
                     # Log data
-                    evaluation_data.record_computational_time(end_time-start_time)
+                    evaluation_data.record_computational_time_qp(end_time-start_time)
 
                     if timestep == 0:
                         waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
@@ -156,10 +154,15 @@ def run_dinova_example(n_steps,
                     if RENDER:
                         for i in range(len(waypoints_list_robots[robot_id])):
                             pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
-                        # q_init_coll, q_init_free = planner.get_initial_guesses()
-                        # FK_guess = [planner.compute_fk(q_init_free[i]) for i in range(len(q_init_free)) ]
+                        q_init_coll, q_init_free = planner.get_initial_guesses()
+                        # FK_guess = [planner.compute_fk(q_init_coll[i]) for i in range(len(q_init_coll)) ]
                         # for i in range(len(q_init_coll)):
                         #     pybullet.addUserDebugPoints([FK_guess[i][:3, 3].tolist()], [[255,0,0]], 10, 2.0)
+                        # FK_guess = [[q_init_coll[i][0],
+                        #              q_init_coll[i][1],
+                        #              0.0] for i in range(len(q_init_coll)) ]
+                        # for i in range(len(q_init_coll)):
+                        #     pybullet.addUserDebugPoints([FK_guess[i]], [[255,0,0]], 10, 2.0)
 
             if success_rate_per_robot[robot_id] == 0:
                 if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
@@ -173,8 +176,7 @@ def run_dinova_example(n_steps,
                         T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
 
             
-            # fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
-            #                                 T_W_Goal=T_W_Goals[robot_id])
+            start_time = time.perf_counter()
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
                                             T_W_Goal=waypoints_list_robots[robot_id][-1])
             fabrics.update_arguments(joint_state= robot_states[robot_id],
@@ -183,6 +185,9 @@ def run_dinova_example(n_steps,
                                      obst_radius=r_obsts)
             action_unclipped = fabrics.compute_action()
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
+            end_time = time.perf_counter()
+            evaluation_data.record_computational_time(end_time-start_time)
+
 
             if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1

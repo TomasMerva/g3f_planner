@@ -14,7 +14,7 @@ from mpscenes.goals.static_sub_goal import StaticSubGoal
 from scipy.spatial.transform import Rotation as R
 
 class Environment():
-    def __init__(self, config_file="dinova_config_fabrics.yaml") -> None:
+    def __init__(self, config_file=None) -> None:
         self._define_files_path(config_file)
         self.home_config = np.array([np.array([-0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9]),
                                      np.array([0.75, 1, -np.pi/2, 0, 0, 0, 0, 0, 0, 0.9, -0.9])
@@ -22,14 +22,16 @@ class Environment():
         
         self._objects_pose_noise = None
         self._obstacles_dict = {}
-        self.table_pos = [0., 0.0, 0.0]
-        self.table_poses = [copy.deepcopy(self.table_pos), [2., 0., 0.]]
+        self.table_pos = [-1.5, 0.0, 0.0]
+        self.table_poses = [copy.deepcopy(self.table_pos), [1.5, 0., 0.]]
         self.z_table = 0.3
 
-    def _define_files_path(self, env_config_file) -> None:
+    def _define_files_path(self, env_config_file=None) -> None:
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-        config_path = os.path.join(current_script_dir, '../config', env_config_file)
+        if env_config_file is not None:
+            config_path = env_config_file
+        else:
+            config_path = os.path.join(current_script_dir, '../config', "dinova_config_fabrics.yaml")
         self.CONFIG_FILE = os.path.normpath(config_path)
 
         with open(self.CONFIG_FILE, 'r') as config_file:
@@ -89,9 +91,9 @@ class Environment():
         self._obstacles_dict = {}
         self._obstacles = []
         for obst_name, obst_param in self.CONFIG_PROBLEM["environment"]["obstacle_definition"].items():
-            if obst_name == "obstacle4" and self.nr_tables == 2:
-                obst_param["position"] = self.table_poses[1]
-                obst_param["position"][2] = -0.05
+            # if obst_name == "obstacle4" and self.nr_tables == 2: #TODO: why is this important?
+            #     obst_param["position"] = self.table_poses[1]
+            #     obst_param["position"][2] = -0.05
                 #TODO: add radius for the second table
             static_obst_dict = {
                 "type": obst_param["type"],

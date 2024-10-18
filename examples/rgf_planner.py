@@ -299,7 +299,7 @@ class RGF_Planner():
         _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
         _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)
 
-        f_q_coll += 1.0
+        # f_q_coll += 1.0
         q_results = {
             f_q_coll: _q_result_coll,
             f_q_free : _q_result_free

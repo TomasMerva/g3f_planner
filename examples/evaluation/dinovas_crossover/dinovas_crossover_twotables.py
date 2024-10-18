@@ -13,11 +13,12 @@ import time
 from tqdm import tqdm
 import sys
 import os
+import math
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.append(parent_dir)
 
-from evaluation.dinovas_crossover.dinovas_pybullet_env import Environment
+from dinovas_pybullet_env import Environment
 from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
 from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
 from evaluation.dinovas_crossover.example_rgf_dinovas import run_dinova_example as gomp_dinova_example
@@ -28,11 +29,11 @@ class ComparisonDinovas():
         self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
-        self._num_obst = 5
-        self._stopping_tolerance = 0.3
+        self._num_obst = 6
+        self._stopping_tolerance = 0.07
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF" ,"GF", "RF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -42,16 +43,16 @@ class ComparisonDinovas():
 
     def create_environment(self, render=False):
         # --- create environment ---#
-        env = Environment()
+        env = Environment(config_file="dinova_config_fabrics.yaml")
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
         # obsts_pos = self.randomize_obstacle_config()
-        # env.set_objects_pos_noise(objects_pos_noise)
+        env.set_objects_pos_noise(objects_pos_noise)
         return env
 
     def load_environment(self, run_id=0):
         env = Environment()
-        pickle_file_path = '../results/dinovas_tworobots_without_obst_results.pickle'
+        pickle_file_path = '../results/dinovas_crossover_results.pickle'
         # Step 3: Open the pickle file in binary read mode
         with open(pickle_file_path, 'rb') as file:
             # Step 4: Use pickle.load() to load the data from the file
@@ -69,17 +70,22 @@ class ComparisonDinovas():
         return inner_radius < distance_from_center <= outer_radius
 
     def randomize_default_home_config(self):
-        home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.35, -0.35])
-        x_range = [-3, 3]
+        home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
+        x_range = [0, 3]
         y_range = [2.0, 5.0]
         z_range = [-2, 2]
 
         xyz_random = []
         safety_counter = 0
         while len(xyz_random) < self.nr_robots:
-            new_point = (round(random.uniform(x_range[0], x_range[1]), 5), 
-                         round(random.uniform(y_range[0], y_range[1]), 5), 
-                         round(random.uniform(z_range[0], z_range[1]), 5))
+            if len(xyz_random) >= 1 :
+                new_point = (-round(random.uniform(x_range[0], x_range[1]), 5), 
+                            round(random.uniform(y_range[0], y_range[1]), 5), 
+                            round(random.uniform(z_range[0], z_range[1]), 5))
+            else:
+                new_point = (round(random.uniform(x_range[0], x_range[1]), 5), 
+                            round(random.uniform(y_range[0], y_range[1]), 5), 
+                            round(random.uniform(z_range[0], z_range[1]), 5))
 
             if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.5 for p in xyz_random):
                 xyz_random.append(new_point)
@@ -109,24 +115,55 @@ class ComparisonDinovas():
             points.append(new_point)
         return points
 
+    # def randomize_objects_pos(self):
+    #     x_range = [-0.3, 0.3]
+    #     y_range = [-0.3, 0.3]
+
+    #     points = []
+
+    #     max_number_of_objects = self.nr_robots
+    #     safety_counter = 0
+    #     while len(points) < max_number_of_objects:
+    #         new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+    #                      round(random.uniform(y_range[0], y_range[1]), 5))
+            
+    #         if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
+    #             points.append(new_point)
+            
+    #         safety_counter += 1
+    #         if safety_counter >= 2000:
+    #             raise ValueError("Cannot find valid points for so many objects")
+    #     points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+    #     points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
+    #     return np.asarray(points)
+    
     def randomize_objects_pos(self):
         x_range = [-0.3, 0.3]
         y_range = [-0.3, 0.3]
-
+        
+        outer_radius = 0.3  # Outer radius of the circle
+        inner_radius = 0.2
+        tolerance = 0.35
         points = []
-
-        max_number_of_objects = self.nr_robots
-        safety_counter = 0
+        
+        counter = 0
+        max_number_of_objects = 2
         while len(points) < max_number_of_objects:
-            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
-                         round(random.uniform(y_range[0], y_range[1]), 5))
+            angle = random.uniform(0, 2 * math.pi)
+            radius = random.uniform(inner_radius, outer_radius)
             
-            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
+            x = round(radius * math.cos(angle), 5)
+            y = round(radius * math.sin(angle), 5)
+            new_point = (x, y)
+            
+            if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius) \
+                and all(self.euclidean_distance(np.array(new_point), np.array(p)) > tolerance for p in points):
                 points.append(new_point)
             
-            safety_counter += 1
-            if safety_counter >= 2000:
+            counter += 1
+            if counter > 200:
                 raise ValueError("Cannot find valid points for so many objects")
+        
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         return np.asarray(points)
@@ -178,12 +215,12 @@ class ComparisonDinovas():
                         }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
         if SAVE_DATA:
-            with open('../results/dinovas_tworobots_twotables_place_env.pickle', 'wb') as handle:
+            with open('../results/dinovas_crossover_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
-        with open('../results/dinovas_tworobots_twotables_place_results.pickle', 'wb') as handle:
+        with open('../results/dinovas_crossover_results.pickle', 'wb') as handle:
             pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []
@@ -197,6 +234,8 @@ class ComparisonDinovas():
                          str(np.round(np.nanmean(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)), decimals=6)),
                          str(np.round(np.sum([entry[case].collision for entry in self.results]) / self.n_runs, decimals=1)),
                          ])
+            if case == "RGF":
+                print(str(np.round(np.nanmean(np.concatenate([entry[case].computation_time_qp for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time_qp for entry in self.results], axis=0)), decimals=6)))
             
         table = Texttable()
         table.set_cols_align(["c"] * nr_column)
