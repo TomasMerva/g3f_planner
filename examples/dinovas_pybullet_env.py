@@ -186,13 +186,13 @@ class Environment():
                 ]
         elif self.n_robots == 3:
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
-            table_pos = self.table_pos
+            table_poses = self.table_poses
             z_table = self.z_table
             objects_pos = [
-                    [table_pos[0]+self._objects_pose_noise[0][0], table_pos[1]-self._objects_pose_noise[0][1], z_table],
-                    [table_pos[0]+self._objects_pose_noise[1][0], table_pos[1]-self._objects_pose_noise[1][1], z_table],
-                    [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table],
-                    [table_pos[0]+self._objects_pose_noise[3][0], table_pos[1]-self._objects_pose_noise[3][1], z_table],
+                    [table_poses[0][0]+self._objects_pose_noise[0][0], table_poses[0][1]-self._objects_pose_noise[0][1], z_table],
+                    [table_poses[1][0]+self._objects_pose_noise[1][0], table_poses[1][1]-self._objects_pose_noise[1][1], z_table],
+                    [table_poses[0][0]+self._objects_pose_noise[2][0], table_poses[0][1]-self._objects_pose_noise[2][1], z_table],
+                    [table_poses[1][0]+self._objects_pose_noise[3][0], table_poses[1][1]-self._objects_pose_noise[3][1], z_table],
                 ]
         else:
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"

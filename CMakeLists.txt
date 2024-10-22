@@ -22,7 +22,9 @@ add_library(fabrics_controller_6obst SHARED
   ${SRC_PATH}/src/fabrics_controller_6obst.cpp
 )
 
-
+add_library(fabrics_controller_9obst SHARED
+  ${SRC_PATH}/src/fabrics_controller_9obst.cpp
+)
 # cmake_minimum_required(VERSION 3.0.2)
 # project(fabrics_rollouts)
 # add_compile_options(-std=c++17)

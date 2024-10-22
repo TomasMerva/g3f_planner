@@ -126,4 +126,4 @@ gomp:
   initial_grasp_roll_deg : 90
   verbose: False
   n_optim_steps : 2
-  fabrics_lib : "libfabrics_controller_5obst.so"
+  fabrics_lib : "libfabrics_controller_6obst.so"

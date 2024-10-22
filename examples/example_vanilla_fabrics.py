@@ -78,6 +78,9 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
                     counter += 2
+            x_r_obsts_robots["robot_" + str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
+            x_r_obsts_robots["robot_" + str(robot_id)]["r_obsts"] = r_obsts
+
             # Planner computes new action
             start_time = time.perf_counter()
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
@@ -93,8 +96,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
 
             # Log data
             evaluation_data.record_computational_time(end_time-start_time)
-            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
-            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
             if fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
 
@@ -113,7 +114,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
 
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
+        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=0.))
 
             
 
