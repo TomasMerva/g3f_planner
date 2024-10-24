@@ -214,7 +214,7 @@ class ComparisonDinovas():
             env = self.create_environment(self._render)
 
             for i, algorithm in enumerate(self.cases):
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=1)
                 if i == 0:
                     obst_dict = env.get_obstacles()
                     self.scenarios[i_run] = {
@@ -255,7 +255,7 @@ class ComparisonDinovas():
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
-def main(render=True, n_runs=20, timesteps=5000, save_data=True):
+def main(render=True, n_runs=20, timesteps=5000, save_data=False):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
@@ -269,7 +269,7 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     return {}
 
 if __name__ == "__main__":
-    main(render=False, n_runs=20, timesteps=5000)
+    main(render=False, n_runs=20, timesteps=5000, save_data=True)
 
 
 

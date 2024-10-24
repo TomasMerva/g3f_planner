@@ -21,19 +21,19 @@ sys.path.append(parent_dir)
 from dinovas_pybullet_env import Environment
 from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
 from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
-from evaluation.dinovas_crossover.example_rgf_dinovas import run_dinova_example as gomp_dinova_example
+from evaluation.dinovas_3robots.example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 from evaluation.record_data import RecordData, EvaluationDataStructure
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, n_steps_per_run=1000):
-        self.nr_robots = 2
+        self.nr_robots = 3
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
-        self._num_obst = 6
+        self._num_obst = 10
         self._stopping_tolerance = 0.07
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF" ,"GF", "RF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF" ,"GF", "RF"] #["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -52,7 +52,7 @@ class ComparisonDinovas():
 
     def load_environment(self, run_id=0):
         env = Environment()
-        pickle_file_path = '../results/dinovas_crossover_results.pickle'
+        pickle_file_path = '../results/dinovas_3robots_results.pickle'
         # Step 3: Open the pickle file in binary read mode
         with open(pickle_file_path, 'rb') as file:
             # Step 4: Use pickle.load() to load the data from the file
@@ -71,7 +71,7 @@ class ComparisonDinovas():
 
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        x_range = [0, 3]
+        x_range = [-3, 3]
         y_range = [2.0, 5.0]
         z_range = [-2, 2]
 
@@ -107,35 +107,13 @@ class ComparisonDinovas():
         #  8 obstacles in total
         #  1 obstacle is the table
         #  2 obstacle spheres for other agents
-        max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
+        max_number_of_obsts = 9 - (self.nr_robots-1)*2 -1
         for i in range(max_number_of_obsts):
             new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
                          round(random.uniform(y_range[0], y_range[1]), 5),
                          0.15)
             points.append(new_point)
         return points
-
-    # def randomize_objects_pos(self):
-    #     x_range = [-0.3, 0.3]
-    #     y_range = [-0.3, 0.3]
-
-    #     points = []
-
-    #     max_number_of_objects = self.nr_robots
-    #     safety_counter = 0
-    #     while len(points) < max_number_of_objects:
-    #         new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
-    #                      round(random.uniform(y_range[0], y_range[1]), 5))
-            
-    #         if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.3 for p in points):
-    #             points.append(new_point)
-            
-    #         safety_counter += 1
-    #         if safety_counter >= 2000:
-    #             raise ValueError("Cannot find valid points for so many objects")
-    #     points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
-    #     points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
-    #     return np.asarray(points)
     
     def randomize_objects_pos(self):
         x_range = [-0.3, 0.3]
@@ -147,7 +125,7 @@ class ComparisonDinovas():
         points = []
         
         counter = 0
-        max_number_of_objects = 2
+        max_number_of_objects = 3 #todo, does this needs to be adapted???
         while len(points) < max_number_of_objects:
             angle = random.uniform(0, 2 * math.pi)
             radius = random.uniform(inner_radius, outer_radius)
@@ -170,7 +148,6 @@ class ComparisonDinovas():
 
     def run_i(self, run_id, case="test", env=None):
         # --- run example dinovas --- #
-        #["RGF" ,"GF", "RF", "MPC"]
         if case == "RGF":
             self.results[run_id][case]  = gomp_dinova_example(n_steps=self.n_steps_per_run, 
                                             dof=self.dof, 
@@ -180,17 +157,18 @@ class ComparisonDinovas():
                                             render=self._render,
                                             stopping_tolerance=self._stopping_tolerance)     
         elif case == "GF":
-            self.results[run_id][case] = fabrics_dinova_example(n_steps=self.n_steps_per_run, 
-                                               dof=self.dof, 
-                                               n_robots=self.nr_robots, 
-                                               env=env,
-                                               stopping_tolerance=self._stopping_tolerance)
+            self.results[run_id][case] = fabrics_dinova_example(n_steps=self.n_steps_per_run,
+                                                                dof=self.dof,
+                                                                n_robots=self.nr_robots,
+                                                                env=env,
+                                                                stopping_tolerance=self._stopping_tolerance)
         elif case == "RF":
-            self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run, 
-                                                dof=self.dof, 
-                                                n_robots=self.nr_robots, 
-                                                env=env,
-                                                stopping_tolerance=self._stopping_tolerance)
+            self.results[run_id][case] = deadlock_dinova_example(n_steps=self.n_steps_per_run,
+                                                                 dof=self.dof,
+                                                                 n_robots=self.nr_robots,
+                                                                 nr_obst=self._num_obst,
+                                                                 env=env,
+                                                                 stopping_tolerance=self._stopping_tolerance)
                 
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
@@ -204,7 +182,7 @@ class ComparisonDinovas():
             # else:
             env = self.create_environment(self._render)
             for i, algorithm in enumerate(self.cases):
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=3)
                 if i == 0:
                     obst_dict = env.get_obstacles()
                     self.scenarios[i_run] = {
@@ -215,12 +193,12 @@ class ComparisonDinovas():
                         }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
         if SAVE_DATA:
-            with open('../results/dinovas_crossover_env.pickle', 'wb') as handle:
+            with open('../results/dinovas_threerobots_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
-        with open('../results/dinovas_crossover_results.pickle', 'wb') as handle:
+        with open('../results/dinovas_threerobots_results.pickle', 'wb') as handle:
             pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []
@@ -252,14 +230,15 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=False):
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps)
     comparison_dinovas.run_comparison(render =render, SAVE_DATA= save_data)
     end_time = time.perf_counter()
-    print("Results from Two robots crossover scenario")
+
+    print("Results from Three robots scenario")
     print("==================================")
     print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
-    main(render=False, n_runs=20, timesteps=5000)
+    main(render=False, n_runs=20, timesteps=7000, save_data=True)
 
 
 
