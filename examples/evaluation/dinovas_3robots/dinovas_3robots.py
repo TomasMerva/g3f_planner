@@ -29,11 +29,11 @@ class ComparisonDinovas():
         self.nr_robots = 3
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
-        self._num_obst = 9
+        self._num_obst = 10
         self._stopping_tolerance = 0.07
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["GF"] #["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF" ,"GF", "RF"] #["RGF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -71,7 +71,7 @@ class ComparisonDinovas():
 
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        x_range = [0, 3]
+        x_range = [-3, 3]
         y_range = [2.0, 5.0]
         z_range = [-2, 2]
 
@@ -182,7 +182,7 @@ class ComparisonDinovas():
             # else:
             env = self.create_environment(self._render)
             for i, algorithm in enumerate(self.cases):
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=3)
                 if i == 0:
                     obst_dict = env.get_obstacles()
                     self.scenarios[i_run] = {
@@ -193,12 +193,12 @@ class ComparisonDinovas():
                         }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
         if SAVE_DATA:
-            with open('../results/dinovas_crossover_env.pickle', 'wb') as handle:
+            with open('../results/dinovas_threerobots_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
-        with open('../results/dinovas_crossover_results.pickle', 'wb') as handle:
+        with open('../results/dinovas_threerobots_results.pickle', 'wb') as handle:
             pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
         # --- create and plot table --- #
         rows = []
@@ -230,12 +230,15 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=False):
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps)
     comparison_dinovas.run_comparison(render =render, SAVE_DATA= save_data)
     end_time = time.perf_counter()
+
+    print("Results from Three robots scenario")
+    print("==================================")
     print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=1, timesteps=5000)
+    main(render=False, n_runs=20, timesteps=7000)
 
 
 

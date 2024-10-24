@@ -16,34 +16,34 @@ problem:
         type: sphere
         position: [-10.3, -0.3, 0.3]
         radius: 0.2
-      obstacle3: # table1
+      obstacle3: # robot3 chassislink
         type: sphere
         position: [1.5, 0.0, 0.0]
-        radius: 0.25
-      obstacle4: # table1 top
+        radius: 0.6
+      obstacle4: # robot3 upper_wrist_link
         type: sphere
         position: [1.5, 0.0, 0.3]
-        radius: 0.1
-      obstacle5:
+        radius: 0.2
+      obstacle5:  # table1
         type: sphere
-        position: [-1.5, 0.0, 0.0]
+        position: [-3.0, 0.0, 0.0]
         radius: 0.25
-      obstacle6:
+      obstacle6:  # table1 top
         type: sphere
-        position: [-1.5, 0.0, 0.3]
+        position: [-3.0, 0.0, 0.3]
         radius: 0.1
-      obstacle7:
+      obstacle7:   # table2
         type: sphere
-        position: [-1.5, 0.0, 0.3]
-        radius: 0.1
-      obstacle8:
+        position: [0.0, 0.0, 0.0]
+        radius: 0.25
+      obstacle8:   # table2 top
         type: sphere
-        position: [-1.5, 0.0, 0.3]
+        position: [0.0, 0.0, 0.3]
         radius: 0.1
-      obstacle9:
+      obstacle9: #table3
         type: sphere
-        position: [-1.5, 0.0, 0.3]
-        radius: 0.1
+        position: [3.0, 0.0, 0.0]
+        radius: 0.25
   goal:
     goal_definition:
       subgoal0:
@@ -123,8 +123,8 @@ problem:
 fabrics:
   limit_geometry: -0.1 / (x ** 1) * xdot ** 2 #-1.0 / (x ** 1) * xdot ** 2
   limit_finsler: 1.0/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot**2
-  collision_geometry: -0.1 / (x ** 1) * xdot ** 2 #-0.2 / (x ** 1) * xdot ** 2
-  collision_finsler:  0.1/(x**2) * xdot**2 #0.2/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
+  collision_geometry: -0.2 / (x ** 1) * xdot ** 2 #-0.2 / (x ** 1) * xdot ** 2
+  collision_finsler:  0.2/(x**2) * xdot**2 #0.2/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
   geometry_plane_constraint: -0.2 / (x ** 1) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
   finsler_plane_constraint: 0.2/(x**2) * xdot**2
 gomp:

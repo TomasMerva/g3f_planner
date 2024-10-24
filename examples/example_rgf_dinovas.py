@@ -209,7 +209,7 @@ def run_dinova_example(n_steps,
             print("RGF: Success")
             break
 
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=0.))
+        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05))
 
         ob, *_ = sim.step(action)
 

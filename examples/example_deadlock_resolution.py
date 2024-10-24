@@ -81,6 +81,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, nr_obst = 3, ren
         config_path = os.path.join(current_script_dir,'..', 'config/dinova_config_rgf_6obst.yaml')
     elif NUM_OBST == 9:
         config_path = os.path.join(current_script_dir,'..', 'config/dinova_config_rgf_9obst.yaml')
+    elif NUM_OBST == 10:
+        config_path = os.path.join(current_script_dir,'..', 'config/dinova_config_rgf_10obst.yaml')
     CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
     planner = RGF_Planner(fk_args=fk_args,
                           config_file_path=CONFIG_FILE_PATH_GOMP)

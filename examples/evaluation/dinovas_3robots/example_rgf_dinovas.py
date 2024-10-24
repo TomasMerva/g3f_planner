@@ -83,6 +83,9 @@ def run_dinova_example(n_steps,
         config_path = os.path.join(current_script_dir, 'dinova_config_rgf_6obst.yaml')
     elif NUM_OBST == 9:
         config_path = os.path.join(current_script_dir, 'dinova_config_rgf_9obst.yaml')
+    elif NUM_OBST == 10:
+        config_path = os.path.join(current_script_dir, 'dinova_config_rgf_10obst.yaml')
+        
     CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
     planner = RGF_Planner(fk_args=fk_args,
                           config_file_path=CONFIG_FILE_PATH_GOMP
@@ -142,6 +145,7 @@ def run_dinova_example(n_steps,
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
             x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
 
+
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
                     start_time = time.perf_counter()
@@ -162,7 +166,7 @@ def run_dinova_example(n_steps,
                     if RENDER:
                         for i in range(len(waypoints_list_robots[robot_id])):
                             pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
-
+                        
 
             if success_rate_per_robot[robot_id] == 0:
                 if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
@@ -207,8 +211,12 @@ def run_dinova_example(n_steps,
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
-
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=0.))
+        
+        collision_flag = fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05)
+        evaluation_data.record_collision_violation(collision_flag)
+        if collision_flag == True:
+            evaluation_data.record_success_rate(success=0.0)
+            break
 
         ob, *_ = sim.step(action)
 

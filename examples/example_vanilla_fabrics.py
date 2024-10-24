@@ -114,7 +114,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
 
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=0.))
+        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05))
 
             
 

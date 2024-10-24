@@ -35,7 +35,7 @@ class ComparisonDinovas():
         self.nr_obsts = 6
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RF"] #["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF" ,"GF", "RF"] #["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -262,6 +262,8 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps)
     comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False, SAVE_DATA=save_data)
     end_time = time.perf_counter()
+    print("Results from Two robots one table scenario")
+    print("==================================")
     print("Total computational time: ", end_time-start_time)
     comparison_dinovas.table_results()
     return {}

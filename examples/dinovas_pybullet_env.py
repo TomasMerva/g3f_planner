@@ -22,8 +22,8 @@ class Environment():
         
         self._objects_pose_noise = None
         self._obstacles_dict = {}
-        self.table_pos = [-1.5, 0.0, 0.0]
-        self.table_poses = [copy.deepcopy(self.table_pos), [1.5, 0., 0.]]
+        self.table_pos = [-3, 0.0, 0.0]
+        self.table_poses = [copy.deepcopy(self.table_pos), [0, 0., 0.], [3, 0., 0.]]
         self.z_table = 0.3
 
     def _define_files_path(self, env_config_file=None) -> None:
@@ -164,7 +164,7 @@ class Environment():
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
             table_pos = self.table_pos
             z_table = self.z_table
-            table_poses = self.table_poses
+            table_poses = self.table_poses[:self.n_robots]
 
             if self._objects_pose_noise is None:
                 objects_pos = [
@@ -186,12 +186,12 @@ class Environment():
                 ]
         elif self.n_robots == 3:
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
-            table_poses = self.table_poses
+            table_poses = self.table_poses[:self.n_robots]
             z_table = self.z_table
             objects_pos = [
                     [table_poses[0][0]+self._objects_pose_noise[0][0], table_poses[0][1]-self._objects_pose_noise[0][1], z_table],
                     [table_poses[1][0]+self._objects_pose_noise[1][0], table_poses[1][1]-self._objects_pose_noise[1][1], z_table],
-                    [table_poses[0][0]+self._objects_pose_noise[2][0], table_poses[0][1]-self._objects_pose_noise[2][1], z_table],
+                    [table_poses[2][0]+self._objects_pose_noise[2][0], table_poses[2][1]-self._objects_pose_noise[2][1], z_table],
                     [table_poses[1][0]+self._objects_pose_noise[3][0], table_poses[1][1]-self._objects_pose_noise[3][1], z_table],
                 ]
         else:
