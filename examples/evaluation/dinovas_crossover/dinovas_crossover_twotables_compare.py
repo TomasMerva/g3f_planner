@@ -33,7 +33,7 @@ class ComparisonDinovas():
         self._stopping_tolerance = 0.07
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
-        self.cases = ["RGF" ,"GF", "RF"] #,["RGF" ,"GF", "RF", "MPC"]
+        self.cases = ["RGF" ,"GF"] #,["RGF" ,"GF", "RF", "MPC"]
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -178,9 +178,6 @@ class ComparisonDinovas():
     def run_comparison(self, render, SAVE_DATA):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
-            # if i_run == 0 or i_run == 1:
-            #     break
-            # else:
             env = self.create_environment(self._render)
             for i, algorithm in enumerate(self.cases):
                 env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
@@ -196,11 +193,12 @@ class ComparisonDinovas():
         if SAVE_DATA:
             with open('../results/dinovas_crossover_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            # with open('../results/dinovas_crossover_results.pickle', 'wb') as handle:
+            #     pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def table_results(self):
         # Save data
-        with open('../results/dinovas_crossover_results.pickle', 'wb') as handle:
-            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
         # --- create and plot table --- #
         rows = []
         title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "Collision-rate"]
@@ -224,7 +222,7 @@ class ComparisonDinovas():
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
 
-def main(render=True, n_runs=20, timesteps=5000, save_data=False):
+def main(render=True, n_runs=20, timesteps=5000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
@@ -236,4 +234,4 @@ def main(render=True, n_runs=20, timesteps=5000, save_data=False):
     return {}
 
 if __name__ == "__main__":
-    main(render=False, n_runs=20, timesteps=5000, save_data=True)
+    main(render=True, n_runs=20, timesteps=5000, save_data=True)

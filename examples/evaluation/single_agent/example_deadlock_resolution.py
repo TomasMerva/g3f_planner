@@ -67,12 +67,12 @@ def run_dinova_example(n_steps,
     obstacles = env.get_obstacles()
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
-    num_obst2replace = -2*(n_robots-1)
-    for i in range(n_robots-1):
-        chassis_idx = num_obst2replace + 2*i
-        wrist_idx = num_obst2replace + 2*i + 1
-        r_obsts[chassis_idx] = 0.6
-        r_obsts[wrist_idx] = 0.2
+    # num_obst2replace = -2*(n_robots-1)
+    # for i in range(n_robots-1):
+    #     chassis_idx = num_obst2replace + 2*i
+    #     wrist_idx = num_obst2replace + 2*i + 1
+    #     r_obsts[chassis_idx] = 0.6
+    #     r_obsts[wrist_idx] = 0.2
     x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(n_robots)}
     arguments_dicts = {f"robot_{i}": [] for i in range(n_robots)}
     
@@ -137,21 +137,33 @@ def run_dinova_example(n_steps,
         for robot_id in range(1):
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
-                    # other robots as dynamic obstacles
-                    num_obst2replace = -2*(n_robots-1)
+                    # # other robots as dynamic obstacles
+                    # num_obst2replace = -2*(n_robots-1)
+                    # counter = 0
+                    # for i in range(n_robots):
+                    #     if i == robot_id:
+                    #         continue
+                    #     else:
+                    #         chassis_idx = num_obst2replace + 2*counter
+                    #         wrist_idx = num_obst2replace + 2*counter + 1
+                    #         x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
+                    #         x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
+                    #         r_obsts[chassis_idx] = 0.7
+                    #         r_obsts[wrist_idx] = 0.3
+                    #         counter += 1
                     counter = 0
-                    for i in range(n_robots):
+                    for i in range(NUM_ROBOTS):
                         if i == robot_id:
                             continue
                         else:
-                            chassis_idx = num_obst2replace + 2*counter
-                            wrist_idx = num_obst2replace + 2*counter + 1
+                            chassis_idx = counter 
+                            wrist_idx = counter + 1
                             x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                             x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                            r_obsts[chassis_idx] = 0.7
-                            r_obsts[wrist_idx] = 0.3
-                            counter += 1
-               
+                            counter += 2
+                    x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
+                    x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
+
                     start_time = time.perf_counter()
                     planner.update_param_and_initial_guess(joint_state=robot_states[robot_id],
                                                         T_W_Obj=T_W_Objects[robot_id],
@@ -160,19 +172,19 @@ def run_dinova_example(n_steps,
 
                     qdot_rollout_avg["robot_" + str(robot_id)] = planner.get_velocity_average()
             
-            num_obst2replace = -2*(n_robots-1)
-            counter = 0
-            for i in range(n_robots):
-                if i == robot_id:
-                    continue
-                else:
-                    chassis_idx = num_obst2replace + 2*counter
-                    wrist_idx = num_obst2replace + 2*counter + 1
-                    x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
-                    x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                    r_obsts[chassis_idx] = 0.45
-                    r_obsts[wrist_idx] = 0.2
-                    counter += 1
+            # num_obst2replace = -2*(n_robots-1)
+            # counter = 0
+            # for i in range(n_robots):
+            #     if i == robot_id:
+            #         continue
+            #     else:
+            #         chassis_idx = num_obst2replace + 2*counter
+            #         wrist_idx = num_obst2replace + 2*counter + 1
+            #         x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
+            #         x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
+            #         r_obsts[chassis_idx] = 0.45
+            #         r_obsts[wrist_idx] = 0.2
+            #         counter += 1
 
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
                                             T_W_Goal=T_W_Goals[robot_id])
@@ -203,10 +215,8 @@ def run_dinova_example(n_steps,
 
             if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
-            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
-            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
-
-            if timestep%100 == 0:
+            
+            if timestep%100 == 0 and RENDER:
                 position = T_W_Goals[robot_id][:3, 3]  
                 rotation_matrix = T_W_Goals[robot_id][:3, :3]
                 axis_length = 0.2
@@ -214,6 +224,11 @@ def run_dinova_example(n_steps,
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
+        collision_flag = fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05)
+        evaluation_data.record_collision_violation(collision_flag)
+        if collision_flag == True:
+            evaluation_data.record_success_rate(success=0.0)
+            break
 
         if success_rate_per_robot[0] == 1:
             evaluation_data.record_success_rate(success=100.0)
@@ -221,7 +236,7 @@ def run_dinova_example(n_steps,
             print("RF: Success")
             break
 
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
+        # evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
 
         ob, *_ = sim.step(action)
 

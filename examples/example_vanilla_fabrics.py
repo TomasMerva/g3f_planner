@@ -99,22 +99,28 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             if fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
 
-            if timestep%100 == 0:
-                position = T_W_Goals[robot_id][:3, 3]  
-                rotation_matrix = T_W_Goals[robot_id][:3, :3]
-                axis_length = 0.2
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 0] * axis_length, [1, 0, 0], lineWidth=3, lifeTime=1.0)
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
+            # if timestep%100 == 0:
+            #     position = T_W_Goals[robot_id][:3, 3]  
+            #     rotation_matrix = T_W_Goals[robot_id][:3, :3]
+            #     axis_length = 0.2
+            #     pybullet.addUserDebugLine(position, position + rotation_matrix[:, 0] * axis_length, [1, 0, 0], lineWidth=3, lifeTime=1.0)
+            #     pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
+            #     pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
         ob, *_ = sim.step(action)
+
+        collision_flag = fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05)
+        evaluation_data.record_collision_violation(collision_flag)
+        if collision_flag == True:
+            evaluation_data.record_success_rate(success=0.0)
+            break
 
         if np.all(success_rate_per_robot):
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
 
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05))
+        # evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05))
 
             
 

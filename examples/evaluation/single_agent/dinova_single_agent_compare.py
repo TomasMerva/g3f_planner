@@ -198,11 +198,10 @@ class ComparisonDinovas():
         if SAVE_DATA:
             with open('../results/dinova_single_agent_env.pickle', 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            # with open('../results/dinova_single_agent_results.pickle', 'wb') as handle:
+            #     pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def table_results(self):
-        # Save data
-        with open('../results/dinova_single_agent_results.pickle', 'wb') as handle:
-            pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    def table_results(self):    
         # --- create and plot table --- #
         rows = []
         title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "Collision-rate"]
@@ -223,7 +222,7 @@ class ComparisonDinovas():
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table)) #, caption="\small{Statistics for 50 simulated scenarios of our proposed methods \ac{gm} and \ac{cm} compared to 50 scenarios of \ac{gf} and \ac{smp}}"))
       
-def main(render=True, n_runs=2, timesteps=1000, save_data=False):
+def main(render=True, n_runs=2, timesteps=1000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     start_time = time.perf_counter()
@@ -237,7 +236,7 @@ def main(render=True, n_runs=2, timesteps=1000, save_data=False):
     return {}
 
 if __name__ == "__main__":
-    main(render=False, n_runs=20, timesteps=5000, save_data=True)
+    main(render=True, n_runs=20, timesteps=5000, save_data=False)
 
 
 

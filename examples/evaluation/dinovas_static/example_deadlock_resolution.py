@@ -60,13 +60,13 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
     obstacles = env.get_obstacles()
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
-    num_obst2replace = -2*(n_robots-1)
-    for i in range(n_robots-1):
-        chassis_idx = num_obst2replace + 2*i
-        wrist_idx = num_obst2replace + 2*i + 1
-        r_obsts[chassis_idx] = 0.6
-        r_obsts[wrist_idx] = 0.2
-    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(n_robots)}
+    # num_obst2replace = -2*(n_robots-1)
+    # for i in range(n_robots-1):
+    #     chassis_idx = num_obst2replace + 2*i
+    #     wrist_idx = num_obst2replace + 2*i + 1
+    #     r_obsts[chassis_idx] = 0.6
+    #     r_obsts[wrist_idx] = 0.2
+    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(NUM_ROBOTS)}
     arguments_dicts = {f"robot_{i}": [] for i in range(n_robots)}
     
     # Planner
@@ -125,20 +125,19 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
         for robot_id in range(NUM_ROBOTS):
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
-                    # other robots as dynamic obstacles
-                    num_obst2replace = -2*(n_robots-1)
                     counter = 0
-                    for i in range(n_robots):
+                    for i in range(NUM_ROBOTS):
                         if i == robot_id:
                             continue
                         else:
-                            chassis_idx = num_obst2replace + 2*counter
-                            wrist_idx = num_obst2replace + 2*counter + 1
+                            chassis_idx = counter 
+                            wrist_idx = counter + 1
                             x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                             x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                            r_obsts[chassis_idx] = 0.7
-                            r_obsts[wrist_idx] = 0.3
-                            counter += 1
+                            counter += 2
+                    
+                    x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
+                    x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
                
                     start_time = time.perf_counter()
                     planner.update_param_and_initial_guess(joint_state=robot_states[robot_id],
@@ -148,19 +147,22 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
 
                     qdot_rollout_avg["robot_" + str(robot_id)] = planner.get_velocity_average()
             
-            num_obst2replace = -2*(n_robots-1)
-            counter = 0
-            for i in range(n_robots):
-                if i == robot_id:
-                    continue
-                else:
-                    chassis_idx = num_obst2replace + 2*counter
-                    wrist_idx = num_obst2replace + 2*counter + 1
-                    x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
-                    x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                    r_obsts[chassis_idx] = 0.45
-                    r_obsts[wrist_idx] = 0.2
-                    counter += 1
+            # num_obst2replace = -2*(n_robots-1)
+            # counter = 0
+            # for i in range(n_robots):
+            #     if i == robot_id:
+            #         continue
+            #     else:
+            #         chassis_idx = num_obst2replace + 2*counter
+            #         wrist_idx = num_obst2replace + 2*counter + 1
+            #         x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
+            #         x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
+            #         r_obsts[chassis_idx] = 0.45
+            #         r_obsts[wrist_idx] = 0.2
+            #         counter += 1
+            # x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
+            # x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
+
 
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
                                             T_W_Goal=T_W_Goals[robot_id])
@@ -180,6 +182,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
             goal_robots, goal_weights = deadlock_prevention.deadlock_adapt_goals_weights(x_robots=position_EEFs_current,
                                                                                          goal_robots=[arguments_dicts["robot_" + str(j_robot)]["x_goal_0"] for j_robot in range(NUM_ROBOTS)],
                                                                                          goal_weights=[arguments_dicts["robot_" + str(j_robot)]["weight_goal_0"]for j_robot in range(NUM_ROBOTS)])
+            
+            
             arguments_dicts["robot_" + str(robot_id)]["x_goal_0"] = goal_robots[robot_id]
             arguments_dicts["robot_" + str(robot_id)]["weight_goal_0"] = goal_weights[robot_id]
             fabrics.set_arguments(arguments_dicts["robot_" + str(robot_id)])
@@ -192,10 +196,9 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
             if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
                 print(f"Robot {robot_id} has finished")
-            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
-            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
+      
 
-            if timestep%100 == 0:
+            if timestep%100 == 0 and RENDER:
                 position = T_W_Goals[robot_id][:3, 3]  
                 rotation_matrix = T_W_Goals[robot_id][:3, :3]
                 axis_length = 0.2
@@ -203,14 +206,17 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
+        collision_flag = fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05)
+        evaluation_data.record_collision_violation(collision_flag)
+        if collision_flag == True:
+            evaluation_data.record_success_rate(success=0.0)
+            break
 
         if np.all(success_rate_per_robot):
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
-            print("RGF: Success")
+            print("RF: Success")
             break
-
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
 
         ob, *_ = sim.step(action)
 
@@ -222,7 +228,6 @@ def main(render=True, timesteps=2000):
     RENDER = render
     NUM_ROBOTS = 2
     NUM_DOF = 11
-    NUM_GRIPPER_FINGERS = 2
     NUM_TIMESTEPS = timesteps
 
     # Environment

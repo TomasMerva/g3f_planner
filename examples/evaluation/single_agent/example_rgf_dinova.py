@@ -133,6 +133,8 @@ def run_dinova_example(n_steps,
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
                     counter += 2
+            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
+            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
 
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
@@ -154,15 +156,6 @@ def run_dinova_example(n_steps,
                     if RENDER:
                         for i in range(len(waypoints_list_robots[robot_id])):
                             pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
-                        q_init_coll, q_init_free = planner.get_initial_guesses()
-                        # FK_guess = [planner.compute_fk(q_init_coll[i]) for i in range(len(q_init_coll)) ]
-                        # for i in range(len(q_init_coll)):
-                        #     pybullet.addUserDebugPoints([FK_guess[i][:3, 3].tolist()], [[255,0,0]], 10, 2.0)
-                        # FK_guess = [[q_init_coll[i][0],
-                        #              q_init_coll[i][1],
-                        #              0.0] for i in range(len(q_init_coll)) ]
-                        # for i in range(len(q_init_coll)):
-                        #     pybullet.addUserDebugPoints([FK_guess[i]], [[255,0,0]], 10, 2.0)
 
             if success_rate_per_robot[robot_id] == 0:
                 if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
@@ -193,8 +186,7 @@ def run_dinova_example(n_steps,
                 success_rate_per_robot[robot_id] = 1
                 
 
-            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
-            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
+            
 
             
 
@@ -206,13 +198,19 @@ def run_dinova_example(n_steps,
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
+        collision_flag = fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05)
+        evaluation_data.record_collision_violation(collision_flag)
+        if collision_flag == True:
+            evaluation_data.record_success_rate(success=0.0)
+            break
+
         if success_rate_per_robot[0] == 1:
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
         
 
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
+        # evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
 
         ob, *_ = sim.step(action)
 

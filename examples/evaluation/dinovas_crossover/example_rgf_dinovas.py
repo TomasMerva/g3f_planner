@@ -139,7 +139,7 @@ def run_dinova_example(n_steps,
                     counter += 2
             x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
             x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
-    
+
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
                     start_time = time.perf_counter()
@@ -198,7 +198,11 @@ def run_dinova_example(n_steps,
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
 
-
+        collision_flag = fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05)
+        evaluation_data.record_collision_violation(collision_flag)
+        if collision_flag == True:
+            evaluation_data.record_success_rate(success=0.0)
+            break
  
 
         if np.all(success_rate_per_robot):
@@ -206,7 +210,6 @@ def run_dinova_example(n_steps,
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
 
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=0.))
 
         ob, *_ = sim.step(action)
 

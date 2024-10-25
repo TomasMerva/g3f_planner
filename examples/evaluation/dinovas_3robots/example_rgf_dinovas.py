@@ -205,6 +205,11 @@ def run_dinova_example(n_steps,
 
 
 
+        collision_flag = fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05)
+        evaluation_data.record_collision_violation(collision_flag)
+        if collision_flag == True:
+            evaluation_data.record_success_rate(success=0.0)
+            break
  
 
         if np.all(success_rate_per_robot):
@@ -212,11 +217,7 @@ def run_dinova_example(n_steps,
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             break
         
-        collision_flag = fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05)
-        evaluation_data.record_collision_violation(collision_flag)
-        if collision_flag == True:
-            evaluation_data.record_success_rate(success=0.0)
-            break
+        
 
         ob, *_ = sim.step(action)
 
