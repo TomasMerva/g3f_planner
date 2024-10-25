@@ -65,7 +65,7 @@ def run_dinova_example(n_steps,
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
 
     #TODO: this is maybe useless
-    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(NUM_ROBOTS)}
+    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(1)}
 
     # Planner
     fk_args = dict(
@@ -133,8 +133,8 @@ def run_dinova_example(n_steps,
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
                     counter += 2
-            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
-            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
+            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
+            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = copy.deepcopy(r_obsts)
 
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:

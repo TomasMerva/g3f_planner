@@ -236,7 +236,7 @@ def main(render=True, n_runs=2, timesteps=1000, save_data=True):
     return {}
 
 if __name__ == "__main__":
-    main(render=True, n_runs=20, timesteps=5000, save_data=False)
+    main(render=False, n_runs=20, timesteps=5000, save_data=False)
 
 
 

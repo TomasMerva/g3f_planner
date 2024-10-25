@@ -67,13 +67,7 @@ def run_dinova_example(n_steps,
     obstacles = env.get_obstacles()
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
-    # num_obst2replace = -2*(n_robots-1)
-    # for i in range(n_robots-1):
-    #     chassis_idx = num_obst2replace + 2*i
-    #     wrist_idx = num_obst2replace + 2*i + 1
-    #     r_obsts[chassis_idx] = 0.6
-    #     r_obsts[wrist_idx] = 0.2
-    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(n_robots)}
+    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(1)}
     arguments_dicts = {f"robot_{i}": [] for i in range(n_robots)}
     
     # Planner
@@ -137,20 +131,6 @@ def run_dinova_example(n_steps,
         for robot_id in range(1):
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
-                    # # other robots as dynamic obstacles
-                    # num_obst2replace = -2*(n_robots-1)
-                    # counter = 0
-                    # for i in range(n_robots):
-                    #     if i == robot_id:
-                    #         continue
-                    #     else:
-                    #         chassis_idx = num_obst2replace + 2*counter
-                    #         wrist_idx = num_obst2replace + 2*counter + 1
-                    #         x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
-                    #         x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                    #         r_obsts[chassis_idx] = 0.7
-                    #         r_obsts[wrist_idx] = 0.3
-                    #         counter += 1
                     counter = 0
                     for i in range(NUM_ROBOTS):
                         if i == robot_id:
@@ -171,20 +151,6 @@ def run_dinova_example(n_steps,
                                                         )
 
                     qdot_rollout_avg["robot_" + str(robot_id)] = planner.get_velocity_average()
-            
-            # num_obst2replace = -2*(n_robots-1)
-            # counter = 0
-            # for i in range(n_robots):
-            #     if i == robot_id:
-            #         continue
-            #     else:
-            #         chassis_idx = num_obst2replace + 2*counter
-            #         wrist_idx = num_obst2replace + 2*counter + 1
-            #         x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
-            #         x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-            #         r_obsts[chassis_idx] = 0.45
-            #         r_obsts[wrist_idx] = 0.2
-            #         counter += 1
 
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
                                             T_W_Goal=T_W_Goals[robot_id])

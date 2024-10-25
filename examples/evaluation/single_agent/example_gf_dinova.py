@@ -40,7 +40,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
 
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
-    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(n_robots)}
+    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(1)}
     
     """
     Results metrics:
@@ -78,8 +78,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
                     counter += 2
-            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
-            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
+            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
+            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = copy.deepcopy(r_obsts)
             # Planner computes new action
             start_time = time.perf_counter()
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],

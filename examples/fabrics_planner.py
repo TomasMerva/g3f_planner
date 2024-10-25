@@ -173,7 +173,7 @@ class Fabrics():
 
     def collision_check(self, x_r_obsts, robot_states, threshold=-0.05):
         collision_link_names = list(self._collision_dict.keys())
-        for i_robot in range(len(robot_states[:][0])):
+        for i_robot in range(len(x_r_obsts)):
             robot_joint_positions = robot_states[i_robot][0]
             x_obsts = x_r_obsts["robot_"+str(i_robot)]["x_obsts"]
             r_obsts = x_r_obsts["robot_"+str(i_robot)]["r_obsts"]
