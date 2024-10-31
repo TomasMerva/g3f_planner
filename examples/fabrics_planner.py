@@ -188,8 +188,8 @@ class Fabrics():
                         # print(f"L2 norm: {np.linalg.norm(x_collision_robot - x_obsts[i_obst])}")
                         # print(f"R obst: {r_obsts[i_obst]}     r_robot: {r_collision_robot}")
                         # print()
-                        return True
-        return False
+                        return True, error
+        return False, None
 
 
     def compute_static_grasp(self, T_W_Obj, theta_preference):

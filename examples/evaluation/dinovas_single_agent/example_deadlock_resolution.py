@@ -32,14 +32,22 @@ def dict2transformation(pose : dict) -> np.ndarray:
 
 
 
-def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, stopping_tolerance=0.05):
+def run_dinova_example(n_steps, 
+                       dof, 
+                       n_robots, 
+                       gomp_config_file,
+                       env:Environment, 
+                       nr_obst = 3, 
+                       render=False, 
+                       stopping_tolerance=0.05):
     RENDER = render
     NUM_ROBOTS = n_robots
     NUM_DOF = dof
     NUM_GRIPPER_FINGERS = 2
     NUM_TIMESTEPS = n_steps
+    NUM_OBST = nr_obst
     PLANNER_PERIOD = 100
-    REFERENCE_TRACKER_PERIOD = 10
+    CONFIG_FILE_PATH_GOMP = gomp_config_file
 
     robots_color = [ [0, 255, 0],
                     [0, 255, 255],
@@ -60,13 +68,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
     obstacles = env.get_obstacles()
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
-    # num_obst2replace = -2*(n_robots-1)
-    # for i in range(n_robots-1):
-    #     chassis_idx = num_obst2replace + 2*i
-    #     wrist_idx = num_obst2replace + 2*i + 1
-    #     r_obsts[chassis_idx] = 0.6
-    #     r_obsts[wrist_idx] = 0.2
-    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(NUM_ROBOTS)}
+
     arguments_dicts = {f"robot_{i}": [] for i in range(n_robots)}
     
     # Planner
@@ -76,9 +78,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
         end_link = "arm_tool_frame",
         num_dofs = NUM_DOF-NUM_GRIPPER_FINGERS,
     )
-    current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(current_script_dir, 'dinova_config_rgf_5obst.yaml')
-    CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
     planner = RGF_Planner(fk_args=fk_args,
                           config_file_path=CONFIG_FILE_PATH_GOMP)
     
@@ -121,102 +120,125 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, render=False, st
                                                      goal_position=T_W_Goals[robot_id][:3,3])
                 T_W_Goals[robot_id] = fabrics.compute_static_grasp(T_W_Goals[robot_id], theta)
 
+
+
+        
+            
+
         # Rollout fabrics
+        rollout_time = []
         for robot_id in range(NUM_ROBOTS):
+            # Compute obstacles' poses
+            counter = 0
+            for i in range(NUM_ROBOTS):
+                if i == robot_id:
+                    continue
+                else:
+                    chassis_idx = counter 
+                    wrist_idx = counter + 1
+                    x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
+                    x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
+                    counter += 2
+            
+            # Compute rollouts
             if timestep%PLANNER_PERIOD == 0:
+                start_time = time.perf_counter()
                 if success_rate_per_robot[robot_id] == 0:
-                    counter = 0
-                    for i in range(NUM_ROBOTS):
-                        if i == robot_id:
-                            continue
-                        else:
-                            chassis_idx = counter 
-                            wrist_idx = counter + 1
-                            x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
-                            x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                            counter += 2
-                    
-                    x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
-                    x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
-               
-                    start_time = time.perf_counter()
                     planner.update_param_and_initial_guess(joint_state=robot_states[robot_id],
                                                         T_W_Obj=T_W_Objects[robot_id],
-                                                        x_obsts=x_obsts[:1] + x_obsts[-2*(n_robots-1):],
+                                                        x_obsts=x_obsts[:NUM_ROBOTS],
+                                                        r_obsts=r_obsts[:NUM_ROBOTS],
                                                         )
+                qdot_rollout_avg["robot_" + str(robot_id)] = planner.get_velocity_average()
+                end_time = time.perf_counter()
+                rollout_time.append(end_time-start_time)
 
-                    qdot_rollout_avg["robot_" + str(robot_id)] = planner.get_velocity_average()
-            
-            # num_obst2replace = -2*(n_robots-1)
-            # counter = 0
-            # for i in range(n_robots):
-            #     if i == robot_id:
-            #         continue
-            #     else:
-            #         chassis_idx = num_obst2replace + 2*counter
-            #         wrist_idx = num_obst2replace + 2*counter + 1
-            #         x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
-            #         x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-            #         r_obsts[chassis_idx] = 0.45
-            #         r_obsts[wrist_idx] = 0.2
-            #         counter += 1
-            # x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] = copy.deepcopy(x_obsts)
-            # x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
-
-
+            # Update weigths and arguments for fabrics
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
                                             T_W_Goal=T_W_Goals[robot_id])
             fabrics.update_arguments(joint_state= robot_states[robot_id],
-                                     T_W_Goal=T_W_Goals[robot_id],
-                                     obst_pos=x_obsts,
-                                     obst_radius=r_obsts)
+                                    T_W_Goal=T_W_Goals[robot_id],
+                                    obst_pos=x_obsts,
+                                    obst_radius=r_obsts)
             arguments_dicts["robot_" + str(robot_id)] = copy.deepcopy(fabrics.get_arguments())
-
-        # need information of GOMP for both robots for deadlock resolution:
+        
+        # Record time but only when rollouts are performed
+        if timestep%PLANNER_PERIOD == 0:
+            evaluation_data.record_computational_time_qp(sum(rollout_time))
+            
         deadlock_prevention.deadlock_checking(x_robots=position_EEFs_current,
-                                              goals_final=[T_W_Goals[robot_id][:3,3] for robot_id in range(NUM_ROBOTS)],
-                                              time_step=timestep,
-                                              avg_sum=copy.deepcopy(sum(qdot_rollout_avg.values()) / NUM_ROBOTS))
+                                                goals_final=[T_W_Goals[robot_id][:3,3] for robot_id in range(NUM_ROBOTS)],
+                                                time_step=timestep,
+                                                avg_sum=copy.deepcopy(sum(qdot_rollout_avg.values()) / NUM_ROBOTS))
 
-        for robot_id in range(NUM_ROBOTS):
+
+
+        # for robot_id in range(NUM_ROBOTS):
+        #     counter = 0
+        #     for i in range(NUM_ROBOTS):
+        #         if i == robot_id:
+        #             continue
+        #         else:
+        #             chassis_idx = counter
+        #             wrist_idx = counter + 1
+        #             x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
+        #             x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
+        #             counter += 2
+
+        #     if timestep%PLANNER_PERIOD == 0:
+        #         if success_rate_per_robot[robot_id] == 0:
+        #             planner.update_param_and_initial_guess(joint_state=robot_states[robot_id],
+        #                                                 T_W_Obj=T_W_Objects[robot_id],
+        #                                                 x_obsts=x_obsts[:NUM_ROBOTS],
+        #                                                 r_obsts=r_obsts[:NUM_ROBOTS],
+        #                                                 )
+
+        #             qdot_rollout_avg["robot_" + str(robot_id)] = planner.get_velocity_average()
+
+        #     start_time = time.perf_counter()
+        #     fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
+        #                                     T_W_Goal=T_W_Goals[robot_id])
+        #     fabrics.update_arguments(joint_state= robot_states[robot_id],
+        #                              T_W_Goal=T_W_Goals[robot_id],
+        #                              obst_pos=x_obsts,
+        #                              obst_radius=r_obsts)
+        #     arguments_dicts["robot_" + str(robot_id)] = copy.deepcopy(fabrics.get_arguments())
+
+        # # need information of GOMP for both robots for deadlock resolution:
+        # deadlock_prevention.deadlock_checking(x_robots=position_EEFs_current,
+        #                                       goals_final=[T_W_Goals[robot_id][:3,3] for robot_id in range(NUM_ROBOTS)],
+        #                                       time_step=timestep,
+        #                                       avg_sum=copy.deepcopy(sum(qdot_rollout_avg.values()) / NUM_ROBOTS))
+
+        for robot_id in range(1):
+            start_time = time.perf_counter()
             goal_robots, goal_weights = deadlock_prevention.deadlock_adapt_goals_weights(x_robots=position_EEFs_current,
                                                                                          goal_robots=[arguments_dicts["robot_" + str(j_robot)]["x_goal_0"] for j_robot in range(NUM_ROBOTS)],
                                                                                          goal_weights=[arguments_dicts["robot_" + str(j_robot)]["weight_goal_0"]for j_robot in range(NUM_ROBOTS)])
-            
-            
             arguments_dicts["robot_" + str(robot_id)]["x_goal_0"] = goal_robots[robot_id]
             arguments_dicts["robot_" + str(robot_id)]["weight_goal_0"] = goal_weights[robot_id]
             fabrics.set_arguments(arguments_dicts["robot_" + str(robot_id)])
             action_unclipped = fabrics.compute_action()
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
-
-            end_time = time.perf_counter() #todo: good place for timer
+            end_time = time.perf_counter()
             evaluation_data.record_computational_time(end_time - start_time)
 
-            if planner.error(goal_pos=planner._T_W_StaticGrasp[:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
+            if fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
-                print(f"Robot {robot_id} has finished")
-      
 
-            if timestep%100 == 0 and RENDER:
-                position = T_W_Goals[robot_id][:3, 3]  
-                rotation_matrix = T_W_Goals[robot_id][:3, :3]
-                axis_length = 0.2
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 0] * axis_length, [1, 0, 0], lineWidth=3, lifeTime=1.0)
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
-
-        collision_flag = fabrics.collision_check(x_r_obsts_robots, robot_states, threshold=-0.05)
-        evaluation_data.record_collision_violation(collision_flag)
+        collision_flag = env.check_collisions()
         if collision_flag == True:
             evaluation_data.record_success_rate(success=0.0)
+            evaluation_data.record_collision_violation(collision_flag)
+            print("RF failed")
             break
 
-        if np.all(success_rate_per_robot):
+        if success_rate_per_robot[0] == 1:
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
-            print("RF: Success")
-            break
+            evaluation_data.record_collision_violation(collision_flag=False)
+            print("RF succeeded")
+            break         
 
         ob, *_ = sim.step(action)
 
@@ -230,6 +252,11 @@ def main(render=True, timesteps=2000):
     NUM_DOF = 11
     NUM_TIMESTEPS = timesteps
 
+    #Read config file for Planner
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(current_script_dir, '..', 'config/dinova_config_rgf_3obst.yaml')
+    CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
+
     # Environment
     env = Environment()
     env.initialize(render=RENDER, nr_robots=NUM_ROBOTS)
@@ -237,7 +264,8 @@ def main(render=True, timesteps=2000):
                        dof=NUM_DOF,
                        n_robots=NUM_ROBOTS,
                        env=env,
-                       render=RENDER
+                       render=RENDER,
+                       gomp_config_file=CONFIG_FILE_PATH_GOMP
                        )
     return {}
 

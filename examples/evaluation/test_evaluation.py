@@ -11,21 +11,21 @@ def blueprint_test_evaluation(test_main):
     """
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        history = test_main(render=False, n_runs=1, timesteps=200, save_data=False)
+        history = test_main(render=False, n_runs=1, timesteps=200, save_data=False, cases=["IF","GF", "RF"],)
     assert isinstance(history, dict)
 
 def test_evaluation_two_tables():
-    from evaluation.dinovas_crossover.dinovas_crossover_twotables_compare import main
+    from examples.evaluation.dinovas_two_tables.dinovas_twotables_compare import main
     blueprint_test_evaluation(main)
 
-def test_evaluation_no_obst():
-    from examples.evaluation.single_agent.dinova_single_agent_compare import main
+def test_evaluation_one_table():
+    from examples.evaluation.dinovas_one_table.dinovas_onetable_compare import main
+    blueprint_test_evaluation(main)
+
+def test_evaluation_noncooperative():
+    from examples.evaluation.dinovas_single_agent.dinovas_singleagent_compare import main
     blueprint_test_evaluation(main)
 
 def test_evaluation_with_obst():
-    from examples.evaluation.dinovas_static.dinovas_static_obst_compare import main
-    blueprint_test_evaluation(main)
-
-def test_evaluation_with_obst():
-    from evaluation.dinovas_3robots.dinovas_3robots_compare import main
+    from evaluation.dinovas_three_robots.dinovas_threerobots_compare import main
     blueprint_test_evaluation(main)

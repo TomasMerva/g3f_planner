@@ -70,9 +70,9 @@ class Environment():
         for robot_id in range(self.n_robots):
             robots_urdf.append(self.ROBOT_URDF_FILE[:-5] + "_" + str(robot_id+1) +".urdf")
 
-        robots = [GenericUrdfReacher(urdf=robots_urdf[i], mode="acc") for i in range(nr_robots)]
+        self._robots = [GenericUrdfReacher(urdf=robots_urdf[i], mode="acc") for i in range(nr_robots)]
         self.env: UrdfEnv = UrdfEnv(
-            robots=robots,
+            robots=self._robots,
             dt=0.01,
             render=render,
             observation_checking=False,
@@ -312,3 +312,14 @@ class Environment():
                 }
             )
         return grasp_list
+    
+    def check_collisions(self):
+        """
+        Be aware that grasping the object will trigger this method 
+        """
+        for robot in self._robots:
+            contacts = pybullet.getContactPoints(robot._robot)
+            if len(contacts) > 0:
+                return True
+        return False
+    
