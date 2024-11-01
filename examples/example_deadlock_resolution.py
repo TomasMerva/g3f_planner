@@ -151,7 +151,8 @@ def run_dinova_example(n_steps,
                                                         )
                 qdot_rollout_avg["robot_" + str(robot_id)] = planner.get_velocity_average()
                 end_time = time.perf_counter()
-                rollout_time.append(end_time-start_time)
+                if success_rate_per_robot[robot_id] == 0:
+                    rollout_time.append(end_time-start_time)
 
             # Update weigths and arguments for fabrics
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
@@ -170,45 +171,6 @@ def run_dinova_example(n_steps,
                                                 goals_final=[T_W_Goals[robot_id][:3,3] for robot_id in range(NUM_ROBOTS)],
                                                 time_step=timestep,
                                                 avg_sum=copy.deepcopy(sum(qdot_rollout_avg.values()) / NUM_ROBOTS))
-
-
-
-        # for robot_id in range(NUM_ROBOTS):
-        #     counter = 0
-        #     for i in range(NUM_ROBOTS):
-        #         if i == robot_id:
-        #             continue
-        #         else:
-        #             chassis_idx = counter
-        #             wrist_idx = counter + 1
-        #             x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
-        #             x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-        #             counter += 2
-
-        #     if timestep%PLANNER_PERIOD == 0:
-        #         if success_rate_per_robot[robot_id] == 0:
-        #             planner.update_param_and_initial_guess(joint_state=robot_states[robot_id],
-        #                                                 T_W_Obj=T_W_Objects[robot_id],
-        #                                                 x_obsts=x_obsts[:NUM_ROBOTS],
-        #                                                 r_obsts=r_obsts[:NUM_ROBOTS],
-        #                                                 )
-
-        #             qdot_rollout_avg["robot_" + str(robot_id)] = planner.get_velocity_average()
-
-        #     start_time = time.perf_counter()
-        #     fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
-        #                                     T_W_Goal=T_W_Goals[robot_id])
-        #     fabrics.update_arguments(joint_state= robot_states[robot_id],
-        #                              T_W_Goal=T_W_Goals[robot_id],
-        #                              obst_pos=x_obsts,
-        #                              obst_radius=r_obsts)
-        #     arguments_dicts["robot_" + str(robot_id)] = copy.deepcopy(fabrics.get_arguments())
-
-        # # need information of GOMP for both robots for deadlock resolution:
-        # deadlock_prevention.deadlock_checking(x_robots=position_EEFs_current,
-        #                                       goals_final=[T_W_Goals[robot_id][:3,3] for robot_id in range(NUM_ROBOTS)],
-        #                                       time_step=timestep,
-        #                                       avg_sum=copy.deepcopy(sum(qdot_rollout_avg.values()) / NUM_ROBOTS))
 
         for robot_id in range(NUM_ROBOTS):
             start_time = time.perf_counter()
@@ -271,5 +233,3 @@ def main(render=True, timesteps=2000):
 
 if __name__=="__main__":
     main()
-
-    

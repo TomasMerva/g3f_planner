@@ -139,6 +139,7 @@ def run_dinova_example(n_steps,
                     end_time = time.perf_counter()
                     # Log data
                     evaluation_data.record_computational_time_qp(end_time-start_time)
+                    print("end_time-start_time: ", end_time-start_time)
 
                     if timestep == 0:
                         waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
