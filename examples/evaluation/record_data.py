@@ -10,6 +10,7 @@ class EvaluationDataStructure:
     time_to_goal : float = np.nan
     computation_time: list = field(default_factory=list)
     computation_time_qp : list = field(default_factory=list)
+    collision_error : list = field(default_factory=list)
 
 
 class RecordData():
@@ -18,7 +19,9 @@ class RecordData():
     
     def record_collision_violation(self, collision_flag):
         if collision_flag:
-            self._result.collision = collision_flag
+            self._result.collision = 100.0
+        else:
+            self._result.collision = 0.0
 
     def record_success_rate(self, success):
         self._result.goal_reached = success
@@ -34,6 +37,10 @@ class RecordData():
 
     def get_result(self):
         return self._result
+    
+    def record_collision_error(self, error):
+        self._result.collision_error.append(error)
+
 
 
 

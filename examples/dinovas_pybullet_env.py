@@ -22,8 +22,8 @@ class Environment():
         
         self._objects_pose_noise = None
         self._obstacles_dict = {}
-        self.table_pos = [-1.5, 0.0, 0.0]
-        self.table_poses = [copy.deepcopy(self.table_pos), [1.5, 0., 0.]]
+        self.table_pos = [-3, 0.0, 0.0]
+        self.table_poses = [copy.deepcopy(self.table_pos), [0, 0., 0.], [3, 0., 0.]]
         self.z_table = 0.3
 
     def _define_files_path(self, env_config_file=None) -> None:
@@ -70,9 +70,9 @@ class Environment():
         for robot_id in range(self.n_robots):
             robots_urdf.append(self.ROBOT_URDF_FILE[:-5] + "_" + str(robot_id+1) +".urdf")
 
-        robots = [GenericUrdfReacher(urdf=robots_urdf[i], mode="acc") for i in range(nr_robots)]
+        self._robots = [GenericUrdfReacher(urdf=robots_urdf[i], mode="acc") for i in range(nr_robots)]
         self.env: UrdfEnv = UrdfEnv(
-            robots=robots,
+            robots=self._robots,
             dt=0.01,
             render=render,
             observation_checking=False,
@@ -164,7 +164,7 @@ class Environment():
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
             table_pos = self.table_pos
             z_table = self.z_table
-            table_poses = self.table_poses
+            table_poses = self.table_poses[:self.n_robots]
 
             if self._objects_pose_noise is None:
                 objects_pos = [
@@ -186,12 +186,12 @@ class Environment():
                 ]
         elif self.n_robots == 3:
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
-            table_poses = self.table_poses
+            table_poses = self.table_poses[:self.n_robots]
             z_table = self.z_table
             objects_pos = [
                     [table_poses[0][0]+self._objects_pose_noise[0][0], table_poses[0][1]-self._objects_pose_noise[0][1], z_table],
                     [table_poses[1][0]+self._objects_pose_noise[1][0], table_poses[1][1]-self._objects_pose_noise[1][1], z_table],
-                    [table_poses[0][0]+self._objects_pose_noise[2][0], table_poses[0][1]-self._objects_pose_noise[2][1], z_table],
+                    [table_poses[2][0]+self._objects_pose_noise[2][0], table_poses[2][1]-self._objects_pose_noise[2][1], z_table],
                     [table_poses[1][0]+self._objects_pose_noise[3][0], table_poses[1][1]-self._objects_pose_noise[3][1], z_table],
                 ]
         else:
@@ -312,3 +312,14 @@ class Environment():
                 }
             )
         return grasp_list
+    
+    def check_collisions(self):
+        """
+        Be aware that grasping the object will trigger this method 
+        """
+        for robot in self._robots:
+            contacts = pybullet.getContactPoints(robot._robot)
+            if len(contacts) > 0:
+                return True
+        return False
+    

@@ -171,9 +171,9 @@ class Fabrics():
         else:
             return self._forward_kinematics.numpy(q, self._end_link)
 
-    def collision_check(self, x_r_obsts, robot_states, threshold=0.):
+    def collision_check(self, x_r_obsts, robot_states, threshold=-0.05):
         collision_link_names = list(self._collision_dict.keys())
-        for i_robot in range(len(robot_states[:][0])):
+        for i_robot in range(len(x_r_obsts)):
             robot_joint_positions = robot_states[i_robot][0]
             x_obsts = x_r_obsts["robot_"+str(i_robot)]["x_obsts"]
             r_obsts = x_r_obsts["robot_"+str(i_robot)]["r_obsts"]
@@ -183,9 +183,13 @@ class Fabrics():
                     r_collision_robot = self._collision_dict[collision_link_name]["sphere"]["radius"]
                     error = np.linalg.norm(x_collision_robot - x_obsts[i_obst]) - r_obsts[i_obst] - r_collision_robot
                     if error <= threshold:
-                        print("A collision has occurred for robot ", str(i_robot), " with collision sphere ", str(collision_link_name), ".")
-                        return True
-        return False
+                        # print("A collision has occurred for robot ", str(i_robot), " with collision sphere ", str(collision_link_name), ".")
+                        # print(f"Error: {error}")
+                        # print(f"L2 norm: {np.linalg.norm(x_collision_robot - x_obsts[i_obst])}")
+                        # print(f"R obst: {r_obsts[i_obst]}     r_robot: {r_collision_robot}")
+                        # print()
+                        return True, error
+        return False, None
 
 
     def compute_static_grasp(self, T_W_Obj, theta_preference):

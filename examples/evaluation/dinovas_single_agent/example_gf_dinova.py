@@ -40,7 +40,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
 
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
-    x_r_obsts_robots = {f"robot_{i}": {"x_obsts": x_obsts, "r_obsts": r_obsts} for i in range(n_robots)}
     
     """
     Results metrics:
@@ -78,6 +77,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
                     counter += 2
+
             # Planner computes new action
             start_time = time.perf_counter()
             fabrics.compute_dynamic_weights(q= robot_states[robot_id][0],
@@ -93,43 +93,33 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
 
             # Log data
             evaluation_data.record_computational_time(end_time-start_time)
-            x_r_obsts_robots["robot_"+str(robot_id)]["x_obsts"] =  x_obsts
-            x_r_obsts_robots["robot_"+str(robot_id)]["r_obsts"] = r_obsts
             if fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
 
-            if timestep%100 == 0:
-                position = T_W_Goals[robot_id][:3, 3]  
-                rotation_matrix = T_W_Goals[robot_id][:3, :3]
-                axis_length = 0.2
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 0] * axis_length, [1, 0, 0], lineWidth=3, lifeTime=1.0)
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 1] * axis_length, [0, 1, 0], lineWidth=3, lifeTime=1.0)
-                pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
+
+        collision_flag = env.check_collisions()
+        if collision_flag == True:
+            evaluation_data.record_success_rate(success=0.0)
+            evaluation_data.record_collision_violation(collision_flag)
+            print("GF failed")
+            break
 
         if success_rate_per_robot[0] == 1:
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
-            break
-
+            evaluation_data.record_collision_violation(collision_flag=False)
+            print("GF succeeded")
+            break  
+        
         ob, *_ = sim.step(action)
 
-        
-
-        evaluation_data.record_collision_violation(fabrics.collision_check(x_r_obsts_robots, robot_states[0], threshold=0.))
-
-            
-
-
     sim.close()
-
-
     return evaluation_data.get_result()
 
 def main(render=True, timesteps=2000):
     RENDER = render
     NUM_ROBOTS = 2
     NUM_DOF = 11
-    NUM_GRIPPER_FINGERS = 2
     NUM_TIMESTEPS = timesteps
 
 

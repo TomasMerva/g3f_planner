@@ -27,7 +27,7 @@ class Environment():
         self.URDF_FOLDER = os.path.normpath( os.path.join(current_script_dir, '..', 'urdfs'))
         self.ROBOT_URDF_FILE = self.URDF_FOLDER + "/dinova/dinova.urdf"
 
-        config_path = os.path.join(current_script_dir, '../..', 'config', 'dinova_config_rgf_9obst.yaml')
+        config_path = os.path.join(current_script_dir, '../..', 'config', 'dinova_config_rgf_10obst.yaml')
         # config_path = os.path.join('/home/tomas/repos/grasp_fabrics/config/evaluation/single_agent', 'dinova_config_rgf_3obst.yaml')
         self.CONFIG_FILE = os.path.normpath(config_path)
 
@@ -213,7 +213,7 @@ def set_planner(robot_urdf_path, config_dict, degrees_of_freedom: int = 9):
     planner.load_fabrics_configuration(config_dict['fabrics'])
     planner.load_problem_configuration(config_dict['problem'])
     planner.concretize()
-    controller_file = "fabrics_controller_9obst.cpp"
+    controller_file = "fabrics_controller_10obst.cpp"
     planner.export_as_c(controller_file)
     
     # Move to src folder
