@@ -86,15 +86,15 @@ problem:
     - 2.5302
     - 2.6002
     velocity:
-    - 1.5
-    - 1.5
-    - 1.5
-    - 3.5
-    - 3.5
-    - 3.5
-    - 3.5
-    - 3.5
-    - 3.5
+    - 0.5
+    - 0.5
+    - 0.5
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
+    - 1.0
   robot_representation:
     collision_links:
       chassis_link:

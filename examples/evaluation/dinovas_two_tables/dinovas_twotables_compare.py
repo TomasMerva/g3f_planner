@@ -32,9 +32,9 @@ class ComparisonDinovas():
         self.dof = 11
         self._num_obst = 6
         self._stopping_tolerance = 0.07
-        self._gomp_config_file = "dinova_config_if_6obst.yaml"
         self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
+   
         self.cases = cases
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
@@ -43,16 +43,20 @@ class ComparisonDinovas():
         self._render = False
         self.scenarios = {run_id:{} for run_id in range(self.n_runs)}
 
+        current_script_dir = os.path.dirname(os.path.abspath(__file__))
+        self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics.yaml"))
+        self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_if_6obst.yaml"))
+
     def create_environment(self):
         # --- create environment ---#
-        env = Environment(config_file="dinova_config_fabrics.yaml")
+        env = Environment(config_file=self._fabrics_config_file)
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
         env.set_objects_pos_noise(objects_pos_noise)
         return env
 
     def load_environment(self, run_id=0):
-        env = Environment()
+        env = Environment(config_file=self._fabrics_config_file)
         pickle_file_path = '../results/' + self._scenario_name + "_env.pickle"
         with open(pickle_file_path, 'rb') as file:
             data = pickle.load(file)
@@ -70,7 +74,7 @@ class ComparisonDinovas():
 
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        x_range = [-3, 3.0]
+        x_range = [-3, 0.0]
         y_range = [2.0, 5.0]
         z_range = [-2, 2]
 
