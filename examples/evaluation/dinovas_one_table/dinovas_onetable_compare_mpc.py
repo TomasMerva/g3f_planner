@@ -70,7 +70,10 @@ class ComparisonDinovas():
         with open(pickle_file_path, 'rb') as file:
             data = pickle.load(file)
         # environment_settings = data["environment_settings"]
-        self._home_config = np.array(data[run_id]["q_home"])
+        # self._home_config = np.array(data[run_id]["q_home"])
+        self._home_config = np.array([np.concatenate((vec, [0.9, -0.9])) for vec in data[run_id]["q_home"]]) 
+        #attach the gripper config to robots 9dim home config
+
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
