@@ -85,7 +85,7 @@ class ComparisonDinovas():
         # objects_pos_noise = self.randomize_objects_pos()
         obsts_pos = [list(obst) for obst in obst_pos_dict]
         # obsts_r = [list(obst) for obst in obst_radii_dict]
-        
+        self.grasp_list = self.scenarios[run_id]["x_grasp"]
         # env.set_objects_pos_noise(objects_pos_noise)
         env.set_obsts_pos(pos=obsts_pos, start_idx=2) 
         # env.set_obsts_pos(radii=obsts_r, start_idx=2) 
@@ -184,7 +184,8 @@ class ComparisonDinovas():
                                             dof=self.dof, 
                                             n_robots=self.nr_robots, 
                                             env=env,
-                                            stopping_tolerance=self._stopping_tolerance
+                                            stopping_tolerance=self._stopping_tolerance,
+                                            grasp_goals = self.grasp_list
                                             )
         elif case == "RF":
             self.results[run_id][case] = deadlock_dinova_example(

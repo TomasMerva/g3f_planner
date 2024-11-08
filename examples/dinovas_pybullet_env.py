@@ -234,6 +234,14 @@ class Environment():
         name = "cup_" + str(cup_id)
         return pybullet.getBasePositionAndOrientation(self.scene_id[name])
     
+    def reset_cup(self, cup_id, position): #used for reset the cups position when loading pickle file
+        name = "cup_" + str(cup_id)
+        return pybullet.resetBasePositionAndOrientation(
+            bodyUniqueId=self.scene_id[name],
+            posObj=position,
+            ornObj=[0, 0, 0, 1]  # No change in orientation
+        )
+    
     def get_table_pose(self):
         return pybullet.getBasePositionAndOrientation(self.scene_id["table"])
     
@@ -265,7 +273,14 @@ class Environment():
                 self.CONFIG_PROBLEM["environment"]["obstacle_definition"][obstacle_name]["position"] = pos[i-start_idx]
             else:
                 continue
-  
+            
+    def set_obsts_radii(self, radii, start_idx):#DEPRECATED
+        obst_struct = self.CONFIG_PROBLEM["environment"]["obstacle_definition"]
+        for i, obstacle_name in enumerate(obst_struct.keys()):
+            if i >= start_idx and i < len(radii)+start_idx:
+                self.CONFIG_PROBLEM["environment"]["obstacle_definition"][obstacle_name]["radius"] = radii[i-start_idx]
+            else:
+                continue
 
     def get_home_configs(self):
         return [q[0:9].tolist() for q in self.home_config ]
