@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 """
 This file generates a table of the results of several simulated experiments with varying
 initial position, goal positions and obstacle positions
@@ -9,36 +8,34 @@ from texttable import Texttable
 import latextable
 import copy
 import pickle
-import pybullet
 import random
 import time
 from tqdm import tqdm
-import math
-
 import sys
 import os
+import math
+
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.append(parent_dir)
 
 from dinovas_pybullet_env import Environment
+from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
+from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
+from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 from evaluation.record_data import RecordData, EvaluationDataStructure
-
-from evaluation.dinovas_single_agent.example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
-from evaluation.dinovas_single_agent.example_gf_dinova import run_dinova_example as fabrics_dinova_example
-from evaluation.dinovas_single_agent.example_rgf_dinova import run_dinova_example as gomp_dinova_example
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, cases= ["IF" ,"GF", "RF"], n_steps_per_run=1000):
-        self._scenario_name = "dinovas_single_agent"
+        self._scenario_name = "dinovas_two_tables"
         self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
-        self._num_obst = 5
-        self.n_runs = n_runs
+        self._num_obst = 6
         self._stopping_tolerance = 0.07
+        self.n_runs = n_runs
         self.n_steps_per_run = n_steps_per_run
+   
         self.cases = cases
-
         self.results = [{
             case: EvaluationDataStructure() for case in self.cases
         } for _ in range(self.n_runs)]
@@ -48,7 +45,7 @@ class ComparisonDinovas():
 
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
         self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics.yaml"))
-        self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_if_5obst.yaml"))
+        self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_if_6obst.yaml"))
 
     def create_environment(self):
         # --- create environment ---#
@@ -57,34 +54,14 @@ class ComparisonDinovas():
         objects_pos_noise = self.randomize_objects_pos()
         env.set_objects_pos_noise(objects_pos_noise)
         return env
-    
+
     def load_environment(self, run_id=0):
         env = Environment(config_file=self._fabrics_config_file)
         pickle_file_path = '../results/' + self._scenario_name + "_env.pickle"
         with open(pickle_file_path, 'rb') as file:
             data = pickle.load(file)
-        # environment_settings = data["environment_settings"]
-        # self._home_config = np.array(data[run_id]["q_home"])
-                        #     obst_dict = env.get_obstacles()
-        # self.scenarios[run_id] = {
-        #         "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
-        #         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
-        #         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
-        #         }
-        self._home_config = np.array([np.concatenate((vec, [0.9, -0.9])) for vec in data[run_id]["q_home"]]) 
-        
-        self.scenarios[run_id] = data[run_id]
-        obst_pos_dict = self.scenarios[run_id]["x_obsts"][2:6]
-        #obst_radii_dict = self.scenarios[run_id]["r_obsts"][2:6]
-        # objects_pos_noise = self.randomize_objects_pos()
-        obsts_pos = [list(obst) for obst in obst_pos_dict]
-        # obsts_r = [list(obst) for obst in obst_radii_dict]
-        self.grasp_list = self.scenarios[run_id]["x_grasp"]
-        # env.set_objects_pos_noise(objects_pos_noise)
-        env.set_obsts_pos(pos=obsts_pos, start_idx=2) 
-        # env.set_obsts_pos(radii=obsts_r, start_idx=2) 
-        #attach the gripper config to robots 9dim home config
-
+        environment_settings = data["environment_settings"]
+        self._home_config = np.array(environment_settings[run_id]["q_home"])
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
@@ -97,17 +74,21 @@ class ComparisonDinovas():
 
     def randomize_default_home_config(self):
         home_config = np.array([0, 3, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
-        x_range = [-3, 3]
+        x_range = [-3, 0.0]
         y_range = [2.0, 5.0]
-        # z_range = [-3.12, 3.12]
         z_range = [-2, 2]
 
         xyz_random = []
         safety_counter = 0
-        while len(xyz_random) < 1:
-            new_point = (round(random.uniform(x_range[0], x_range[1]), 5), 
-                         round(random.uniform(y_range[0], y_range[1]), 5), 
-                         round(random.uniform(z_range[0], z_range[1]), 5))
+        while len(xyz_random) < self.nr_robots:
+            if len(xyz_random) >= 1 :
+                new_point = (-round(random.uniform(x_range[0], x_range[1]), 5), 
+                            round(random.uniform(y_range[0], y_range[1]), 5), 
+                            round(random.uniform(z_range[0], z_range[1]), 5))
+            else:
+                new_point = (round(random.uniform(x_range[0], x_range[1]), 5), 
+                            round(random.uniform(y_range[0], y_range[1]), 5), 
+                            round(random.uniform(z_range[0], z_range[1]), 5))
 
             if all(self.euclidean_distance(np.array(new_point)[0:2], np.array(p)[0:2]) > 1.5 for p in xyz_random):
                 xyz_random.append(new_point)
@@ -116,13 +97,28 @@ class ComparisonDinovas():
                 raise ValueError("Cannot find valid home configurations for so many robots")
         
         configs = np.zeros((self.nr_robots, self.dof))
-        for robot in range(1):
+        for robot in range(self.nr_robots):
             home_config[0:3] = xyz_random[robot][0:3]
             configs[robot] = copy.deepcopy(home_config)
-        configs[1] =  np.array([0, 0.85, -np.pi / 2, 0, 0, 1.9, 0, 0, 0, 0.9, -0.9])
         return configs
 
+    def randomize_obstacle_config(self):
+        x_range = [-2, 2]
+        y_range = [1, 2]
 
+        points = []
+        #  8 obstacles in total
+        #  1 obstacle is the table
+        #  2 obstacle spheres for other agents
+        max_number_of_obsts = 8 - (self.nr_robots-1)*2 -1
+        for i in range(max_number_of_obsts):
+            new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
+                         round(random.uniform(y_range[0], y_range[1]), 5),
+                         0.15)
+            points.append(new_point)
+        return points
+
+        
     def randomize_objects_pos(self):
         x_range = [-0.3, 0.3]
         y_range = [-0.3, 0.3]
@@ -131,30 +127,25 @@ class ComparisonDinovas():
         inner_radius = 0.2
         tolerance = 0.35
         points = []
-        points_other_cups = [[0.0, -0.25]]
         
         counter = 0
-        max_number_of_objects = 1
+        max_number_of_objects = 2
         while len(points) < max_number_of_objects:
-            # Generate random angle and radius
             angle = random.uniform(0, 2 * math.pi)
             radius = random.uniform(inner_radius, outer_radius)
             
-            # Convert polar coordinates (radius, angle) to Cartesian coordinates (x, y)
             x = round(radius * math.cos(angle), 5)
             y = round(radius * math.sin(angle), 5)
             new_point = (x, y)
             
-            # Check if the new point is far enough from all existing points and within the annular region
             if self._is_within_annular_region(new_point[:2], outer_radius, inner_radius) \
-                and all(self.euclidean_distance(np.array(new_point), np.array(p)) > tolerance for p in points_other_cups):
+                and all(self.euclidean_distance(np.array(new_point), np.array(p)) > tolerance for p in points):
                 points.append(new_point)
             
             counter += 1
             if counter > 200:
                 raise ValueError("Cannot find valid points for so many objects")
         
-        points.append(points_other_cups[0])
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         points.append([round(random.uniform(x_range[0], x_range[1]), 5),  round(random.uniform(y_range[0], y_range[1]))])
         return np.asarray(points)
@@ -178,8 +169,7 @@ class ComparisonDinovas():
                                             dof=self.dof, 
                                             n_robots=self.nr_robots, 
                                             env=env,
-                                            stopping_tolerance=self._stopping_tolerance,
-                                            grasp_goals = self.grasp_list
+                                            stopping_tolerance=self._stopping_tolerance
                                             )
         elif case == "RF":
             self.results[run_id][case] = deadlock_dinova_example(
@@ -190,6 +180,7 @@ class ComparisonDinovas():
                                                 env=env,
                                                 stopping_tolerance=self._stopping_tolerance
                                                 )
+                
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
       
@@ -201,29 +192,28 @@ class ComparisonDinovas():
                 env = self.load_environment(run_id=1)
             else:
                 env = self.create_environment()
-            
+                
             for i, algorithm in enumerate(self.cases):
-                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config)    
-                # if i == 0:
-                #     obst_dict = env.get_obstacles()
-                #     self.scenarios[i_run] = {
-                #         "q_home" : env.get_home_configs(),
-                #         "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
-                #         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
-                #         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
-                #         }
+                env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
+                if i == 0:
+                    obst_dict = env.get_obstacles()
+                    self.scenarios[i_run] = {
+                        "q_home" : env.get_home_configs(),
+                        "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
+                        "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
+                        "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
+                        }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
-        
         if SAVE_DATA:
             pickle_file_path = '../results/' + self._scenario_name
-            # with open(pickle_file_path+"_env.pickle", 'wb') as handle:
-            #     pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            with open(pickle_file_path+"_env.pickle", 'wb') as handle:
+                pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
             with open(pickle_file_path + '_results.pickle', 'wb') as handle:
                 pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
             print(f"Env saved at: {pickle_file_path + '_env.pickle'}")
             print(f"Results saved at: {pickle_file_path + '_results.pickle'}")
 
-    def table_results(self):    
+    def table_results(self):
         # --- create and plot table --- #
         rows = []
         title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "IF Computation time[s]", "Collision-rate"]
@@ -245,24 +235,22 @@ class ComparisonDinovas():
         table.add_rows(rows)
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table))
-
+        
+      
 
 def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps, cases=cases)
-    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=True, SAVE_DATA=save_data)
-    print("Results from Single agent scenario")
+    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False, SAVE_DATA=save_data)
+    print("Results from Two tables scenario")
     print("==================================")
     comparison_dinovas.table_results()
     return {}
 
 if __name__ == "__main__":
-    main(render=False, 
+    main(render=True,
          n_runs=1, 
          timesteps=5000, 
          cases=["GF"], # ,"GF", "RF"
          save_data=True)
-
-
-
