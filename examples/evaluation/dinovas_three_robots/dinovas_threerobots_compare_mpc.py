@@ -67,7 +67,29 @@ class ComparisonDinovas():
             data = pickle.load(file)
         # environment_settings = data["environment_settings"]
         # self._home_config = np.array(data[run_id]["q_home"])
+                        #     obst_dict = env.get_obstacles()
+        # self.scenarios[run_id] = {
+        #         "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
+        #         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
+        #         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
+        #         }
+        # print(data)
+        # print(run_id)
+        # print(data[run_id]["q_home"])
         self._home_config = np.array([np.concatenate((vec, [0.9, -0.9])) for vec in data[run_id]["q_home"]]) 
+        
+        self.scenarios[run_id] = data[run_id]
+        obst_pos_dict = self.scenarios[run_id]["x_obsts"][4:10]#############################
+        #print(obst_pos_dict)
+        #obst_radii_dict = self.scenarios[run_id]["r_obsts"][2:6]
+        # objects_pos_noise = self.randomize_objects_pos()
+        obsts_pos = [list(obst) for obst in obst_pos_dict]
+        # obsts_r = [list(obst) for obst in obst_radii_dict]
+        self.grasp_list = self.scenarios[run_id]["x_grasp"]
+        # env.set_objects_pos_noise(objects_pos_noise)
+        env.set_obsts_pos(pos=obsts_pos, start_idx=4) ###################################
+        # env.set_obsts_pos(radii=obsts_r, start_idx=2) 
+        #attach the gripper config to robots 9dim home config
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
@@ -172,7 +194,9 @@ class ComparisonDinovas():
                                                                 dof=self.dof,
                                                                 n_robots=self.nr_robots,
                                                                 env=env,
-                                                                stopping_tolerance=self._stopping_tolerance)
+                                                                stopping_tolerance=self._stopping_tolerance,
+                                                                grasp_goals = self.grasp_list
+                                                                )
         elif case == "RF":
             self.results[run_id][case] = deadlock_dinova_example(
                                                 n_steps=self.n_steps_per_run, 
@@ -191,7 +215,7 @@ class ComparisonDinovas():
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
             if LOAD_SCENARIO:
-                env = self.load_environment(run_id=1)
+                env = self.load_environment(run_id=i_run)
             else:
                 env = self.create_environment()
 
