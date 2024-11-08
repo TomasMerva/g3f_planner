@@ -56,7 +56,7 @@ class ComparisonDinovas():
 
     def create_environment(self):
         # --- create environment ---#
-        env = Environment(config_file=self._fabrics_config_file)
+        env = Environment(config_file=self._fabrics_config_file)#__init__
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
         obsts_pos = self.randomize_obstacle_config()
@@ -71,7 +71,24 @@ class ComparisonDinovas():
             data = pickle.load(file)
         # environment_settings = data["environment_settings"]
         # self._home_config = np.array(data[run_id]["q_home"])
+                        #     obst_dict = env.get_obstacles()
+        # self.scenarios[run_id] = {
+        #         "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
+        #         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
+        #         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
+        #         }
         self._home_config = np.array([np.concatenate((vec, [0.9, -0.9])) for vec in data[run_id]["q_home"]]) 
+        
+        self.scenarios[run_id] = data[run_id]
+        obst_pos_dict = self.scenarios[run_id]["x_obsts"][2:6]
+        #obst_radii_dict = self.scenarios[run_id]["r_obsts"][2:6]
+        # objects_pos_noise = self.randomize_objects_pos()
+        obsts_pos = [list(obst) for obst in obst_pos_dict]
+        # obsts_r = [list(obst) for obst in obst_radii_dict]
+        
+        # env.set_objects_pos_noise(objects_pos_noise)
+        env.set_obsts_pos(pos=obsts_pos, start_idx=2) 
+        # env.set_obsts_pos(radii=obsts_r, start_idx=2) 
         #attach the gripper config to robots 9dim home config
 
         return env
