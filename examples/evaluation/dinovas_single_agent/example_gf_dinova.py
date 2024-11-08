@@ -13,9 +13,24 @@ from fabrics_planner import Fabrics
 
 from evaluation.record_data import RecordData
 
+def draw_coordinate_frame(T, axis_length=0.1):
+    # Extract origin and rotation matrix from T
+    origin = T[:3, 3]
+    R_matrix = T[:3, :3]
 
+    # Define the colors for the x, y, z axes
+    colors = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]  # Red, Green, Blue
 
-def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_tolerance = 0.05):
+    # Define unit vectors along x, y, z axes
+    axes = np.eye(3)
+
+    # Draw each axis using pybullet's addUserDebugLine
+    for i in range(3):
+        # Calculate the end point of each axis in world coordinates
+        end_point = origin + R_matrix @ (axes[:, i] * axis_length)
+        pybullet.addUserDebugLine(origin, end_point, colors[i], lineWidth=3)
+
+def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_tolerance = 0.05, grasp_goals = None):
     NUM_ROBOTS = n_robots
     NUM_DOF = dof
     NUM_GRIPPER_FINGERS = 2
@@ -32,12 +47,29 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                       degrees_of_freedom=NUM_DOF-NUM_GRIPPER_FINGERS)
     
     T_W_Goals, T_W_Objects = [], []
-    for robot_id in range(NUM_ROBOTS):
-        T_W_Object = np.eye(4)
-        T_W_Object[:3,3], quat = env.get_cup(robot_id)
-        T_W_Goals.append(T_W_Object)
-        T_W_Objects.append(T_W_Object)
-
+    if grasp_goals == None:
+        for robot_id in range(NUM_ROBOTS):
+            T_W_Object = np.eye(4)
+            T_W_Object[:3,3], quat = env.get_cup(robot_id)
+            T_W_Goals.append(T_W_Object)#position vector
+            T_W_Objects.append(T_W_Object)
+        print("T_W_Goals:", T_W_Goals)
+    else:
+        print("Load grasp pose from pikle file.")
+        # Generate transformation matrix for each grasp position
+        for robot_id, grasp in enumerate(grasp_goals):
+            # Create a 4x4 identity matrix
+            T = np.eye(4)
+            # Set the translation part (last column, first three elements)
+            T[:3, 3] = grasp["position"]
+            rotation_matrix = R.from_quat(grasp["orientation"]).as_matrix()
+            # Set the top-left 3x3 part of T to the rotation matrix
+            T[:3, :3] = rotation_matrix
+            # Append the transformation matrix to the list
+            T_W_Goals.append(T)
+            #Looks weird
+            draw_coordinate_frame(T)
+            env.reset_cup(robot_id, grasp["position"])
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
     
