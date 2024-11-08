@@ -54,14 +54,37 @@ class ComparisonDinovas():
         objects_pos_noise = self.randomize_objects_pos()
         env.set_objects_pos_noise(objects_pos_noise)
         return env
-
+    
     def load_environment(self, run_id=0):
         env = Environment(config_file=self._fabrics_config_file)
         pickle_file_path = '../results/' + self._scenario_name + "_env.pickle"
         with open(pickle_file_path, 'rb') as file:
             data = pickle.load(file)
-        environment_settings = data["environment_settings"]
-        self._home_config = np.array(environment_settings[run_id]["q_home"])
+        # environment_settings = data["environment_settings"]
+        # self._home_config = np.array(data[run_id]["q_home"])
+                        #     obst_dict = env.get_obstacles()
+        # self.scenarios[run_id] = {
+        #         "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
+        #         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
+        #         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
+        #         }
+        # print(data)
+        # print(run_id)
+        # print(data[run_id]["q_home"])
+        self._home_config = np.array([np.concatenate((vec, [0.9, -0.9])) for vec in data[run_id]["q_home"]]) 
+        
+        self.scenarios[run_id] = data[run_id]
+        obst_pos_dict = self.scenarios[run_id]["x_obsts"][2:6]
+        #obst_radii_dict = self.scenarios[run_id]["r_obsts"][2:6]
+        # objects_pos_noise = self.randomize_objects_pos()
+        obsts_pos = [list(obst) for obst in obst_pos_dict]
+        # obsts_r = [list(obst) for obst in obst_radii_dict]
+        self.grasp_list = self.scenarios[run_id]["x_grasp"]
+        # env.set_objects_pos_noise(objects_pos_noise)
+        env.set_obsts_pos(pos=obsts_pos, start_idx=2) 
+        # env.set_obsts_pos(radii=obsts_r, start_idx=2) 
+        #attach the gripper config to robots 9dim home config
+
         return env
 
     def euclidean_distance(self, pos_0, pos_1):
@@ -169,7 +192,8 @@ class ComparisonDinovas():
                                             dof=self.dof, 
                                             n_robots=self.nr_robots, 
                                             env=env,
-                                            stopping_tolerance=self._stopping_tolerance
+                                            stopping_tolerance=self._stopping_tolerance,
+                                            grasp_goals = self.grasp_list
                                             )
         elif case == "RF":
             self.results[run_id][case] = deadlock_dinova_example(
@@ -180,7 +204,6 @@ class ComparisonDinovas():
                                                 env=env,
                                                 stopping_tolerance=self._stopping_tolerance
                                                 )
-                
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
       
@@ -189,25 +212,25 @@ class ComparisonDinovas():
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
             if LOAD_SCENARIO:
-                env = self.load_environment(run_id=1)
+                env = self.load_environment(run_id=i_run)
             else:
                 env = self.create_environment()
                 
             for i, algorithm in enumerate(self.cases):
                 env.initialize(render, nr_robots=self.nr_robots, home_config=self._home_config, nr_tables=2)
-                if i == 0:
-                    obst_dict = env.get_obstacles()
-                    self.scenarios[i_run] = {
-                        "q_home" : env.get_home_configs(),
-                        "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
-                        "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
-                        "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
-                        }
+                # if i == 0:
+                #     obst_dict = env.get_obstacles()
+                #     self.scenarios[i_run] = {
+                #         "q_home" : env.get_home_configs(),
+                #         "x_grasp" : env.compute_init_static_grasp(self.nr_robots),
+                #         "x_obsts" : [obst_dict[obst]["position"] for obst in obst_dict],
+                #         "r_obsts" : [obst_dict[obst]["radius"] for obst in obst_dict]
+                #         }
                 self.run_i(case=algorithm, env=env, run_id = i_run)
         if SAVE_DATA:
             pickle_file_path = '../results/' + self._scenario_name
-            with open(pickle_file_path+"_env.pickle", 'wb') as handle:
-                pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            # with open(pickle_file_path+"_env.pickle", 'wb') as handle:
+            #     pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
             with open(pickle_file_path + '_results.pickle', 'wb') as handle:
                 pickle.dump(self.results, handle, protocol=pickle.HIGHEST_PROTOCOL)
             print(f"Env saved at: {pickle_file_path + '_env.pickle'}")
@@ -235,14 +258,13 @@ class ComparisonDinovas():
         table.add_rows(rows)
         print('\nTexttable Latex:')
         print(latextable.draw_latex(table))
-        
-      
+  
 
 def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps, cases=cases)
-    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False, SAVE_DATA=save_data)
+    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=True, SAVE_DATA=save_data)
     print("Results from Two tables scenario")
     print("==================================")
     comparison_dinovas.table_results()
