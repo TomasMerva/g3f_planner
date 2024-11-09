@@ -173,6 +173,8 @@ class Environment():
                     [table_poses[0][0] - 0.05, table_poses[0][1] - 0.1, z_table],
                     [table_poses[1][0] + 0.05, table_poses[1][1] - 0.1, z_table],
                 ]
+
+            #self.table_poses = [[-3, 0.0, 0.0], [0, 0., 0.], [3, 0., 0.]]
             else:
                 objects_pos = [
                     [table_poses[0][0] + self._objects_pose_noise[0][0], table_poses[0][1] - self._objects_pose_noise[0][1],
@@ -188,12 +190,22 @@ class Environment():
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
             table_poses = self.table_poses[:self.n_robots]
             z_table = self.z_table
-            objects_pos = [
-                    [table_poses[0][0]+self._objects_pose_noise[0][0], table_poses[0][1]-self._objects_pose_noise[0][1], z_table],
-                    [table_poses[1][0]+self._objects_pose_noise[1][0], table_poses[1][1]-self._objects_pose_noise[1][1], z_table],
-                    [table_poses[2][0]+self._objects_pose_noise[2][0], table_poses[2][1]-self._objects_pose_noise[2][1], z_table],
-                    [table_poses[1][0]+self._objects_pose_noise[3][0], table_poses[1][1]-self._objects_pose_noise[3][1], z_table],
+            if self._objects_pose_noise is None:#when loading scenario from pickle
+                objects_pos = [
+                    [table_poses[0][0] - 0.05, table_poses[0][1] + 0.1, z_table],
+                    [table_poses[1][0] + 0.05, table_poses[1][1] + 0.1, z_table],
+                    [table_poses[0][0] - 0.05, table_poses[0][1] - 0.1, z_table],
+                    [table_poses[1][0] + 0.05, table_poses[1][1] - 0.1, z_table],
+                    [table_poses[2][0] - 0.05, table_poses[0][1] + 0.1, z_table],
+                    [table_poses[2][0] - 0.05, table_poses[1][1] - 0.1, z_table],
                 ]
+            else:
+                objects_pos = [
+                        [table_poses[0][0]+self._objects_pose_noise[0][0], table_poses[0][1]-self._objects_pose_noise[0][1], z_table],
+                        [table_poses[1][0]+self._objects_pose_noise[1][0], table_poses[1][1]-self._objects_pose_noise[1][1], z_table],
+                        [table_poses[2][0]+self._objects_pose_noise[2][0], table_poses[2][1]-self._objects_pose_noise[2][1], z_table],
+                        [table_poses[1][0]+self._objects_pose_noise[3][0], table_poses[1][1]-self._objects_pose_noise[3][1], z_table],
+                    ]
         else:
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
 
