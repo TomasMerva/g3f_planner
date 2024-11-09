@@ -45,6 +45,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
     fabrics = Fabrics(robot_urdf_path=env.ROBOT_URDF_FILE,
                       config_file_path=CONFIG_FILE_PATH,
                       degrees_of_freedom=NUM_DOF-NUM_GRIPPER_FINGERS)
+    goals_loaded = False
     T_W_Goals, T_W_Objects = [], []
     if grasp_goals == None:
         for robot_id in range(NUM_ROBOTS):
@@ -55,6 +56,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
         print("T_W_Goals:", T_W_Goals)
     else:
         print("Load grasp pose from pikle file.")
+        goals_loaded = True
         # Generate transformation matrix for each grasp position
         for robot_id, grasp in enumerate(grasp_goals):
             # Create a 4x4 identity matrix
@@ -94,7 +96,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
         T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_upper_wrist_link") for i in range(NUM_ROBOTS)]
 
         # Compute static grasps at the beginning
-        if timestep == 0:
+        if timestep == 0 and not goals_loaded:
             for robot_id in range(NUM_ROBOTS):
                 theta = fabrics.get_theta_preference(q=robot_states[robot_id][0], 
                                                      goal_position=T_W_Goals[robot_id][:3,3])
