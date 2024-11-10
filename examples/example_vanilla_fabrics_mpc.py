@@ -55,7 +55,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             T_W_Objects.append(T_W_Object)
         print("T_W_Goals:", T_W_Goals)
     else:
-        print("Load grasp pose from pikle file.")
+        print("Load grasp pose from pickle file.")
         goals_loaded = True
         # Generate transformation matrix for each grasp position
         for robot_id, grasp in enumerate(grasp_goals):
@@ -93,7 +93,8 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
         
         # Compute robots' position for collision avoidance
         T_W_chassis_robots = [fabrics.compute_fk(robot_states[i][0], "chassis_link") for i in range(NUM_ROBOTS)]
-        T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_upper_wrist_link") for i in range(NUM_ROBOTS)]
+        T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_lower_wrist_link") for i in range(NUM_ROBOTS)]
+        T_W_tool_robots = [fabrics.compute_fk(robot_states[i][0], "arm_tool_frame") for i in range(NUM_ROBOTS)]#extra
 
         # Compute static grasps at the beginning
         if timestep == 0 and not goals_loaded:
@@ -112,9 +113,11 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                 else:
                     chassis_idx = counter 
                     wrist_idx = counter + 1
+                    tool_idx = counter + 2
                     x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
                     x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                    counter += 2
+                    x_obsts[tool_idx] = T_W_tool_robots[i][:3,3].tolist()#extra
+                    counter += 3
 
             # Planner computes new action
             start_time = time.perf_counter()
@@ -123,9 +126,9 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             fabrics.update_arguments(joint_state= robot_states[robot_id],
                                     T_W_Goal=T_W_Goals[robot_id],
                                     obst_pos=x_obsts,
-                                    obst_radius=r_obsts)
+                                    obst_radius=r_obsts)##########feed in the obstacle informations
             
-            action_unclipped = fabrics.compute_action()
+            action_unclipped = fabrics.compute_action()####################
             action[(robot_id*NUM_DOF): NUM_DOF*robot_id + (NUM_DOF-NUM_GRIPPER_FINGERS)] = fabrics.clip_action(action_unclipped)
             end_time = time.perf_counter()
 

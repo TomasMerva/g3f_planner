@@ -26,8 +26,9 @@ from evaluation.record_data import RecordData, EvaluationDataStructure
 # from evaluation.dinovas_static.example_gf_dinovas import run_dinova_example as fabrics_dinova_example
 # from evaluation.dinovas_static.example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
-from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
+#from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
 from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
+from example_vanilla_fabrics_mpc import run_dinova_example as fabrics_dinova_example
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, cases= ["IF" ,"GF", "RF"], n_steps_per_run=1000):
@@ -50,7 +51,7 @@ class ComparisonDinovas():
         self.scenarios = {run_id:{} for run_id in range(self.n_runs)}
 
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
-        self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics.yaml"))
+        self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics_mpc.yaml"))
         self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_if_6obst.yaml"))
         
 
@@ -80,14 +81,14 @@ class ComparisonDinovas():
         self._home_config = np.array([np.concatenate((vec, [0.9, -0.9])) for vec in data[run_id]["q_home"]]) 
         
         self.scenarios[run_id] = data[run_id]
-        obst_pos_dict = self.scenarios[run_id]["x_obsts"][2:6]
-        #obst_radii_dict = self.scenarios[run_id]["r_obsts"][2:6]
+        obst_pos_dict = self.scenarios[run_id]["x_obsts"][2:6]#record obst in pickle
         # objects_pos_noise = self.randomize_objects_pos()
         obsts_pos = [list(obst) for obst in obst_pos_dict]
+        #print("obsts_pos:",obsts_pos)
         # obsts_r = [list(obst) for obst in obst_radii_dict]
         self.grasp_list = self.scenarios[run_id]["x_grasp"]
         # env.set_objects_pos_noise(objects_pos_noise)
-        env.set_obsts_pos(pos=obsts_pos, start_idx=2) 
+        env.set_obsts_pos(pos=obsts_pos, start_idx=3) #first 3 obst used for collision avoidance of fabrics
         # env.set_obsts_pos(radii=obsts_r, start_idx=2) 
         #attach the gripper config to robots 9dim home config
 
