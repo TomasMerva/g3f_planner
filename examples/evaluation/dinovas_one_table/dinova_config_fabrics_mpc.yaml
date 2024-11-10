@@ -12,7 +12,7 @@ problem:
         type: sphere
         position: [-10.3, -0.3, 0.3]
         radius: 0.6
-      obstacle2: # robot2 upper_wrist_link
+      obstacle2: # robot2 lower_wrist_link
         type: sphere
         position: [-10.3, -0.3, 0.3]
         radius: 0.27
