@@ -25,8 +25,9 @@ from dinovas_pybullet_env import Environment
 from evaluation.record_data import RecordData, EvaluationDataStructure
 
 from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
-from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
+#from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
 from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
+from example_vanilla_fabrics_mpc import run_dinova_example as fabrics_dinova_example
 
 
 class ComparisonDinovas():
@@ -58,6 +59,7 @@ class ComparisonDinovas():
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
         env.set_objects_pos_noise(objects_pos_noise)
+        self.grasp_list = None
         return env
 
     def load_environment(self, run_id=0):
@@ -87,7 +89,7 @@ class ComparisonDinovas():
         # obsts_r = [list(obst) for obst in obst_radii_dict]
         self.grasp_list = self.scenarios[run_id]["x_grasp"]
         # env.set_objects_pos_noise(objects_pos_noise)
-        env.set_obsts_pos(pos=obsts_pos, start_idx=4) ###################################
+        env.set_obsts_pos(pos=obsts_pos, start_idx=6) ###################################
         # env.set_obsts_pos(radii=obsts_r, start_idx=2) 
         #attach the gripper config to robots 9dim home config
         return env
