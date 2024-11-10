@@ -45,7 +45,7 @@ class ComparisonDinovas():
         self.scenarios = {run_id:{} for run_id in range(self.n_runs)}
 
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
-        self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics_mpc.yaml"))
+        self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics_mpc_3.yaml"))
         self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_if_6obst.yaml"))
 
     def create_environment(self):
@@ -54,6 +54,7 @@ class ComparisonDinovas():
         self._home_config = self.randomize_default_home_config()
         objects_pos_noise = self.randomize_objects_pos()
         env.set_objects_pos_noise(objects_pos_noise)
+        self.grasp_list = None
         return env
     
     def load_environment(self, run_id=0):
@@ -265,7 +266,7 @@ def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save
     random.seed(0)
     np.random.seed(0)
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps, cases=cases)
-    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=True, SAVE_DATA=save_data)
+    comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False, SAVE_DATA=save_data)
     print("Results from Two tables scenario")
     print("==================================")
     comparison_dinovas.table_results()
@@ -276,4 +277,4 @@ if __name__ == "__main__":
          n_runs=1, 
          timesteps=5000, 
          cases=["GF"], # ,"GF", "RF"
-         save_data=True)
+         save_data=False)
