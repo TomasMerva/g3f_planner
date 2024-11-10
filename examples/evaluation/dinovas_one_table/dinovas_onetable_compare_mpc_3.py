@@ -26,9 +26,9 @@ from evaluation.record_data import RecordData, EvaluationDataStructure
 # from evaluation.dinovas_static.example_gf_dinovas import run_dinova_example as fabrics_dinova_example
 # from evaluation.dinovas_static.example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
-from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
+#from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
 from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
-# from example_vanilla_fabrics_mpc import run_dinova_example as fabrics_dinova_example
+from example_vanilla_fabrics_mpc import run_dinova_example as fabrics_dinova_example
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, cases= ["IF" ,"GF", "RF"], n_steps_per_run=1000):
@@ -88,7 +88,7 @@ class ComparisonDinovas():
         # obsts_r = [list(obst) for obst in obst_radii_dict]
         self.grasp_list = self.scenarios[run_id]["x_grasp"]
         # env.set_objects_pos_noise(objects_pos_noise)
-        env.set_obsts_pos(pos=obsts_pos, start_idx=2) #first 3 obst used for collision avoidance of fabrics
+        env.set_obsts_pos(pos=obsts_pos, start_idx=3) #first 3 obst used for collision avoidance of fabrics
         # env.set_obsts_pos(radii=obsts_r, start_idx=2) 
         #attach the gripper config to robots 9dim home config
 

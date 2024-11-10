@@ -249,8 +249,8 @@ def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save
     return {}
 
 if __name__ == "__main__":
-    main(render=False, 
+    main(render=True, 
          n_runs=20, 
          timesteps=5000, 
-         cases=["IF", "GF", "RF"], # ,"GF", "RF"
-         save_data=True)
+         cases=["GF"], # ,"GF", "RF"
+         save_data=False)
