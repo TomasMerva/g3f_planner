@@ -89,7 +89,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
         
         # Compute robots' position for collision avoidance
         T_W_chassis_robots = [fabrics.compute_fk(robot_states[i][0], "chassis_link") for i in range(NUM_ROBOTS)]
-        T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_upper_wrist_link") for i in range(NUM_ROBOTS)]
+        T_W_wrist_robots = [fabrics.compute_fk(robot_states[i][0], "arm_lower_wrist_link") for i in range(NUM_ROBOTS)]
 
         # Compute static grasps at the beginning
         if timestep == 0 and not goals_loaded:
