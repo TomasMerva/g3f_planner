@@ -71,10 +71,6 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             #Looks weird
             draw_coordinate_frame(T)
             env.reset_cup(robot_id, grasp["position"])
-        #Reset cups positions manually?
-
-        
-    
     x_obsts = [obstacles[i]["position"] for i in obstacles]
     r_obsts = [obstacles[i]["radius"] for i in obstacles]
     
@@ -100,8 +96,11 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             for robot_id in range(NUM_ROBOTS):
                 theta = fabrics.get_theta_preference(q=robot_states[robot_id][0], 
                                                      goal_position=T_W_Goals[robot_id][:3,3])
-
                 T_W_Goals[robot_id] = fabrics.compute_static_grasp(T_W_Goals[robot_id], theta)
+
+        q_robots = [] # hold the robot configurations, for further reproduction
+        goal_positions = [T[:3, 3] for T in T_W_Goals]  # Extracts the x, y, z position from each matrix
+        goal_orientations = [np.quaternion(*list(np.linalg.qr(T[:3, :3]))[0].flatten()) for T in T_W_Goals]
 
         for robot_id in range(NUM_ROBOTS):
             # other robots as dynamic obstacles
@@ -134,11 +133,16 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             if fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
 
+            q_robots.append(robot_states[robot_id][0])# hold the robot configurations, for further reproduction
+
 
         collision_flag = env.check_collisions()
         if collision_flag == True:
             evaluation_data.record_success_rate(success=0.0)
             evaluation_data.record_collision_violation(collision_flag)
+            evaluation_data.record_robot_configurations_in_collisions(q_robots)
+            evaluation_data.record_goal_positions(goal_positions)
+            evaluation_data.record_goal_orientations(goal_orientations)
             print("GF failed")
             break
 
@@ -150,6 +154,10 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             break  
         
         ob, *_ = sim.step(action)
+    if not np.all(success_rate_per_robot):
+        evaluation_data.record_robot_configurations_fail_to_reach(q_robots)
+        evaluation_data.record_goal_positions(goal_positions)
+        evaluation_data.record_goal_orientations(goal_orientations)
 
     sim.close()
     return evaluation_data.get_result()

@@ -98,6 +98,9 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
                                                      goal_position=T_W_Goals[robot_id][:3,3])
                 T_W_Goals[robot_id] = fabrics.compute_static_grasp(T_W_Goals[robot_id], theta)
 
+        q_robots = [] # hold the robot configurations, for further reproduction
+        goal_positions = [T[:3, 3] for T in T_W_Goals]  # Extracts the x, y, z position from each matrix
+        goal_orientations = [np.quaternion(*list(np.linalg.qr(T[:3, :3]))[0].flatten()) for T in T_W_Goals]
         for robot_id in range(1):
             # other robots as dynamic obstacles
             counter = 0
@@ -128,12 +131,17 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             evaluation_data.record_computational_time(end_time-start_time)
             if fabrics.error(goal_pos=T_W_Goals[robot_id][:3, 3], q_current=robot_states[robot_id][0]) <= stopping_tolerance:
                 success_rate_per_robot[robot_id] = 1
+                
+            q_robots.append(robot_states[robot_id][0])# hold the robot configurations, for further reproduction
 
 
         collision_flag = env.check_collisions()
         if collision_flag == True:
             evaluation_data.record_success_rate(success=0.0)
             evaluation_data.record_collision_violation(collision_flag)
+            evaluation_data.record_robot_configurations_in_collisions(q_robots)
+            evaluation_data.record_goal_positions(goal_positions)
+            evaluation_data.record_goal_orientations(goal_orientations)
             print("GF failed")
             break
 
@@ -145,6 +153,10 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             break  
         
         ob, *_ = sim.step(action)
+    if not np.all(success_rate_per_robot):
+        evaluation_data.record_robot_configurations_fail_to_reach(q_robots)
+        evaluation_data.record_goal_positions(goal_positions)
+        evaluation_data.record_goal_orientations(goal_orientations)
 
     sim.close()
     return evaluation_data.get_result()
