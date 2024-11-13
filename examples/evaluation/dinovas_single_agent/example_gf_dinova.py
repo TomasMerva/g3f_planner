@@ -100,7 +100,7 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
 
         q_robots = [] # hold the robot configurations, for further reproduction
         goal_positions = [T[:3, 3] for T in T_W_Goals]  # Extracts the x, y, z position from each matrix
-        goal_orientations = [np.quaternion(*list(np.linalg.qr(T[:3, :3]))[0].flatten()) for T in T_W_Goals]
+        goal_orientations = [R.from_matrix(T[:3, :3]).as_quat() for T in T_W_Goals]
         for robot_id in range(1):
             # other robots as dynamic obstacles
             counter = 0
