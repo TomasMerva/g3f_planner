@@ -15,6 +15,7 @@ class EvaluationDataStructure:
     
     #Extra
     collision_pair: List[int] = field(default_factory=lambda: [-1, -1])
+    collision_pair_names: List[str] = field(default_factory=lambda: ["", ""])
     robot_configurations_in_collisions: List[List[np.array]] = field(default_factory=list)  
     robot_configurations_fail_to_reach: List[List[np.array]] = field(default_factory=list) 
     goal_positions: List[List[np.array]] = field(default_factory=list)  # easy for reproduction
@@ -51,6 +52,9 @@ class RecordData():
 
     def record_collision_pair(self, collision_pair):
         self._result.collision_pair = collision_pair
+    
+    def record_collision_pair_names(self, collision_pair_names):
+        self._result.collision_pair_names = collision_pair_names
     
     def record_robot_configurations_in_collisions(self, robot_configurations):
         self._result.robot_configurations_in_collisions.extend(robot_configurations)

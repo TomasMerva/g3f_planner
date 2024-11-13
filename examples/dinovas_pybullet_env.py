@@ -346,7 +346,14 @@ class Environment():
         """
         for robot in self._robots:
             contacts = pybullet.getContactPoints(robot._robot)
-            if len(contacts) > 0:
-                return True
-        return False
+            
+            if len(contacts) > 0:#get the first contact info
+                uid_a = robot._robot  # UID of the robot
+                uid_b = contacts[0][2]  # UID of the object/robot in the contact pair
+                
+                # Retrieve object names
+                name_a = pybullet.getBodyInfo(uid_a)[1].decode('utf-8') if uid_a else "Unknown"
+                name_b = pybullet.getBodyInfo(uid_b)[1].decode('utf-8') if uid_b else "Unknown"
+                return True, [uid_a, uid_b], [name_a, name_b]
+        return False, None, None
     

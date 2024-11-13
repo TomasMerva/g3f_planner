@@ -135,13 +135,15 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             q_robots.append(robot_states[robot_id][0])# hold the robot configurations, for further reproduction
 
 
-        collision_flag = env.check_collisions()
+        collision_flag, collision_pairs, collision_pair_names = env.check_collisions()
         if collision_flag == True:
             evaluation_data.record_success_rate(success=0.0)
             evaluation_data.record_collision_violation(collision_flag)
             evaluation_data.record_robot_configurations_in_collisions(q_robots)
             evaluation_data.record_goal_positions(goal_positions)
             evaluation_data.record_goal_orientations(goal_orientations)
+            evaluation_data.record_collision_pair(collision_pairs)
+            evaluation_data.record_collision_pair_names(collision_pair_names)
             print("GF failed")
             break
 
