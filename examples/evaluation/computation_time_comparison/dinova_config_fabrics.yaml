@@ -1,0 +1,477 @@
+fabrics:
+  collision_finsler: 0.2/(x**2) * xdot**2
+  collision_geometry: -0.2 / (x ** 1) * xdot ** 2
+  finsler_plane_constraint: 0.2/(x**2) * xdot**2
+  geometry_plane_constraint: -0.2 / (x ** 1) * (-0.5 * (ca.sign(xdot) - 1)) * xdot
+    ** 2
+  limit_finsler: 1.0/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot**2
+  limit_geometry: -0.1 / (x ** 1) * xdot ** 2
+problem:
+  environment:
+    number_cuboids:
+      dynamic: 0
+      static: 0
+    number_planes: 0
+    number_spheres:
+      dynamic: 0
+      static: 50
+    obstacle_definition:
+      obstacle0:
+        position:
+        - 3.44
+        - 2.58
+        - 0.84
+        radius: 0.2
+        type: sphere
+      obstacle1:
+        position:
+        - -2.18
+        - 2.56
+        - 1.24
+        radius: 0.2
+        type: sphere
+      obstacle10:
+        position:
+        - -2.61
+        - 4.68
+        - 1.61
+        radius: 0.28
+        type: sphere
+      obstacle11:
+        position:
+        - -4.2
+        - -1.8
+        - 1.02
+        radius: 0.47
+        type: sphere
+      obstacle12:
+        position:
+        - -3.91
+        - 0.51
+        - 1.41
+        radius: 0.32
+        type: sphere
+      obstacle13:
+        position:
+        - 3.14
+        - 0.4
+        - 1.93
+        radius: 0.34
+        type: sphere
+      obstacle14:
+        position:
+        - 0.76
+        - -2.1
+        - 0.38
+        radius: 0.17
+        type: sphere
+      obstacle15:
+        position:
+        - 1.13
+        - 1.57
+        - 0.95
+        radius: 0.14
+        type: sphere
+      obstacle16:
+        position:
+        - 2.58
+        - 3.77
+        - 1.85
+        radius: 0.44
+        type: sphere
+      obstacle17:
+        position:
+        - 3.98
+        - 4.23
+        - 1.08
+        radius: 0.26
+        type: sphere
+      obstacle18:
+        position:
+        - 2.05
+        - -2.24
+        - 1.62
+        radius: 0.44
+        type: sphere
+      obstacle19:
+        position:
+        - 3.95
+        - 0.9
+        - 1.9
+        radius: 0.33
+        type: sphere
+      obstacle2:
+        position:
+        - 4.1
+        - 4.83
+        - 1.62
+        radius: 0.46
+        type: sphere
+      obstacle20:
+        position:
+        - -0.49
+        - 1.6
+        - 1.99
+        radius: 0.47
+        type: sphere
+      obstacle21:
+        position:
+        - 2.93
+        - -4.18
+        - 1.23
+        radius: 0.29
+        type: sphere
+      obstacle22:
+        position:
+        - 1.3
+        - 3.45
+        - 0.49
+        radius: 0.39
+        type: sphere
+      obstacle23:
+        position:
+        - -3.83
+        - -2.8
+        - 1.59
+        radius: 0.23
+        type: sphere
+      obstacle24:
+        position:
+        - 3.16
+        - -3.99
+        - 0.29
+        radius: 0.38
+        type: sphere
+      obstacle25:
+        position:
+        - -4.55
+        - 0.74
+        - 1.82
+        radius: 0.31
+        type: sphere
+      obstacle26:
+        position:
+        - 1.81
+        - -4.73
+        - 1.27
+        radius: 0.34
+        type: sphere
+      obstacle27:
+        position:
+        - -4.64
+        - -4.78
+        - 1.92
+        radius: 0.17
+        type: sphere
+      obstacle28:
+        position:
+        - -3.76
+        - -2.89
+        - 1.6
+        radius: 0.47
+        type: sphere
+      obstacle29:
+        position:
+        - -4.77
+        - -0.74
+        - 0.2
+        radius: 0.2
+        type: sphere
+      obstacle3:
+        position:
+        - -1.9
+        - 2.3
+        - 1.8
+        radius: 0.37
+        type: sphere
+      obstacle30:
+        position:
+        - -2.79
+        - 1.47
+        - 0.7
+        radius: 0.17
+        type: sphere
+      obstacle31:
+        position:
+        - 0.04
+        - -4.61
+        - 0.2
+        radius: 0.5
+        type: sphere
+      obstacle32:
+        position:
+        - -3.01
+        - -1.41
+        - 1.46
+        radius: 0.44
+        type: sphere
+      obstacle33:
+        position:
+        - 4.18
+        - -3.31
+        - 1.35
+        radius: 0.49
+        type: sphere
+      obstacle34:
+        position:
+        - -4.42
+        - 1.76
+        - 1.69
+        radius: 0.24
+        type: sphere
+      obstacle35:
+        position:
+        - -2.49
+        - 0.97
+        - 0.88
+        radius: 0.17
+        type: sphere
+      obstacle36:
+        position:
+        - -1.89
+        - -1.43
+        - 1.68
+        radius: 0.2
+        type: sphere
+      obstacle37:
+        position:
+        - 0.61
+        - -4.88
+        - 1.48
+        radius: 0.23
+        type: sphere
+      obstacle38:
+        position:
+        - -4.54
+        - -2.19
+        - 0.48
+        radius: 0.48
+        type: sphere
+      obstacle39:
+        position:
+        - -1.48
+        - -2.12
+        - 0.72
+        radius: 0.48
+        type: sphere
+      obstacle4:
+        position:
+        - -0.28
+        - -3.99
+        - 0.87
+        radius: 0.34
+        type: sphere
+      obstacle40:
+        position:
+        - 1.34
+        - 1.21
+        - 1.43
+        radius: 0.26
+        type: sphere
+      obstacle41:
+        position:
+        - -1.66
+        - -2.61
+        - 1.27
+        radius: 0.25
+        type: sphere
+      obstacle42:
+        position:
+        - 3.75
+        - 0.68
+        - 0.83
+        radius: 0.26
+        type: sphere
+      obstacle43:
+        position:
+        - 2.02
+        - -0.82
+        - 1.32
+        radius: 0.12
+        type: sphere
+      obstacle44:
+        position:
+        - -0.55
+        - -2.41
+        - 0.32
+        radius: 0.31
+        type: sphere
+      obstacle45:
+        position:
+        - 3.75
+        - 3.12
+        - 0.38
+        radius: 0.5
+        type: sphere
+      obstacle46:
+        position:
+        - 1.33
+        - -4.17
+        - 1.45
+        radius: 0.49
+        type: sphere
+      obstacle47:
+        position:
+        - 2.17
+        - -4.98
+        - 1.65
+        radius: 0.31
+        type: sphere
+      obstacle48:
+        position:
+        - -4.02
+        - -3.81
+        - 1.3
+        radius: 0.45
+        type: sphere
+      obstacle49:
+        position:
+        - -2.2
+        - 4.79
+        - 0.2
+        radius: 0.44
+        type: sphere
+      obstacle5:
+        position:
+        - 4.13
+        - 4.67
+        - 0.95
+        radius: 0.45
+        type: sphere
+      obstacle6:
+        position:
+        - -2.4
+        - 3.05
+        - 1.1
+        radius: 0.11
+        type: sphere
+      obstacle7:
+        position:
+        - 2.2
+        - -1.01
+        - 1.65
+        radius: 0.37
+        type: sphere
+      obstacle8:
+        position:
+        - -4.99
+        - -0.06
+        - 1.74
+        radius: 0.2
+        type: sphere
+      obstacle9:
+        position:
+        - -1.75
+        - 3.7
+        - 0.38
+        radius: 0.33
+        type: sphere
+  goal:
+    goal_definition:
+      subgoal0:
+        child_link: arm_tool_frame
+        desired_position:
+        - -0.06
+        - -0.9
+        - 0.35
+        epsilon: 0.05
+        indices:
+        - 0
+        - 1
+        - 2
+        is_primary_goal: true
+        parent_link: base_link
+        type: staticSubGoal
+        weight: 1.0
+      subgoal1:
+        child_link: arm_tool_frame
+        desired_position:
+        - 0
+        - -1
+        - 0.5
+        epsilon: 0.03
+        indices:
+        - 0
+        - 1
+        - 2
+        is_primary_goal: false
+        parent_link: arm_dummy_link
+        type: staticSubGoal
+        weight: 5.0
+      subgoal2:
+        child_link: arm_orientation_helper_link
+        desired_position:
+        - 0
+        - -1
+        - 0.5
+        epsilon: 0.03
+        indices:
+        - 0
+        - 1
+        - 2
+        is_primary_goal: false
+        parent_link: arm_dummy_link
+        type: staticSubGoal
+        weight: 5.0
+      subgoal3:
+        desired_position:
+        - 0.0
+        epsilon: 0.015
+        indices:
+        - 2
+        is_primary_goal: false
+        type: staticJointSpaceSubGoal
+        weight: 1.0
+  joint_limits:
+    lower_limits:
+    - -10
+    - -10
+    - -10
+    - -2.6896
+    - -1.7628
+    - -2.6197
+    - -2.6002
+    - -2.5302
+    - -2.6002
+    upper_limits:
+    - 10
+    - 10
+    - 10
+    - 2.6896
+    - 0.7
+    - 2.6197
+    - 2.6002
+    - 2.5302
+    - 2.6002
+    velocity:
+    - 0.3
+    - 0.3
+    - 0.5
+    - 0.4
+    - 1.1
+    - 1.1
+    - 1.0
+    - 1.0
+    - 1.0
+  robot_representation:
+    collision_links:
+      arm_end_effector_link:
+        sphere:
+          radius: 0.1
+      arm_forearm_link:
+        sphere:
+          radius: 0.1
+      arm_lower_wrist_link:
+        sphere:
+          radius: 0.1
+      arm_shoulder_link:
+        sphere:
+          radius: 0.1
+      arm_upper_wrist_link:
+        sphere:
+          radius: 0.1
+      chassis_link:
+        sphere:
+          radius: 0.45
+    self_collision_pairs: {}
+    urdf_file: /dinova/dinova.urdf
