@@ -145,15 +145,15 @@ def run_dinova_example(n_steps, dof, n_robots, env:Environment, stopping_toleran
             evaluation_data.record_goal_orientations(goal_orientations)
             evaluation_data.record_collision_pair(collision_pairs)
             evaluation_data.record_collision_pair_names(collision_pair_names)
-            print("GF failed")
-            break
+           #print("GF failed")
+            #break we record the computation time ,don't break
 
         if success_rate_per_robot[0] == 1:
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             evaluation_data.record_collision_violation(collision_flag=False)
-            print("GF succeeded")
-            break  
+            #print("GF succeeded")
+            #break  
         
         ob, *_ = sim.step(action)
     if not np.all(success_rate_per_robot):

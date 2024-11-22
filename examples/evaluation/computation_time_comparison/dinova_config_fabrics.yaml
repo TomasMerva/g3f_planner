@@ -14,357 +14,252 @@ problem:
     number_planes: 0
     number_spheres:
       dynamic: 0
-      static: 50
+      static: 35
     obstacle_definition:
       obstacle0:
         position:
-        - 3.44
-        - 2.58
-        - 0.84
-        radius: 0.2
+        - 3.93
+        - -0.3
+        - 0.91
+        radius: 0.24
         type: sphere
       obstacle1:
         position:
-        - -2.18
-        - 2.56
-        - 1.24
-        radius: 0.2
+        - 3.22
+        - -2.66
+        - 0.5
+        radius: 0.29
         type: sphere
       obstacle10:
         position:
-        - -2.61
-        - 4.68
-        - 1.61
-        radius: 0.28
+        - 1.82
+        - 0.21
+        - 1.45
+        radius: 0.17
         type: sphere
       obstacle11:
         position:
-        - -4.2
-        - -1.8
-        - 1.02
-        radius: 0.47
+        - 4.23
+        - 2.13
+        - 1.19
+        radius: 0.27
         type: sphere
       obstacle12:
         position:
-        - -3.91
-        - 0.51
-        - 1.41
-        radius: 0.32
+        - 1.34
+        - 1.18
+        - 1.8
+        radius: 0.33
         type: sphere
       obstacle13:
         position:
-        - 3.14
-        - 0.4
-        - 1.93
-        radius: 0.34
+        - -2.87
+        - -0.59
+        - 0.49
+        radius: 0.46
         type: sphere
       obstacle14:
         position:
-        - 0.76
-        - -2.1
-        - 0.38
-        radius: 0.17
+        - 3.44
+        - 0.56
+        - 0.39
+        radius: 0.12
         type: sphere
       obstacle15:
         position:
-        - 1.13
-        - 1.57
-        - 0.95
-        radius: 0.14
+        - -3.66
+        - -0.57
+        - 1.35
+        radius: 0.19
         type: sphere
       obstacle16:
         position:
-        - 2.58
-        - 3.77
         - 1.85
-        radius: 0.44
+        - 3.62
+        - 1.51
+        radius: 0.27
         type: sphere
       obstacle17:
         position:
-        - 3.98
-        - 4.23
-        - 1.08
-        radius: 0.26
+        - 1.46
+        - 4.88
+        - 1.77
+        radius: 0.24
         type: sphere
       obstacle18:
         position:
-        - 2.05
-        - -2.24
-        - 1.62
-        radius: 0.44
+        - 1.85
+        - -3.37
+        - 1.11
+        radius: 0.24
         type: sphere
       obstacle19:
         position:
-        - 3.95
-        - 0.9
-        - 1.9
-        radius: 0.33
+        - -0.31
+        - -3.53
+        - 1.51
+        radius: 0.4
         type: sphere
       obstacle2:
         position:
-        - 4.1
-        - 4.83
-        - 1.62
-        radius: 0.46
+        - 4.35
+        - -4.76
+        - 1.45
+        radius: 0.1
         type: sphere
       obstacle20:
         position:
-        - -0.49
-        - 1.6
-        - 1.99
-        radius: 0.47
+        - 4.54
+        - -1.06
+        - 0.93
+        radius: 0.32
         type: sphere
       obstacle21:
         position:
-        - 2.93
-        - -4.18
-        - 1.23
-        radius: 0.29
+        - 3.92
+        - 2.04
+        - 0.04
+        radius: 0.18
         type: sphere
       obstacle22:
         position:
-        - 1.3
-        - 3.45
-        - 0.49
-        radius: 0.39
+        - 3.54
+        - 0.85
+        - 1.75
+        radius: 0.26
         type: sphere
       obstacle23:
         position:
-        - -3.83
-        - -2.8
-        - 1.59
-        radius: 0.23
+        - -2.9
+        - -4.96
+        - 1.99
+        radius: 0.15
         type: sphere
       obstacle24:
         position:
-        - 3.16
-        - -3.99
-        - 0.29
-        radius: 0.38
+        - -4.22
+        - 4.7
+        - 0.99
+        radius: 0.11
         type: sphere
       obstacle25:
         position:
-        - -4.55
-        - 0.74
-        - 1.82
-        radius: 0.31
+        - -0.81
+        - 2.57
+        - 0.62
+        radius: 0.4
         type: sphere
       obstacle26:
         position:
-        - 1.81
-        - -4.73
-        - 1.27
-        radius: 0.34
+        - 2.67
+        - -2.61
+        - 1.94
+        radius: 0.11
         type: sphere
       obstacle27:
         position:
-        - -4.64
-        - -4.78
-        - 1.92
-        radius: 0.17
+        - 3.64
+        - 0.13
+        - 0.31
+        radius: 0.2
         type: sphere
       obstacle28:
         position:
-        - -3.76
-        - -2.89
-        - 1.6
-        radius: 0.47
+        - 0.94
+        - -2.22
+        - 1.68
+        radius: 0.19
         type: sphere
       obstacle29:
         position:
-        - -4.77
-        - -0.74
-        - 0.2
-        radius: 0.2
+        - -2.36
+        - -4.11
+        - 0.31
+        radius: 0.35
         type: sphere
       obstacle3:
         position:
-        - -1.9
-        - 2.3
-        - 1.8
-        radius: 0.37
+        - -0.95
+        - 2.64
+        - 0.89
+        radius: 0.27
         type: sphere
       obstacle30:
         position:
-        - -2.79
-        - 1.47
-        - 0.7
-        radius: 0.17
+        - 0.64
+        - -4.37
+        - 1.99
+        radius: 0.29
         type: sphere
       obstacle31:
         position:
-        - 0.04
-        - -4.61
-        - 0.2
-        radius: 0.5
+        - -1.81
+        - 2.29
+        - 0.05
+        radius: 0.27
         type: sphere
       obstacle32:
         position:
-        - -3.01
-        - -1.41
-        - 1.46
-        radius: 0.44
+        - 1.64
+        - 4.62
+        - 1.52
+        radius: 0.45
         type: sphere
       obstacle33:
         position:
-        - 4.18
-        - -3.31
-        - 1.35
-        radius: 0.49
+        - -3.81
+        - -0.7
+        - 0.06
+        radius: 0.21
         type: sphere
       obstacle34:
         position:
-        - -4.42
-        - 1.76
-        - 1.69
+        - -3.1
+        - 3.24
+        - 1.08
         radius: 0.24
-        type: sphere
-      obstacle35:
-        position:
-        - -2.49
-        - 0.97
-        - 0.88
-        radius: 0.17
-        type: sphere
-      obstacle36:
-        position:
-        - -1.89
-        - -1.43
-        - 1.68
-        radius: 0.2
-        type: sphere
-      obstacle37:
-        position:
-        - 0.61
-        - -4.88
-        - 1.48
-        radius: 0.23
-        type: sphere
-      obstacle38:
-        position:
-        - -4.54
-        - -2.19
-        - 0.48
-        radius: 0.48
-        type: sphere
-      obstacle39:
-        position:
-        - -1.48
-        - -2.12
-        - 0.72
-        radius: 0.48
         type: sphere
       obstacle4:
         position:
-        - -0.28
-        - -3.99
-        - 0.87
-        radius: 0.34
-        type: sphere
-      obstacle40:
-        position:
-        - 1.34
-        - 1.21
-        - 1.43
-        radius: 0.26
-        type: sphere
-      obstacle41:
-        position:
-        - -1.66
-        - -2.61
-        - 1.27
-        radius: 0.25
-        type: sphere
-      obstacle42:
-        position:
-        - 3.75
-        - 0.68
-        - 0.83
-        radius: 0.26
-        type: sphere
-      obstacle43:
-        position:
-        - 2.02
-        - -0.82
-        - 1.32
-        radius: 0.12
-        type: sphere
-      obstacle44:
-        position:
-        - -0.55
-        - -2.41
-        - 0.32
-        radius: 0.31
-        type: sphere
-      obstacle45:
-        position:
-        - 3.75
-        - 3.12
-        - 0.38
-        radius: 0.5
-        type: sphere
-      obstacle46:
-        position:
-        - 1.33
-        - -4.17
-        - 1.45
-        radius: 0.49
-        type: sphere
-      obstacle47:
-        position:
-        - 2.17
-        - -4.98
-        - 1.65
-        radius: 0.31
-        type: sphere
-      obstacle48:
-        position:
-        - -4.02
-        - -3.81
-        - 1.3
-        radius: 0.45
-        type: sphere
-      obstacle49:
-        position:
-        - -2.2
-        - 4.79
-        - 0.2
-        radius: 0.44
+        - -2.47
+        - -0.25
+        - 0.46
+        radius: 0.21
         type: sphere
       obstacle5:
         position:
-        - 4.13
-        - 4.67
-        - 0.95
-        radius: 0.45
+        - 1.53
+        - 0.99
+        - 1.86
+        radius: 0.49
         type: sphere
       obstacle6:
         position:
-        - -2.4
-        - 3.05
-        - 1.1
-        radius: 0.11
+        - 0.22
+        - -4.12
+        - 0.6
+        radius: 0.31
         type: sphere
       obstacle7:
         position:
-        - 2.2
-        - -1.01
-        - 1.65
-        radius: 0.37
+        - 1.73
+        - 4.46
+        - 0.31
+        radius: 0.11
         type: sphere
       obstacle8:
         position:
-        - -4.99
-        - -0.06
-        - 1.74
-        radius: 0.2
+        - 3.7
+        - 3.05
+        - 1.53
+        radius: 0.29
         type: sphere
       obstacle9:
         position:
-        - -1.75
-        - 3.7
-        - 0.38
-        radius: 0.33
+        - 2.87
+        - 3.02
+        - 1.92
+        radius: 0.46
         type: sphere
   goal:
     goal_definition:

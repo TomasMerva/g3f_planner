@@ -163,9 +163,10 @@ class Environment():
         if self.n_robots == 2 and self.nr_tables > 1:
             URDF_table = self.URDF_FOLDER + "/table_50x50/table_square.urdf"
             table_pos = self.table_pos
+            
             z_table = self.z_table
             table_poses = self.table_poses[:self.n_robots]
-
+            print("table_pos", table_poses)
             if self._objects_pose_noise is None:
                 objects_pos = [
                     [table_poses[0][0] - 0.05, table_poses[0][1] + 0.1, z_table],
@@ -226,14 +227,16 @@ class Environment():
                     [table_pos[0]+self._objects_pose_noise[2][0], table_pos[1]-self._objects_pose_noise[2][1], z_table],
                     [table_pos[0]+self._objects_pose_noise[3][0], table_pos[1]-self._objects_pose_noise[3][1], z_table],
                 ]
-
+        print("self.nr_tables", self.nr_tables)
         self.scene_id = {}
         for object_id in range(self.n_robots):
             urdf_file = self.URDF_FOLDER + "/cup/cup_" + str(object_id+1) +".urdf"
             object_pybulletID = pybullet.loadURDF(urdf_file, basePosition=objects_pos[object_id])
             self.scene_id["cup_"+str(object_id)] = object_pybulletID
-        if self.nr_tables <= 1:
+        if self.nr_tables <= 1 and self.nr_tables != 0:
             self.scene_id["table"] = pybullet.loadURDF(URDF_table, basePosition=table_pos, globalScaling=1)
+        elif self.nr_tables == 0:
+            self.scene_id["table"] = None
         else:
             for i_table in range(self.nr_tables):
                 self.scene_id["table"] = pybullet.loadURDF(URDF_table, basePosition=table_poses[i_table],

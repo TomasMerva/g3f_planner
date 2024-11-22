@@ -340,7 +340,7 @@ class ComparisonDinovas():
                 self.run_i(case=algorithm, env=env, run_id = i_run)
         
         if SAVE_DATA:
-            pickle_file_path = '../results/' + self._scenario_name
+            pickle_file_path = 'results/fabrics_'+str(self.nr_obst)
             # with open(pickle_file_path+"_env.pickle", 'wb') as handle:
             #     pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
             with open(pickle_file_path + '_results.pickle', 'wb') as handle:
@@ -372,10 +372,10 @@ class ComparisonDinovas():
         print(latextable.draw_latex(table))
 
 
-def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save_data=True):
+def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save_data=True, nr_obst = 0):
     random.seed(0)
     np.random.seed(0)
-    comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps, cases=cases)
+    comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps, cases=cases, nr_obst=nr_obst)
     comparison_dinovas.run_comparison(render =render, LOAD_SCENARIO=False, SAVE_DATA=save_data)
     print("Results from Single agent scenario")
     print("==================================")
@@ -383,11 +383,16 @@ def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save
     return {}
 
 if __name__ == "__main__":
-    main(render=True, 
-         n_runs=1, 
-         timesteps=3500, 
-         cases=["GF"], # ,"GF", "RF"
-         save_data=True)
+    # EvaluateSimulationsMPC(n_runs=1, n_obstacles=number_of_obstales).run_simulations()
+    numbers_of_obstales = [35]
+    # Iterate over each PCK_LOAD_FILE and run simulations
+    for number_of_obstales in numbers_of_obstales:
+        main(render=False, 
+            n_runs=10, 
+            timesteps=3500, 
+            cases=["GF"], # ,"GF", "RF"
+            save_data=True,
+            nr_obst = number_of_obstales)
 
 
 
