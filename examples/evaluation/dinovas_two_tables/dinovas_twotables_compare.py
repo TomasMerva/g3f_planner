@@ -44,7 +44,7 @@ class ComparisonDinovas():
         self.scenarios = {run_id:{} for run_id in range(self.n_runs)}
 
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
-        self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics.yaml"))
+        self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics_mpc.yaml"))
         self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_if_6obst.yaml"))
 
     def create_environment(self):
@@ -249,7 +249,7 @@ def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save
     return {}
 
 if __name__ == "__main__":
-    main(render=True, 
+    main(render=False, 
          n_runs=20, 
          timesteps=5000, 
          cases=["GF"], # ,"GF", "RF"

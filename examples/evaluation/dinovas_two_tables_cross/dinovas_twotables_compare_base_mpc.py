@@ -26,7 +26,7 @@ from evaluation.record_data import RecordData, EvaluationDataStructure
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, cases= ["IF" ,"GF", "RF"], n_steps_per_run=1000):
-        self._scenario_name = "dinovas_two_tables"
+        self._scenario_name = "dinovas_two_tables_cross"
         self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
