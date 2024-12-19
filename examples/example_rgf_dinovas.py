@@ -45,7 +45,7 @@ def run_dinova_example(n_steps,
     NUM_DOF = dof
     NUM_GRIPPER_FINGERS = 2
     NUM_TIMESTEPS = n_steps
-    PLANNER_PERIOD = 100
+    PLANNER_PERIOD = 50
     NUM_OBST = nr_obst
     CONFIG_FILE_PATH_GOMP = gomp_config_file
     assert (NUM_OBST-NUM_ROBOTS >= 1), "There is more robots than total number of obstacles."
@@ -144,8 +144,10 @@ def run_dinova_example(n_steps,
                     if timestep == 0:
                         waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
                     elif solver_status_robots[robot_id]:
-                        if solver_status_robots[robot_id]:
-                            waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
+                        # if solver_status_robots[robot_id]:
+                        waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
+                    else:
+                        waypoints_list_robots[robot_id] = np.expand_dims(planner.get_static_grasp(), axis=0)
                     if RENDER:
                         for i in range(len(waypoints_list_robots[robot_id])):
                             pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
@@ -191,7 +193,8 @@ def run_dinova_example(n_steps,
         if collision_flag == True:
             evaluation_data.record_success_rate(success=0.0)
             evaluation_data.record_collision_violation(collision_flag)
-            print("IF failed")
+
+            print("IF failed because of the collision violation")
             break
 
         if np.all(success_rate_per_robot):

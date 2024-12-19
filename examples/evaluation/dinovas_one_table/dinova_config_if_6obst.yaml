@@ -118,7 +118,7 @@ fabrics:
 gomp:
   n_waypoints : 5
   collision_links : ["chassis_link", "arm_upper_wrist_link"]
-  collision_link_radius : [0.65, 0.15]
+  collision_link_radius : [0.65, 0.2]
   rollout_dt : 0.05
   rollout_timesteps : 500
   rollout_tolerance : 0.1

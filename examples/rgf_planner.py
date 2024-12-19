@@ -234,6 +234,8 @@ class RGF_Planner():
         T_Grasp_Offset[:3, 3] = [-self.z_offset_grasping, 0, -0.05 ]
         return T_W_Grasp @ T_Grasp_Offset
 
+    def get_static_grasp(self):
+        return self._T_W_StaticGrasp
 
 
     def _compute_initial_guesses(self):
@@ -313,7 +315,6 @@ class RGF_Planner():
             best_f = np.nanmin(f_results)
             solver_flag = True
             joint_waypoints = q_results[best_f] 
-        
         return self._return_solution(joint_waypoints, solver_flag)
     
     def _return_solution(self, joint_waypoints, solver_flag):

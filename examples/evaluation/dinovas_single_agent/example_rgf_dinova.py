@@ -143,8 +143,10 @@ def run_dinova_example(n_steps,
                     if timestep == 0:
                         waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
                     elif solver_status_robots[robot_id]:
-                        if solver_status_robots[robot_id]:
-                            waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
+                        waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
+                    else:
+                        waypoints_list_robots[robot_id] = np.expand_dims(planner.get_static_grasp(), axis=0)
+
                     if RENDER:
                         for i in range(len(waypoints_list_robots[robot_id])):
                             pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)

@@ -133,7 +133,7 @@ class ComparisonDinovas():
             new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
                          round(random.uniform(y_range[0], y_range[1]), 5))
             
-            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.2 for p in points):
+            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.25 for p in points):
                 points.append(new_point)
             
             safety_counter += 1
@@ -200,6 +200,7 @@ class ComparisonDinovas():
          
         if SAVE_DATA:
             pickle_file_path = '../results/' + self._scenario_name
+            os.makedirs(os.path.dirname(pickle_file_path+"_env.pickle"), exist_ok=True)
             with open(pickle_file_path+"_env.pickle", 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
             with open(pickle_file_path + '_results.pickle', 'wb') as handle:
