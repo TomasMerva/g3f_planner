@@ -26,4 +26,4 @@ class GraspRotationConstraint(ConstraintTemplate):
         # self._lb = ca.vertcat(-self.tolerance, -self.tolerance, -self.tolerance)
         # self._ub = ca.vertcat(self.tolerance, self.tolerance, self.tolerance)
         self._lb = np.cos(self.tolerance)
-        self._ub = np.cos(-self.tolerance)
+        self._ub = 100

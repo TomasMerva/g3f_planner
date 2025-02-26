@@ -26,6 +26,8 @@ from evaluation.record_data import RecordData, EvaluationDataStructure
 from evaluation.dinovas_single_agent.example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
 from evaluation.dinovas_single_agent.example_gf_dinova import run_dinova_example as fabrics_dinova_example
 from evaluation.dinovas_single_agent.example_rgf_dinova import run_dinova_example as gomp_dinova_example
+from evaluation.dinovas_single_agent.example_qp_zeroinit import run_dinova_example as qp_zero_dinova_example
+from evaluation.dinovas_single_agent.example_qp_linspaceinit import run_dinova_example as qp_lin_dinova_example
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, cases= ["IF" ,"GF", "RF"], n_steps_per_run=1000):
@@ -169,6 +171,28 @@ class ComparisonDinovas():
                                                 env=env,
                                                 stopping_tolerance=self._stopping_tolerance
                                                 )
+        elif case == "QPzero":
+            self.results[run_id][case]  = qp_zero_dinova_example(
+                                            n_steps=self.n_steps_per_run, 
+                                            dof=self.dof, 
+                                            n_robots=self.nr_robots, 
+                                            gomp_config_file=self._gomp_config_file,
+                                            env=env, 
+                                            nr_obst=self._num_obst,
+                                            render=self._render,
+                                            stopping_tolerance=self._stopping_tolerance
+                                            )     
+        elif case == "QPlin":
+            self.results[run_id][case]  = qp_lin_dinova_example(
+                                            n_steps=self.n_steps_per_run, 
+                                            dof=self.dof, 
+                                            n_robots=self.nr_robots, 
+                                            gomp_config_file=self._gomp_config_file,
+                                            env=env, 
+                                            nr_obst=self._num_obst,
+                                            render=self._render,
+                                            stopping_tolerance=self._stopping_tolerance
+                                            )  
                 
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
@@ -206,7 +230,7 @@ class ComparisonDinovas():
     def table_results(self):    
         # --- create and plot table --- #
         rows = []
-        title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "IF Computation time[s]", "Collision-rate"]
+        title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "IF Computation time[s]", "Collision-rate", "QP success rate [\%]"]
         nr_column = len(title_row)
         rows.append(title_row)
         for case in self.cases:
@@ -216,7 +240,7 @@ class ComparisonDinovas():
                          str(np.round(np.nanmean(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)), decimals=6)),
                          str(np.round(np.nanmean(np.concatenate([entry[case].computation_time_qp for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time_qp for entry in self.results], axis=0)), decimals=6)),
                          str(np.round(np.sum([entry[case].collision for entry in self.results]) / self.n_runs, decimals=1)),
-                         
+                         str(np.round(np.nanmean(np.concatenate([entry[case].solver_success_rate for entry in self.results], axis=0)),decimals=6))  + " $\%$ ",
                          ])
             
         table = Texttable()
@@ -241,8 +265,8 @@ if __name__ == "__main__":
     main(render=False, 
          n_runs=20, 
          timesteps=5000, 
-         cases=["IF","GF", "RF"], # ,"GF", "RF"
-         save_data=True)
+         cases=["IF"], # ,"GF", "RF"
+         save_data=False)
 
 
 

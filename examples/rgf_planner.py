@@ -224,10 +224,10 @@ class RGF_Planner():
         T_Obj_Grasp = np.eye(4)
         T_Obj_Grasp[:3,:3] = R.from_euler('xyz', [0, self._roll_obj_grasp, 0], degrees=False).as_matrix()
         T_Grasp_Theta = np.eye(4)
-        T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [-self.theta_preference, 0, 0], degrees=False).as_matrix()
+        # T_Grasp_Theta[:3,:3] = R.from_euler('xyz', [-self.theta_preference, 0, 0], degrees=False).as_matrix()
  
         # Compute correct rotation
-        T_W_Grasp = T_W_Obj @ T_Obj_Grasp @ T_Grasp_Theta
+        T_W_Grasp = T_W_Obj @ T_Obj_Grasp #@ T_Grasp_Theta
         # Compute offset
         
         T_Grasp_Offset = np.eye(4)
@@ -297,11 +297,11 @@ class RGF_Planner():
     
     def solve(self, joint_state, T_W_Obj, x_obsts=None, r_obsts=None):
         self.update_param_and_initial_guess(joint_state, T_W_Obj, x_obsts, r_obsts)
-
         _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
         _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)
+        # _q_result_free, f_q_free = self._solve_QP(q_init=np.zeros((10,9)))
 
-        # f_q_coll += 1.0
+        # f_q_coll = np.nan
         q_results = {
             f_q_coll: _q_result_coll,
             f_q_free : _q_result_free
@@ -316,6 +316,55 @@ class RGF_Planner():
             solver_flag = True
             joint_waypoints = q_results[best_f] 
         return self._return_solution(joint_waypoints, solver_flag)
+
+    def solve_linspace_init(self, joint_state, T_W_Obj, x_obsts=None, r_obsts=None):
+        self.update_param_and_initial_guess(joint_state, T_W_Obj, x_obsts, r_obsts)
+        _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
+        # _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)
+
+        q_target = self._q_free_init[-1]
+        q_start = self._q_free_init[0]
+        q_init = np.linspace(q_start, q_target, self.num_waypoints)
+        _q_result_free, f_q_free = self._solve_QP(q_init=q_init)
+
+        f_q_coll = np.nan
+        q_results = {
+            f_q_coll: _q_result_coll,
+            f_q_free : _q_result_free
+        }
+        f_results = np.array([f_q_coll, f_q_free], dtype=object)
+        if all(isinstance(x, float) and np.isnan(x) for x in f_results):
+            solver_flag = False
+            joint_waypoints = []
+            return self._return_solution(joint_waypoints, solver_flag)
+        else:
+            best_f = np.nanmin(f_results)
+            solver_flag = True
+            joint_waypoints = q_results[best_f] 
+        return self._return_solution(joint_waypoints, solver_flag)
+    
+    def solve_zero_init(self, joint_state, T_W_Obj, x_obsts=None, r_obsts=None):
+        self.update_param_and_initial_guess(joint_state, T_W_Obj, x_obsts, r_obsts)
+        _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
+        # _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)
+        _q_result_free, f_q_free = self._solve_QP(q_init=np.zeros((self.num_waypoints, self.num_dofs)))
+
+        f_q_coll = np.nan
+        q_results = {
+            f_q_coll: _q_result_coll,
+            f_q_free : _q_result_free
+        }
+        f_results = np.array([f_q_coll, f_q_free], dtype=object)
+        if all(isinstance(x, float) and np.isnan(x) for x in f_results):
+            solver_flag = False
+            joint_waypoints = []
+            return self._return_solution(joint_waypoints, solver_flag)
+        else:
+            best_f = np.nanmin(f_results)
+            solver_flag = True
+            joint_waypoints = q_results[best_f] 
+        return self._return_solution(joint_waypoints, solver_flag)
+
     
     def _return_solution(self, joint_waypoints, solver_flag):
         pose_waypoints = []
