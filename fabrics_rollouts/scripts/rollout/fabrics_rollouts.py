@@ -76,6 +76,7 @@ class RolloutFabrics(FabricsDriver):
 
         q_rollout_record = []
         self.qdot_rollout_record = []
+
         for _ in range(timesteps):
             action = self.compute_action(**rollout_arg_dict)
 
@@ -83,6 +84,7 @@ class RolloutFabrics(FabricsDriver):
         
             qdot = self.apply_low_pass_filter(x=action, x_prev=qdot)
             q = q + qdot*self._dt
+
 
             self.compute_dynamic_weights(q=q, T_W_Goal=rollout_arg_dict["T_W_Goal"])
             rollout_arg_dict["q"] = q
@@ -98,6 +100,7 @@ class RolloutFabrics(FabricsDriver):
             error = self.compute_error(rollout_arg_dict["x_goal_0"], q)
             if error <= tolerance:
                 return q_rollout_record
+   
         return q_rollout_record
 
     def get_rollout_velocity_avg(self, horizon=2):

@@ -19,10 +19,10 @@ problem:
       obstacle3:
         type: sphere
         position: [0.25, 1.5, 0.15]
-        radius: 0.5
+        radius: 0.3
       obstacle4:
         type: sphere
-        position: [-10.25, 1.5, 0.15]
+        position: [-0.25, 1.5, 0.15]
         radius: 0.3
       obstacle5:
         type: sphere
@@ -126,10 +126,10 @@ problem:
     self_collision_pairs: {}
 fabrics:
   limit_geometry: -0.1 / (x ** 1) * xdot ** 2 #-1.0 / (x ** 1) * xdot ** 2
-  limit_finsler: 1.0/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot**2
+  limit_finsler: 1.0/(x**2) * xdot**2
   collision_geometry: -0.2 / (x ** 1) * xdot ** 2 #-0.2 / (x ** 1) * xdot ** 2
   collision_finsler:  0.2/(x**2) * xdot**2 #0.2/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
-  geometry_plane_constraint: -0.2 / (x ** 1) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
+  geometry_plane_constraint: -0.2 / (x ** 1) *  xdot ** 2
   finsler_plane_constraint: 0.2/(x**2) * xdot**2
 gomp:
   n_waypoints : 10
@@ -140,6 +140,6 @@ gomp:
   rollout_tolerance : 0.1
   alpha_filter: 0.7
   initial_grasp_roll_deg : 90
-  verbose: True
+  verbose: False
   n_optim_steps : 5
   fabrics_lib : "libfabrics_controller_10obst.so"

@@ -299,7 +299,6 @@ class RGF_Planner():
         self.update_param_and_initial_guess(joint_state, T_W_Obj, x_obsts, r_obsts)
         _q_result_coll, f_q_coll = self._solve_QP(q_init=self._q_coll_init)
         _q_result_free, f_q_free = self._solve_QP(q_init=self._q_free_init)
-        # _q_result_free, f_q_free = self._solve_QP(q_init=np.zeros((10,9)))
 
         # f_q_coll = np.nan
         q_results = {

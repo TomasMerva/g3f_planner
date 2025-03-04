@@ -29,11 +29,11 @@ from evaluation.dinovas_init_guess.example_rgf_dinova import run_dinova_example 
 
 class ComparisonDinovas():
     def __init__(self, n_runs=2, cases= ["IF" ,"GF", "RF"], n_steps_per_run=1000):
-        self._scenario_name = "dinovas_single_agent"
+        self._scenario_name = "dinovas_mpc_comparison"
         self.nr_robots = 1
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
         self.dof = 11
-        self._num_obst = 3
+        self._num_obst = 4
         self.n_runs = n_runs
         self._stopping_tolerance = 0.07
         self.n_steps_per_run = n_steps_per_run
@@ -76,7 +76,7 @@ class ComparisonDinovas():
         return env
     
     def randomize_default_home_config(self):
-        home_config = np.array([0, 5, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
+        home_config = np.array([-0.0, 5, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9])
         x_range = [-3, 3]
         y_range = [2.0, 5.0]
         # z_range = [-3.12, 3.12]
@@ -243,7 +243,7 @@ if __name__ == "__main__":
          n_runs=1, 
          timesteps=5000, 
          cases=["IF"], # ,"GF", "RF"
-         save_data=False)
+         save_data=True)
 
 
 

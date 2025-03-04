@@ -144,28 +144,28 @@ def run_dinova_example(n_steps,
 
                     if timestep == 0:
                         waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
-                    elif solver_status_robots[robot_id]:
-                        # if solver_status_robots[robot_id]:
-                        waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
                     else:
-                        pass
-                        # waypoints_list_robots[robot_id] = np.expand_dims(planner.get_static_grasp(), axis=0)
+                        if solver_status_robots[robot_id]:
+                            waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
+                        else:
+                            # waypoints_list_robots[robot_id] = np.expand_dims(planner.get_static_grasp(), axis=0)
+                            waypoints_list_robots[robot_id] = np.expand_dims(waypoints_list_robots[robot_id][-1], axis=0)
+
                     if RENDER:
                         for i in range(len(waypoints_list_robots[robot_id])):
                             pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
 
                     qp_status_rate.append(solver_status_robots[robot_id])
 
-            if success_rate_per_robot[robot_id] == 0:
-                if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
-                    continue
-                else:
-                    current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
-                    waypoint_dict = [transformation2dict(waypoints_list_robots[robot_id][i]) for i in range(len(waypoints_list_robots[robot_id]))]
-                    current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
-                    waypoints_list_robots[robot_id] = [dict2transformation(waypoint_dict[i]) for i in range(len(waypoint_dict))]
-                    if current_goal_dict is not None:
-                        T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
+            if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
+                continue
+            else:
+                current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
+                waypoint_dict = [transformation2dict(waypoints_list_robots[robot_id][i]) for i in range(len(waypoints_list_robots[robot_id]))]
+                current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
+                waypoints_list_robots[robot_id] = [dict2transformation(waypoint_dict[i]) for i in range(len(waypoint_dict))]
+                if current_goal_dict is not None:
+                    T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
 
             
             start_time = time.perf_counter()

@@ -271,5 +271,5 @@ if __name__ == "__main__":
     main(render=False, 
          n_runs=20, 
          timesteps=5000, 
-         cases=["IF"], # ,"GF", "RF"
-         save_data=True)
+         cases=["QPzero"], # ,"GF", "RF"
+         save_data=False)

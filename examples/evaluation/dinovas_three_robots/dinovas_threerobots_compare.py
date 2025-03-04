@@ -27,6 +27,8 @@ from evaluation.record_data import RecordData, EvaluationDataStructure
 from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
 from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
 from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
+from example_rgf_zeroinit import run_dinova_example as qp_zero_dinova_example
+from example_rgf_lininit import run_dinova_example as qp_lin_dinova_example
 
 
 class ComparisonDinovas():
@@ -184,6 +186,28 @@ class ComparisonDinovas():
                 
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
+        
+        elif case =="QPzero":
+            self.results[run_id][case] =  qp_zero_dinova_example(n_steps=self.n_steps_per_run, 
+                                    dof=self.dof, 
+                                    n_robots=self.nr_robots, 
+                                    gomp_config_file=self._gomp_config_file,
+                                    env=env, 
+                                    nr_obst=self._num_obst,
+                                    render=self._render,
+                                    stopping_tolerance=self._stopping_tolerance
+                                    )     
+        
+        elif case =="QPlin":
+            self.results[run_id][case] =  qp_lin_dinova_example(n_steps=self.n_steps_per_run, 
+                                dof=self.dof, 
+                                n_robots=self.nr_robots, 
+                                gomp_config_file=self._gomp_config_file,
+                                env=env, 
+                                nr_obst=self._num_obst,
+                                render=self._render,
+                                stopping_tolerance=self._stopping_tolerance
+                                )  
       
 
     def run_comparison(self, render, LOAD_SCENARIO=False, SAVE_DATA=False):
@@ -252,7 +276,7 @@ if __name__ == "__main__":
     main(render=False, 
          n_runs=20, 
          timesteps=5000, 
-         cases=["IF"], # ,"GF", "RF"
+         cases=["IF","GF", "RF"], # ,"GF", "RF"
          save_data=True)
 
 

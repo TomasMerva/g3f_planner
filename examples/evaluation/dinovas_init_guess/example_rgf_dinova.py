@@ -116,17 +116,17 @@ def run_dinova_example(n_steps,
 
 
         # GOMP
-        for robot_id in range(1):
+        for robot_id in range(NUM_ROBOTS):
             counter = 0
-            for i in range(NUM_ROBOTS):
-                if i == robot_id:
-                    continue
-                else:
-                    chassis_idx = counter 
-                    wrist_idx = counter + 1
-                    x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
-                    x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-                    counter += 2
+            # for i in range(NUM_ROBOTS):
+            #     if i == robot_id:
+            #         continue
+            #     else:
+            #         chassis_idx = counter 
+            #         wrist_idx = counter + 1
+            #         x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
+            #         x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
+            #         counter += 2
  
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
@@ -143,36 +143,37 @@ def run_dinova_example(n_steps,
 
                     if timestep == 0:
                         waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
-                    elif solver_status_robots[robot_id]:
-                        waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
-                    # else:
-                    #     waypoints_list_robots[robot_id] = np.expand_dims(planner.get_static_grasp(), axis=0)
+                    else:
+                        if solver_status_robots[robot_id]:
+                            waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
+                        else:
+                            # waypoints_list_robots[robot_id] = np.expand_dims(planner.get_static_grasp(), axis=0)
+                            waypoints_list_robots[robot_id] = np.expand_dims(waypoints_list_robots[robot_id][-1], axis=0)
 
                     if RENDER:
-                        for i in range(len(waypoints_list_robots[robot_id])):
-                            pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
-
-                        q_init_coll, q_init_free = planner.get_initial_guesses()
-                        for i in range(q_init_coll.shape[0]):
-                            T_W_EEF = planner.compute_fk(q=q_init_coll[i])
-                            pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [robots_color[1]], 10, 2.0)
-                        for i in range(q_init_free.shape[0]):
-                            T_W_EEF = planner.compute_fk(q=q_init_free[i])
-                            pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [robots_color[2]], 10, 2.0)
+                        # for i in range(len(waypoints_list_robots[robot_id])):
+                        #     pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
+                        pass
+                        # q_init_coll, q_init_free = planner.get_initial_guesses()
+                        # for i in range(q_init_coll.shape[0]):
+                        #     T_W_EEF = planner.compute_fk(q=q_init_coll[i])
+                        #     pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [robots_color[1]], 10, 2.0)
+                        # for i in range(q_init_free.shape[0]):
+                        #     T_W_EEF = planner.compute_fk(q=q_init_free[i])
+                        #     pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [robots_color[2]], 10, 2.0)
                         # print(q_init_coll.shape)
 
                         
                     print(f"Status: {solver_status_robots[robot_id]}")
-            if success_rate_per_robot[robot_id] == 0:
-                if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
-                    continue
-                else:
-                    current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
-                    waypoint_dict = [transformation2dict(waypoints_list_robots[robot_id][i]) for i in range(len(waypoints_list_robots[robot_id]))]
-                    current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
-                    waypoints_list_robots[robot_id] = [dict2transformation(waypoint_dict[i]) for i in range(len(waypoint_dict))]
-                    if current_goal_dict is not None:
-                        T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
+            if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
+                continue
+            else:
+                current_eef_pose = transformation2dict(T_W_EEFs_current[robot_id])
+                waypoint_dict = [transformation2dict(waypoints_list_robots[robot_id][i]) for i in range(len(waypoints_list_robots[robot_id]))]
+                current_goal_dict, waypoint_dict, flag = reference_tracker.update_local_goal_pos_orient(current_eef_pose["position"], waypoint_dict)
+                waypoints_list_robots[robot_id] = [dict2transformation(waypoint_dict[i]) for i in range(len(waypoint_dict))]
+                if current_goal_dict is not None:
+                    T_W_Goals[robot_id] = dict2transformation(current_goal_dict)
 
             
             start_time = time.perf_counter()
