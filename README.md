@@ -1,9 +1,28 @@
-# grasp_fabrics
+# Globally-Guided Geometric Fabrics
+Implementation of Globally-Guided Geometric Fabrics presented in our paper **"Globally-Guided Geometric Fabrics for Reactive Mobile Manipulation in Dynamic Environments"**
 
-## ToDo list
-- [ ] remove pytorch_kinematics module but check the computational time
-- [ ] change name of the repo/method
+TODO: Add paper teaser image
 
+Mobile manipulators operating in dynamic environments shared with humans and robots must adapt in
+real time to environmental changes to complete their tasks effectively. While global planning methods are effective at
+considering the full task scope, they lack the computational efficiency required for reactive adaptation. In contrast, local
+planning approaches can be executed online but are limited by their inability to account for the full task’s duration. To
+tackle this, we propose **Globally-Guided Geometric Fabrics (G3F)**, a framework for real-time motion generation along
+the full task horizon, by interleaving an optimization-based planner with a fast reactive geometric motion planner, called
+Geometric Fabrics (GF). The approach adapts the path and explores a multitude of acceptable target poses, while
+accounting for collision avoidance and the robot’s physical constraints. This results in a real-time adaptive framework
+considering whole-body motions, where a robot operates in close proximity to other robots and humans. We validate
+our approach through various simulations and real-world experiments on mobile manipulators in multi-agent settings,
+achieving improved success rates compared to vanilla GF, Prioritized Rollout Fabrics and Model Predictive Control.
+
+A **project page** showcasing the presented approach can be found [here](https://autonomousrobots.nl/paper websites/g3f).
+
+### How to cite this work
+If you found this repository useful, please consider citing the associated paper below:
+
+```bash
+TODO:add_bibtex
+```
 
 ## Requirements
 ```bash
