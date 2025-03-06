@@ -148,7 +148,6 @@ def run_dinova_example(n_steps,
                         if solver_status_robots[robot_id]:
                             waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
                         else:
-                            # waypoints_list_robots[robot_id] = np.expand_dims(planner.get_static_grasp(), axis=0)
                             waypoints_list_robots[robot_id] = np.expand_dims(waypoints_list_robots[robot_id][-1], axis=0)
 
                     if RENDER:
@@ -216,16 +215,16 @@ def run_dinova_example(n_steps,
     sim.close()
     return evaluation_data.get_result()
 
-def main(render=True, timesteps=2000):
+def main(render=True, timesteps=5000):
     RENDER = render
-    NUM_ROBOTS = 1
+    NUM_ROBOTS = 2
     NUM_DOF = 11
     NUM_OBST = 3
     NUM_TIMESTEPS = timesteps
 
     #Read config file for Planner
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(current_script_dir, '..', 'config/dinova_config_rgf_3obst.yaml')
+    config_path = os.path.join(current_script_dir, '..', 'config/dinova_config_g3f_3obst.yaml')
     CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
 
     # Environment

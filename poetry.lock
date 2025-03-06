@@ -1909,6 +1909,23 @@ files = [
 ]
 
 [[package]]
+name = "spatial-casadi"
+version = "1.1.0"
+description = "Spatial transformation library for CasADi Python."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "spatial_casadi-1.1.0-py3-none-any.whl", hash = "sha256:bf3ae98de874f19b5d2fc82fe3a9072123b47b5d6cd8edd64cad1710056c104b"},
+    {file = "spatial_casadi-1.1.0.tar.gz", hash = "sha256:d2696cd318ef2c6078937cb4a0890077f025934a225afe2a6cb3feca9669de66"},
+]
+
+[package.dependencies]
+casadi = "*"
+
+[package.extras]
+test = ["numpy", "pytest", "scipy"]
+
+[[package]]
 name = "svg-path"
 version = "6.3"
 description = "SVG path objects and parser"
@@ -2281,4 +2298,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8, <3.10"
-content-hash = "d1d6c8fbb7328b6d7642f6dcd894f72f1dde58bf5b14ddf82c9b42099a9190aa"
+content-hash = "fd558353eb58ac7669a0755febb17a6d8b5ac7a5f1baa397e7f5c9785dc9ac64"

@@ -208,7 +208,7 @@ def run_dinova_example(n_steps,
 
     return evaluation_data.get_result()
 
-def main(render=True, timesteps=2000):
+def main(render=True, timesteps=5000):
     RENDER = render
     NUM_ROBOTS = 2
     NUM_DOF = 11

@@ -17,6 +17,7 @@ texttable = "^1.7.0"
 latextable = "^1.0.1"
 tqdm = "^4.66.5"
 casadi = "3.6.6"
+spatial-casadi = "1.1.0"
 
 [build-system]
 requires = ["poetry-core"]
