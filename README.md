@@ -24,10 +24,6 @@ If you found this repository useful, please consider citing the associated paper
 TODO:add_bibtex
 ```
 
-## Requirements
-```bash
-poetry install
-```
 
 
 ## Build
@@ -51,6 +47,10 @@ poetry shell
 ```
 
 
-## Examples
-mention: `g3f_planner_dinova` + evaluation files
+## Example
+The example code for the G3F planner, specifically tailored to the [Dinova](https://github.com/INTERACT-tud-amr/dinova) mobile manipulator, is provided in `examples/example_g3f_dinovas.py`, and the corresponding optimization problem is formulated in `examples/g3f_planner_dinova.py`. To run the example:
+```bash
+python examples/example_g3f_dinovas.py
+```
+
 
