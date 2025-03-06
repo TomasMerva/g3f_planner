@@ -241,7 +241,7 @@ if __name__ == "__main__":
     main(render=False, 
          n_runs=20, 
          timesteps=5000, 
-         cases=["G3F", "GF", "PRF"]
+         cases=["G3F", "GF", "PRF"],
          save_data=False)
 
 

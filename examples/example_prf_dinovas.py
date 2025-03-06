@@ -8,7 +8,7 @@ import pybullet
 from typing import Dict
 from g3f_planner import DeadlockPrevention
 from dinovas_pybullet_env import Environment
-from rgf_planner import RGF_Planner
+from g3f_planner_dinova import G3F_Planner
 from fabrics_planner import Fabrics
 from g3f_planner import ReferenceTracker
 from tqdm import tqdm
@@ -78,7 +78,7 @@ def run_dinova_example(n_steps,
         end_link = "arm_tool_frame",
         num_dofs = NUM_DOF-NUM_GRIPPER_FINGERS,
     )
-    planner = RGF_Planner(fk_args=fk_args,
+    planner = G3F_Planner(fk_args=fk_args,
                           config_file_path=CONFIG_FILE_PATH_GOMP)
     
     

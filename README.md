@@ -27,7 +27,7 @@ TODO:add_bibtex
 
 
 ## Build
-1. Fabrics controller (C++)
+### Fabrics controller (C++)
 
 You can automatically generate C++ code for a custom fabrics controller using the [create_dinovas_planner.py](https://github.com/TomasMerva/grasp_fabrics/blob/main/examples/generate_controllers/create_dinovas_planner.py) example. The custom fabrics controller is built based on the robot's URDF file and [configuration files](https://github.com/TomasMerva/grasp_fabrics/tree/main/config), and is stored in the [g3f_planner/src/](https://github.com/TomasMerva/grasp_fabrics/tree/main/fabrics_rollouts/src) folder. To use it, you need to rebuild it in the `build` folder or run the following script:
 
@@ -36,7 +36,7 @@ You can automatically generate C++ code for a custom fabrics controller using th
 ```
 The precompiled library 
 
-2. Virtual environment (advised)
+### Virtual environment (advised)
 You can install the necessary dependencies using [poetry](https://python-poetry.org/docs/) virtual environment. After installing poetry, move into `g3f_planner` and run:
 ```bash
 poetry install
