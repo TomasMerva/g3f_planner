@@ -8,7 +8,7 @@ import pybullet
 from typing import Dict
 
 from dinovas_pybullet_env import Environment
-from rgf_planner import RGF_Planner
+from g3f_planner_dinova import G3F_Planner
 from fabrics_planner import Fabrics
 from g3f_planner import ReferenceTracker
 from tqdm import tqdm
@@ -45,7 +45,7 @@ def run_dinova_example(n_steps,
     NUM_DOF = dof
     NUM_GRIPPER_FINGERS = 2
     NUM_TIMESTEPS = n_steps
-    PLANNER_PERIOD = 100
+    PLANNER_PERIOD = 50
     NUM_OBST = nr_obst
     CONFIG_FILE_PATH_GOMP = gomp_config_file
     assert (NUM_OBST-NUM_ROBOTS >= 1), "There is more robots than total number of obstacles."
@@ -72,7 +72,7 @@ def run_dinova_example(n_steps,
         end_link = "arm_tool_frame",
         num_dofs = NUM_DOF-NUM_GRIPPER_FINGERS,
     )
-    planner = RGF_Planner(fk_args=fk_args,
+    planner = G3F_Planner(fk_args=fk_args,
                           config_file_path=CONFIG_FILE_PATH_GOMP
                          )
     
@@ -100,6 +100,7 @@ def run_dinova_example(n_steps,
     """
     evaluation_data = RecordData()
     success_rate_per_robot = [0] * NUM_ROBOTS
+    qp_status_rate = []
 
     
     # Main loop
@@ -118,29 +119,29 @@ def run_dinova_example(n_steps,
         # GOMP
         for robot_id in range(NUM_ROBOTS):
             counter = 0
-            # for i in range(NUM_ROBOTS):
-            #     if i == robot_id:
-            #         continue
-            #     else:
-            #         chassis_idx = counter 
-            #         wrist_idx = counter + 1
-            #         x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
-            #         x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
-            #         counter += 2
- 
+            for i in range(NUM_ROBOTS):
+                if i == robot_id:
+                    continue
+                else:
+                    chassis_idx = counter 
+                    wrist_idx = counter + 1
+                    x_obsts[chassis_idx] = T_W_chassis_robots[i][:3,3].tolist()
+                    x_obsts[wrist_idx] = T_W_wrist_robots[i][:3,3].tolist()
+                    counter += 2
+
             if timestep%PLANNER_PERIOD == 0:
                 if success_rate_per_robot[robot_id] == 0:
                     start_time = time.perf_counter()
                     waypoint_list, solver_status_robots[robot_id] = planner.solve(joint_state=robot_states[robot_id], 
-                                                                                  T_W_Obj=T_W_Objects[robot_id],
-                                                                                  x_obsts=x_obsts[:NUM_OBST],
-                                                                                  r_obsts=r_obsts[:NUM_OBST]
-                                                                                  )
-       
+                                                                                T_W_Obj=T_W_Objects[robot_id],
+                                                                                x_obsts=x_obsts[:NUM_OBST],
+                                                                                r_obsts=r_obsts[:NUM_OBST]
+                                                                                )
                     end_time = time.perf_counter()
                     # Log data
                     evaluation_data.record_computational_time_qp(end_time-start_time)
-
+                    # print("end_time-start_time: ", end_time-start_time)
+                    
                     if timestep == 0:
                         waypoints_list_robots[robot_id] = copy.deepcopy(waypoint_list)
                     else:
@@ -151,20 +152,12 @@ def run_dinova_example(n_steps,
                             waypoints_list_robots[robot_id] = np.expand_dims(waypoints_list_robots[robot_id][-1], axis=0)
 
                     if RENDER:
-                        # for i in range(len(waypoints_list_robots[robot_id])):
-                        #     pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
-                        pass
-                        # q_init_coll, q_init_free = planner.get_initial_guesses()
-                        # for i in range(q_init_coll.shape[0]):
-                        #     T_W_EEF = planner.compute_fk(q=q_init_coll[i])
-                        #     pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [robots_color[1]], 10, 2.0)
-                        # for i in range(q_init_free.shape[0]):
-                        #     T_W_EEF = planner.compute_fk(q=q_init_free[i])
-                        #     pybullet.addUserDebugPoints([T_W_EEF[:3, 3].tolist()], [robots_color[2]], 10, 2.0)
-                        # print(q_init_coll.shape)
+                        for i in range(len(waypoints_list_robots[robot_id])):
+                            pybullet.addUserDebugPoints([waypoints_list_robots[robot_id][i][:3, 3].tolist()], [robots_color[robot_id]], 10, 2.0)
+                    
+                    qp_status_rate.append(solver_status_robots[robot_id])
 
-                        
-                    print(f"Status: {solver_status_robots[robot_id]}")
+            # if success_rate_per_robot[robot_id] == 0:
             if waypoints_list_robots[robot_id] is None or len(waypoints_list_robots[robot_id]) == 0:
                 continue
             else:
@@ -202,20 +195,22 @@ def run_dinova_example(n_steps,
                 pybullet.addUserDebugLine(position, position + rotation_matrix[:, 2] * axis_length, [0, 0, 1], lineWidth=3, lifeTime=1.0)
 
         collision_flag = env.check_collisions()
+        evaluation_data.record_solver_success_rate(np.mean(qp_status_rate))
         if collision_flag == True:
             evaluation_data.record_success_rate(success=0.0)
             evaluation_data.record_collision_violation(collision_flag)
-            print("IF failed")
+
+            print("IF failed because of the collision violation")
             break
 
-        if success_rate_per_robot[0]==1:
+        if np.all(success_rate_per_robot):
             evaluation_data.record_success_rate(success=100.0)
             evaluation_data.record_time_to_goal(timestep, sim._dt)
             evaluation_data.record_collision_violation(collision_flag=False)
             print("IF succeeded")
             break         
 
-        # action = np.zeros(NUM_ROBOTS*NUM_DOF)
+
         ob, *_ = sim.step(action)
 
     sim.close()
@@ -223,7 +218,7 @@ def run_dinova_example(n_steps,
 
 def main(render=True, timesteps=2000):
     RENDER = render
-    NUM_ROBOTS = 2
+    NUM_ROBOTS = 1
     NUM_DOF = 11
     NUM_OBST = 3
     NUM_TIMESTEPS = timesteps

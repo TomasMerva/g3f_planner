@@ -7,5 +7,9 @@ build/CMakeCache.txt
 build/Makefile
 examples/evaluation/results/**
 
+examples/evaluation/dinovas_init_guess
+examples/example_g3f_lininit.py
+examples/example_g3f_zeroinit.py
+
 !examples/evaluation/results/.gitkeep
 

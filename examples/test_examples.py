@@ -18,13 +18,13 @@ def blueprint_test(test_main):
     assert isinstance(history, dict)
 
 def test_deadlock_resolution():
-    from examples.example_deadlock_resolution import main
+    from example_prf_dinovas import main
     blueprint_test(main)
 
 def test_rgf():
-    from examples.example_rgf_dinovas import main
+    from example_g3f_dinovas import main
     blueprint_test(main)
 
 def test_vanilla_fabrics():
-    from examples.example_vanilla_fabrics import main
+    from example_gf_dinovas import main
     blueprint_test(main)

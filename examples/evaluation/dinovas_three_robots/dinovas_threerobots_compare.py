@@ -19,20 +19,16 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.append(parent_dir)
 
 from dinovas_pybullet_env import Environment
-# from evaluation.dinovas_3robots.example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
-# from evaluation.dinovas_3robots.example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
-# from evaluation.dinovas_3robots.example_rgf_dinovas import run_dinova_example as gomp_dinova_example
 from evaluation.record_data import RecordData, EvaluationDataStructure
 
-from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
-from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
-from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
-from example_rgf_zeroinit import run_dinova_example as qp_zero_dinova_example
-from example_rgf_lininit import run_dinova_example as qp_lin_dinova_example
+from example_prf_dinovas import run_dinova_example as deadlock_dinova_example
+from example_gf_dinovas import run_dinova_example as fabrics_dinova_example
+from example_g3f_dinovas import run_dinova_example as gomp_dinova_example
+
 
 
 class ComparisonDinovas():
-    def __init__(self, n_runs=2,  cases= ["IF" ,"GF", "RF"], n_steps_per_run=1000):
+    def __init__(self, n_runs=2,  cases= ["G3F" ,"GF", "PRF"], n_steps_per_run=1000):
         self._scenario_name = "dinovas_three_robots"
         self.nr_robots = 3
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
@@ -52,7 +48,7 @@ class ComparisonDinovas():
 
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
         self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics.yaml"))
-        self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_if_10obst.yaml"))
+        self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_g3f_10obst.yaml"))
 
     def create_environment(self):
         # --- create environment ---#
@@ -157,7 +153,7 @@ class ComparisonDinovas():
         return np.asarray(points)
 
     def run_i(self, run_id, case="test", env=None):
-        if case == "IF":
+        if case == "G3F":
             self.results[run_id][case]  = gomp_dinova_example(
                                             n_steps=self.n_steps_per_run, 
                                             dof=self.dof, 
@@ -174,7 +170,7 @@ class ComparisonDinovas():
                                                                 n_robots=self.nr_robots,
                                                                 env=env,
                                                                 stopping_tolerance=self._stopping_tolerance)
-        elif case == "RF":
+        elif case == "PRF":
             self.results[run_id][case] = deadlock_dinova_example(
                                                 n_steps=self.n_steps_per_run, 
                                                 dof=self.dof, 
@@ -187,29 +183,7 @@ class ComparisonDinovas():
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
         
-        elif case =="QPzero":
-            self.results[run_id][case] =  qp_zero_dinova_example(n_steps=self.n_steps_per_run, 
-                                    dof=self.dof, 
-                                    n_robots=self.nr_robots, 
-                                    gomp_config_file=self._gomp_config_file,
-                                    env=env, 
-                                    nr_obst=self._num_obst,
-                                    render=self._render,
-                                    stopping_tolerance=self._stopping_tolerance
-                                    )     
         
-        elif case =="QPlin":
-            self.results[run_id][case] =  qp_lin_dinova_example(n_steps=self.n_steps_per_run, 
-                                dof=self.dof, 
-                                n_robots=self.nr_robots, 
-                                gomp_config_file=self._gomp_config_file,
-                                env=env, 
-                                nr_obst=self._num_obst,
-                                render=self._render,
-                                stopping_tolerance=self._stopping_tolerance
-                                )  
-      
-
     def run_comparison(self, render, LOAD_SCENARIO=False, SAVE_DATA=False):
         self._render = render
         for i_run in tqdm(range(self.n_runs)):
@@ -262,7 +236,7 @@ class ComparisonDinovas():
         print(latextable.draw_latex(table))
       
 
-def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save_data=True):
+def main(render=True, n_runs=20, cases= ["G3F" ,"GF", "PRF"], timesteps=5000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps, cases=cases)
@@ -276,8 +250,8 @@ if __name__ == "__main__":
     main(render=False, 
          n_runs=20, 
          timesteps=5000, 
-         cases=["IF","GF", "RF"], # ,"GF", "RF"
-         save_data=True)
+         cases=["G3F", "GF", "PRF"], # ,"GF", "RF"
+         save_data=False)
 
 
 

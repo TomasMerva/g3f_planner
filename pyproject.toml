@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "fabrics_rollouts"
-version = "0.3.0"
+name = "g3f_planner"
+version = "0.1.0"
 description = ""
-authors = ["Tomas Merva"]
+authors = ["Tomas Merva", "Saray Bakker"]
 readme = "README.md"
 homepage = "https://github.com/TomasMerva/grasp_fabrics"
 repository = "https://github.com/TomasMerva/grasp_fabrics"
@@ -12,12 +12,11 @@ python = ">=3.8, <3.10"
 fabrics = "<0.9.6"
 robotmodels = { git = "https://github.com/maxspahn/robotmodels.git"}
 urdfenvs = "^0.9.13"
-#pytorch_kinematics = "^0.6.1"
-grasp_planning =">=0.6"
 osqp = ">=0.6.5"
 texttable = "^1.7.0"
 latextable = "^1.0.1"
 tqdm = "^4.66.5"
+casadi = "3.6.6"
 
 [build-system]
 requires = ["poetry-core"]
