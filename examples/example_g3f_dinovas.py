@@ -219,17 +219,23 @@ def main(render=True, timesteps=5000):
     RENDER = render
     NUM_ROBOTS = 2
     NUM_DOF = 11
-    NUM_OBST = 3
+    NUM_OBST = 6
     NUM_TIMESTEPS = timesteps
 
     #Read config file for Planner
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(current_script_dir, '..', 'config/dinova_config_g3f_3obst.yaml')
+    config_path = os.path.join(current_script_dir, '..', 'config/dinova_config_g3f_6obst.yaml')
     CONFIG_FILE_PATH_GOMP = os.path.normpath(config_path)
+    FABRICS_CONFIG_FILE = os.path.normpath(os.path.join(current_script_dir,  '..', "config/dinova_config_fabrics.yaml"))
 
     # Environment
-    env = Environment()
-    env.initialize(render=RENDER, nr_robots=NUM_ROBOTS)
+    home_config = np.array([[-0.75, 5, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9],
+                            [0.75, 5, -np.pi / 2, 0, 0, 1.54, 0, 0, 0, 0.9, -0.9]])
+
+    env = Environment(config_file=FABRICS_CONFIG_FILE)
+    env.initialize(render=RENDER, 
+                   nr_robots=NUM_ROBOTS, 
+                   home_config=home_config)
     run_dinova_example(n_steps=NUM_TIMESTEPS,
                        dof=NUM_DOF,
                        n_robots=NUM_ROBOTS,
