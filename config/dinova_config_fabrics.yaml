@@ -26,12 +26,12 @@ problem:
         radius: 0.1
       obstacle5:
         type: sphere
-        position: [-10.3, -0.3, 0.3]
-        radius: 0.15
+        position: [0.2, 2.2, 0.1]
+        radius: 0.5
       obstacle6:
         type: sphere
-        position: [-10.3, -0.3, 0.3]
-        radius: 0.15
+        position: [-0.7, 3.0, 0.]
+        radius: 0.3
       obstacle7:
         type: sphere
         position: [10.5, 1.3, 0.3]

@@ -18,20 +18,20 @@ problem:
         radius: 0.2
       obstacle3: # table1
         type: sphere
-        position: [-1.5, 0.0, 0.0]
+        position: [0.0, 0.0, -0.05]
         radius: 0.25
-      obstacle4: # static obst1
+      obstacle4: # table1 top
         type: sphere
-        position:  [-10.3, -0.3, 0.3]
-        radius: 0.25
-      obstacle5: # static obst2
+        position: [0.0, 0.0, 0.3]
+        radius: 0.1
+      obstacle5:
         type: sphere
-        position:  [-10.3, -0.3, 0.3]
-        radius: 0.25
-      obstacle6: # static obst2
+        position: [0.5, 1.5, 0.3]
+        radius: 0.5
+      obstacle6:
         type: sphere
-        position:  [-10.3, -0.3, 0.3]
-        radius: 0.25
+        position: [-0.5, 2.5, 0.3]
+        radius: 0.3
   goal:
     goal_definition:
       subgoal0:
@@ -110,13 +110,13 @@ problem:
     self_collision_pairs: {}
 fabrics:
   limit_geometry: -0.1 / (x ** 1) * xdot ** 2 #-1.0 / (x ** 1) * xdot ** 2
-  limit_finsler: 1.0/(x**2) * xdot**2 #* (-0.5 * (ca.sign(xdot) - 1)) 
+  limit_finsler: 1.0/(x**2)  * xdot**2 #* (-0.5 * (ca.sign(xdot) - 1))
   collision_geometry: -0.1 / (x ** 1) * xdot ** 2 #-0.2 / (x ** 1) * xdot ** 2
   collision_finsler:  0.1/(x**2) * xdot**2 #0.2/(x**2) * (-0.5 * (ca.sign(xdot) - 1)) * xdot ** 2
-  geometry_plane_constraint: -0.2 / (x ** 1)  * xdot ** 2 #* (-0.5 * (ca.sign(xdot) - 1))
+  geometry_plane_constraint: -0.2 / (x ** 1) * xdot ** 2 #* (-0.5 * (ca.sign(xdot) - 1)) 
   finsler_plane_constraint: 0.2/(x**2) * xdot**2
 g3f:
-  n_waypoints : 10
+  n_waypoints : 5
   collision_links : ["chassis_link", "arm_upper_wrist_link"]
   collision_link_radius : [0.65, 0.2]
   rollout_dt : 0.05
@@ -125,5 +125,5 @@ g3f:
   alpha_filter: 0.7
   initial_grasp_roll_deg : 90
   verbose: False
-  n_optim_steps : 2
+  n_optim_steps : 5
   fabrics_lib : "libfabrics_controller_6obst.so"
