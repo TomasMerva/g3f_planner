@@ -21,7 +21,7 @@ def test_deadlock_resolution():
     from example_prf_dinovas import main
     blueprint_test(main)
 
-def test_rgf():
+def test_g3f():
     from example_g3f_dinovas import main
     blueprint_test(main)
 
