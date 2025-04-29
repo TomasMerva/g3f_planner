@@ -1,7 +1,7 @@
 # Globally-Guided Geometric Fabrics
 Implementation of Globally-Guided Geometric Fabrics presented in our paper **"Globally-Guided Geometric Fabrics for Reactive Mobile Manipulation in Dynamic Environments"**
 
-TODO: Add paper teaser image
+[![](assets/paper_teaser.png)](https://ieeexplore.ieee.org/abstract/document/10967245/)
 
 Mobile manipulators operating in dynamic environments shared with humans and robots must adapt in
 real time to environmental changes to complete their tasks effectively. While global planning methods are effective at
@@ -21,9 +21,17 @@ A **project page** showcasing the presented approach can be found [here](https:/
 If you found this repository useful, please consider citing the associated paper below:
 
 ```bash
-TODO:add_bibtex
+@article{merva2025globally,
+  title={Globally-Guided Geometric Fabrics for Reactive Mobile Manipulation in Dynamic Environments},
+  author={Merva, Tomas and Bakker, Saray and Spahn, Max and Zhao, Danning and Virgala, Ivan and Alonso-Mora, Javier},
+  journal={IEEE Robotics and Automation Letters},
+  year={2025},
+  publisher={IEEE}
+}
 ```
 
+## Teaser
+<img src="assets/video_crossover.gif" alt="2 Robots applying G3F" height="300">
 
 
 ## Build
