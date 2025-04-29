@@ -45,7 +45,7 @@ You can automatically generate C++ code for a custom fabrics controller using th
 The precompiled library 
 
 ### Virtual environment (advised)
-You can install the necessary dependencies using [poetry](https://python-poetry.org/docs/) virtual environment. After installing poetry, move into `g3f_planner` and run:
+You can install the necessary dependencies using [poetry](https://python-poetry.org/docs/) virtual environment. After installing poetry, run the following command:
 ```bash
 poetry install
 ```

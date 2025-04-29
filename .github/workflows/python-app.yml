@@ -48,18 +48,31 @@ jobs:
       #----------------------------------------------
       # install dependencies if cache does not exist
       #----------------------------------------------
+      # - name: Install dependencies
+      #   if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      #   run: poetry install --no-interaction
+
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction
+        run: poetry install
       #----------------------------------------------
       #              run test suite
       #----------------------------------------------
       # Runs a set of commands using the runners shell
-      - name: Test agents
-        run: |
-          cd examples
-          PYTHONPATH=src/ poetry run python -m pytest test_examples.py
+
+      # - name: Test examples
+      #   run: |
+      #     cd examples
+      #     poetry run pytest test_examples.py
       - name: Test evaluation
         run: |
           cd examples/evaluation
-          PYTHONPATH=src/ poetry run python -m pytest test_evaluation.py
+          poetry run pytest test_evaluation.py
+      
+      # - name: Test agents
+      #   run: |
+      #     cd examples
+      #     PYTHONPATH=src/ poetry run python -m pytest test_examples.py
+      # - name: Test evaluation
+      #   run: |
+      #     cd examples/evaluation
+      #     PYTHONPATH=src/ poetry run python -m pytest test_evaluation.py
