@@ -60,19 +60,18 @@ jobs:
       # Runs a set of commands using the runners shell
 
       # - name: Test examples
-      #   run: |
-      #     cd examples
-      #     poetry run pytest test_examples.py
+      #   working-directory: cd examples
+      #   run: poetry run pytest test_examples.py
+
+      # - name: Test evaluation
+      #   working-directory: examples/evaluation
+      #   run: PYTHONPATH=src/  poetry run pytest test_evaluation.py
+      
+      - name: Test agents
+        run: |
+          cd examples
+          PYTHONPATH=src/ poetry run python -m pytest test_examples.py
       - name: Test evaluation
         run: |
           cd examples/evaluation
-          poetry run pytest test_evaluation.py
-      
-      # - name: Test agents
-      #   run: |
-      #     cd examples
-      #     PYTHONPATH=src/ poetry run python -m pytest test_examples.py
-      # - name: Test evaluation
-      #   run: |
-      #     cd examples/evaluation
-      #     PYTHONPATH=src/ poetry run python -m pytest test_evaluation.py
+          PYTHONPATH=src/ poetry run python -m pytest test_evaluation.py
