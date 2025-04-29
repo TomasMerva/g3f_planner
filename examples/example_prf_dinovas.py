@@ -12,7 +12,6 @@ from g3f_planner_dinova import G3F_Planner
 from fabrics_planner import Fabrics
 from g3f_planner import ReferenceTracker
 from tqdm import tqdm
-
 from evaluation.record_data import RecordData
 
 def transformation2dict(T : np.array) -> Dict:
