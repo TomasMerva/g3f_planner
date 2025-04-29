@@ -65,7 +65,7 @@ jobs:
       #     poetry run pytest test_examples.py
       - name: Test evaluation
         working-directory: examples/evaluation
-        run: PYTHONPATH=../../ poetry run pytest test_evaluation.py
+        run: PYTHONPATH=src/  poetry run pytest test_evaluation.py
       
       # - name: Test agents
       #   run: |
