@@ -11,7 +11,7 @@ def blueprint_test_evaluation(test_main):
     """
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        history = test_main(render=False, n_runs=1, timesteps=200, save_data=False, cases=["IF","GF", "RF"],)
+        history = test_main(render=False, n_runs=1, timesteps=200, save_data=False, cases=["G3F","GF", "PRF"],)
     assert isinstance(history, dict)
 
 def test_evaluation_two_tables():

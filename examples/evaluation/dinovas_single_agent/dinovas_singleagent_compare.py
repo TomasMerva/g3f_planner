@@ -23,12 +23,13 @@ sys.path.append(parent_dir)
 from dinovas_pybullet_env import Environment
 from evaluation.record_data import RecordData, EvaluationDataStructure
 
-from evaluation.dinovas_single_agent.example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
+from evaluation.dinovas_single_agent.example_prf_dinova import run_dinova_example as deadlock_dinova_example
 from evaluation.dinovas_single_agent.example_gf_dinova import run_dinova_example as fabrics_dinova_example
-from evaluation.dinovas_single_agent.example_rgf_dinova import run_dinova_example as gomp_dinova_example
+from evaluation.dinovas_single_agent.example_g3f_dinova import run_dinova_example as gomp_dinova_example
+
 
 class ComparisonDinovas():
-    def __init__(self, n_runs=2, cases= ["IF" ,"GF", "RF"], n_steps_per_run=1000):
+    def __init__(self, n_runs=2, cases= ["G3F" ,"GF", "PRF"], n_steps_per_run=1000):
         self._scenario_name = "dinovas_single_agent"
         self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
@@ -48,7 +49,7 @@ class ComparisonDinovas():
 
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
         self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics.yaml"))
-        self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_if_5obst.yaml"))
+        self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_g3f_5obst.yaml"))
 
     def create_environment(self):
         # --- create environment ---#
@@ -141,7 +142,7 @@ class ComparisonDinovas():
 
     def run_i(self, run_id, case="test", env=None):
         # --- run example dinovas --- #
-        if case == "IF":
+        if case == "G3F":
             self.results[run_id][case]  = gomp_dinova_example(
                                             n_steps=self.n_steps_per_run, 
                                             dof=self.dof, 
@@ -160,7 +161,7 @@ class ComparisonDinovas():
                                             env=env,
                                             stopping_tolerance=self._stopping_tolerance
                                             )
-        elif case == "RF":
+        elif case == "PRF":
             self.results[run_id][case] = deadlock_dinova_example(
                                                 n_steps=self.n_steps_per_run, 
                                                 dof=self.dof, 
@@ -169,7 +170,6 @@ class ComparisonDinovas():
                                                 env=env,
                                                 stopping_tolerance=self._stopping_tolerance
                                                 )
-                
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
       
@@ -206,7 +206,7 @@ class ComparisonDinovas():
     def table_results(self):    
         # --- create and plot table --- #
         rows = []
-        title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "IF Computation time[s]", "Collision-rate"]
+        title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "IF Computation time[s]", "Collision-rate", "QP success rate [\%]"]
         nr_column = len(title_row)
         rows.append(title_row)
         for case in self.cases:
@@ -216,7 +216,7 @@ class ComparisonDinovas():
                          str(np.round(np.nanmean(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)), decimals=6)),
                          str(np.round(np.nanmean(np.concatenate([entry[case].computation_time_qp for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time_qp for entry in self.results], axis=0)), decimals=6)),
                          str(np.round(np.sum([entry[case].collision for entry in self.results]) / self.n_runs, decimals=1)),
-                         
+                         str(np.round(np.nanmean(np.concatenate([entry[case].solver_success_rate for entry in self.results], axis=0)),decimals=6))  + " $\%$ ",
                          ])
             
         table = Texttable()
@@ -227,7 +227,7 @@ class ComparisonDinovas():
         print(latextable.draw_latex(table))
 
 
-def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save_data=True):
+def main(render=True, n_runs=20, cases= ["G3F" ,"GF", "PRF"], timesteps=5000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps, cases=cases)
@@ -241,8 +241,8 @@ if __name__ == "__main__":
     main(render=False, 
          n_runs=20, 
          timesteps=5000, 
-         cases=["IF","GF", "RF"], # ,"GF", "RF"
-         save_data=True)
+         cases=["G3F", "GF", "PRF"],
+         save_data=False)
 
 
 

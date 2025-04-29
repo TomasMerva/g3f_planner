@@ -165,7 +165,6 @@ class Environment():
             table_pos = self.table_pos
             z_table = self.z_table
             table_poses = self.table_poses[:self.n_robots]
-
             if self._objects_pose_noise is None:
                 objects_pos = [
                     [table_poses[0][0] - 0.05, table_poses[0][1] + 0.1, z_table],
@@ -202,10 +201,10 @@ class Environment():
             
             if self._objects_pose_noise is None:
                 objects_pos = [
-                    [table_pos[0]-0.05, table_pos[1]+0.1, z_table],
-                    [table_pos[0]+0.05, table_pos[1]+0.1, z_table],
-                    [table_pos[0]-0.05, table_pos[1]-0.1, z_table],
-                    [table_pos[0]+0.05, table_pos[1]-0.1, z_table],
+                    [table_pos[0]-0.1, table_pos[1]+0.2, z_table],
+                    [table_pos[0]+0.1, table_pos[1]+0.2, z_table],
+                    [table_pos[0]-0.1, table_pos[1]-0.2, z_table],
+                    [table_pos[0]+0.1, table_pos[1]-0.2, z_table],
                 ]
             else:
                 objects_pos = [

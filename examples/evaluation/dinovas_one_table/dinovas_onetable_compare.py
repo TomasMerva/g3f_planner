@@ -9,11 +9,8 @@ from texttable import Texttable
 import latextable
 import copy
 import pickle
-import pybullet
 import random
-import time
 from tqdm import tqdm
-import math
 
 import sys
 import os
@@ -22,15 +19,13 @@ sys.path.append(parent_dir)
 
 from dinovas_pybullet_env import Environment
 from evaluation.record_data import RecordData, EvaluationDataStructure
-# from evaluation.dinovas_static.example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
-# from evaluation.dinovas_static.example_gf_dinovas import run_dinova_example as fabrics_dinova_example
-# from evaluation.dinovas_static.example_rgf_dinovas import run_dinova_example as gomp_dinova_example
-from example_rgf_dinovas import run_dinova_example as gomp_dinova_example
-from example_vanilla_fabrics import run_dinova_example as fabrics_dinova_example
-from example_deadlock_resolution import run_dinova_example as deadlock_dinova_example
+from example_g3f_dinovas import run_dinova_example as gomp_dinova_example
+from example_gf_dinovas import run_dinova_example as fabrics_dinova_example
+from example_prf_dinovas import run_dinova_example as deadlock_dinova_example
+
 
 class ComparisonDinovas():
-    def __init__(self, n_runs=2, cases= ["IF" ,"GF", "RF"], n_steps_per_run=1000):
+    def __init__(self, n_runs=2, cases= ["G3F" ,"GF", "PRF"], n_steps_per_run=1000):
         self._scenario_name = "dinovas_one_table"
         self.nr_robots = 2
         assert self.nr_robots <= 4, "Large number of robots. Not enough urdf files,..."
@@ -51,7 +46,7 @@ class ComparisonDinovas():
 
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
         self._fabrics_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_fabrics.yaml"))
-        self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_if_6obst.yaml"))
+        self._gomp_config_file = os.path.normpath(os.path.join(current_script_dir, "dinova_config_g3f_6obst.yaml"))
         
 
     def create_environment(self):
@@ -133,7 +128,7 @@ class ComparisonDinovas():
             new_point = (round(random.uniform(x_range[0], x_range[1]), 5),
                          round(random.uniform(y_range[0], y_range[1]), 5))
             
-            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.2 for p in points):
+            if all(self.euclidean_distance(np.array(new_point), np.array(p)) > 0.25 for p in points):
                 points.append(new_point)
             
             safety_counter += 1
@@ -147,7 +142,7 @@ class ComparisonDinovas():
 
     def run_i(self, run_id, case="test", env=None):
         # --- run example dinovas --- #
-        if case == "IF":
+        if case == "G3F":
             self.results[run_id][case]  = gomp_dinova_example(
                                             n_steps=self.n_steps_per_run, 
                                             dof=self.dof, 
@@ -166,7 +161,7 @@ class ComparisonDinovas():
                                             env=env,
                                             stopping_tolerance=self._stopping_tolerance
                                             )
-        elif case == "RF":
+        elif case == "PRF":
             self.results[run_id][case] = deadlock_dinova_example(
                                                 n_steps=self.n_steps_per_run, 
                                                 dof=self.dof, 
@@ -177,6 +172,7 @@ class ComparisonDinovas():
                                                 )
         elif case == "MPC":
             raise ValueError("MPC is not implemented.")
+        
       
 
     def run_comparison(self, render, LOAD_SCENARIO=False, SAVE_DATA=False):
@@ -200,6 +196,7 @@ class ComparisonDinovas():
          
         if SAVE_DATA:
             pickle_file_path = '../results/' + self._scenario_name
+            os.makedirs(os.path.dirname(pickle_file_path+"_env.pickle"), exist_ok=True)
             with open(pickle_file_path+"_env.pickle", 'wb') as handle:
                 pickle.dump(self.scenarios, handle, protocol=pickle.HIGHEST_PROTOCOL)
             with open(pickle_file_path + '_results.pickle', 'wb') as handle:
@@ -211,7 +208,7 @@ class ComparisonDinovas():
     def table_results(self):
         # --- create and plot table --- #
         rows = []
-        title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "IF Computation time[s]", "Collision-rate"]
+        title_row = [' ', "Success rate [\%]", 'Time-to-Success [s]', "Computation time[s]", "IF Computation time[s]", "Collision-rate", "QP success rate [\%]"]
         nr_column = len(title_row)
         rows.append(title_row)
         for case in self.cases:
@@ -221,7 +218,7 @@ class ComparisonDinovas():
                          str(np.round(np.nanmean(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time for entry in self.results], axis=0)), decimals=6)),
                          str(np.round(np.nanmean(np.concatenate([entry[case].computation_time_qp for entry in self.results], axis=0)),decimals=6)) + " $\pm$ " + str(np.round(np.nanstd(np.concatenate([entry[case].computation_time_qp for entry in self.results], axis=0)), decimals=6)),
                          str(np.round(np.sum([entry[case].collision for entry in self.results]) / self.n_runs, decimals=1)),
-                         
+                         str(np.round(np.nanmean(np.concatenate([entry[case].solver_success_rate for entry in self.results], axis=0)),decimals=6))  + " $\%$ ",
                          ])
             
         table = Texttable()
@@ -232,7 +229,7 @@ class ComparisonDinovas():
         print(latextable.draw_latex(table))
 
 
-def main(render=True, n_runs=20, cases= ["IF" ,"GF", "RF"], timesteps=5000, save_data=True):
+def main(render=True, n_runs=20, cases= ["G3F" ,"GF", "PRF"], timesteps=5000, save_data=True):
     random.seed(0)
     np.random.seed(0)
     comparison_dinovas = ComparisonDinovas(n_runs=n_runs, n_steps_per_run=timesteps, cases=cases)
@@ -246,5 +243,5 @@ if __name__ == "__main__":
     main(render=False, 
          n_runs=20, 
          timesteps=5000, 
-         cases=["IF","GF", "RF"], # ,"GF", "RF"
-         save_data=True)
+         cases=["G3F","GF", "PRF"], # 
+         save_data=False)

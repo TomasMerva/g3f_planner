@@ -1,6 +1,4 @@
 import numpy as np
-import random
-import time
 from dataclasses import dataclass, field
 
 @dataclass
@@ -11,6 +9,7 @@ class EvaluationDataStructure:
     computation_time: list = field(default_factory=list)
     computation_time_qp : list = field(default_factory=list)
     collision_error : list = field(default_factory=list)
+    solver_success_rate : list = field(default_factory=list)
 
 
 class RecordData():
@@ -40,6 +39,9 @@ class RecordData():
     
     def record_collision_error(self, error):
         self._result.collision_error.append(error)
+
+    def record_solver_success_rate(self, rate):
+        self._result.solver_success_rate.append(rate)
 
 
 
