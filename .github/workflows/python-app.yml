@@ -59,10 +59,10 @@ jobs:
       #----------------------------------------------
       # Runs a set of commands using the runners shell
 
-      # - name: Test examples
-      #   run: |
-      #     cd examples
-      #     poetry run pytest test_examples.py
+      - name: Test examples
+        working-directory: cd examples
+        run: poetry run pytest test_examples.py
+        
       - name: Test evaluation
         working-directory: examples/evaluation
         run: PYTHONPATH=src/  poetry run pytest test_evaluation.py
