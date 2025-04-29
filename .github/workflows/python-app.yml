@@ -64,9 +64,8 @@ jobs:
       #     cd examples
       #     poetry run pytest test_examples.py
       - name: Test evaluation
-        run: |
-          cd examples/evaluation
-          poetry run pytest test_evaluation.py
+        working-directory: examples/evaluation
+        run: PYTHONPATH=../../ poetry run pytest test_evaluation.py
       
       # - name: Test agents
       #   run: |
